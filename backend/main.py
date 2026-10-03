@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
@@ -12,10 +12,23 @@ def read_root():
     return {"message": "Primary Care EMR API"}
 
 @app.get("/patients")
-def read_patients():
+def read_patients(search: str | None = None):
     with Session(engine) as session:
+        query = select(Patient)
+
+        if search:
+            search_term = f"%{search.strip()}%"
+
+            query = query.where(
+                or_(
+                    Patient.first_name.ilike(search_term),
+                    Patient.middle_name.ilike(search_term),
+                    Patient.last_name.ilike(search_term),
+                )
+            )
+
         patients = session.scalars(
-            select(Patient).order_by(
+            query.order_by(
                 Patient.last_name,
                 Patient.first_name,
                 Patient.date_of_birth,
