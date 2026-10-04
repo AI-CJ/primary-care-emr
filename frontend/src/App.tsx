@@ -26,6 +26,15 @@ function App() {
     setPatients(data)
   }
 
+  async function openPatient(patientId: number) {
+    const response = await fetch(
+      `http://127.0.0.1:8000/patients/${patientId}`
+  )
+
+    const patient = await response.json()
+    setSelectedPatient(patient)
+  }
+
   if (selectedPatient) {
     return (
       <main className="chart-page">
@@ -119,7 +128,7 @@ function App() {
               <button
                 className="patient-result"
                 type="button"
-                onClick={() => setSelectedPatient(patient)}
+                onClick={() => openPatient(patient.id)}
               >
                 <span className="patient-name">
                   {patient.last_name}, {patient.first_name}
