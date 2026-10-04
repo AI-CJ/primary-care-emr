@@ -26,6 +26,68 @@ function App() {
     setPatients(data)
   }
 
+  if (selectedPatient) {
+    return (
+      <main className="chart-page">
+        <section className="patient-chart">
+          <button
+            className="back-button"
+            type="button"
+            onClick={() => setSelectedPatient(null)}
+          >
+            ← Back to patient search
+          </button>
+
+          <header className="patient-header">
+            <div>
+              <p className="eyebrow">Patient Overview</p>
+
+              <h1>
+                {selectedPatient.first_name}{' '}
+                {selectedPatient.middle_name &&
+                  `${selectedPatient.middle_name} `}
+                {selectedPatient.last_name}
+                {selectedPatient.suffix &&
+                  ` ${selectedPatient.suffix}`}
+              </h1>
+
+              <p className="patient-meta">
+                DOB {selectedPatient.date_of_birth}
+                {' · '}
+                {selectedPatient.pronouns ?? 'Pronouns not recorded'}
+                {' · '}
+                {selectedPatient.sex_at_birth ??
+                  'Sex at birth not recorded'}
+              </p>
+            </div>
+          </header>
+
+          <div className="overview-grid">
+            <section className="overview-card">
+              <h2>Problems</h2>
+              <p>No problems recorded yet.</p>
+            </section>
+
+            <section className="overview-card">
+              <h2>Medications</h2>
+              <p>No medications recorded yet.</p>
+            </section>
+
+            <section className="overview-card">
+              <h2>Allergies</h2>
+              <p>No allergies recorded yet.</p>
+            </section>
+
+            <section className="overview-card">
+              <h2>Vitals</h2>
+              <p>No vitals recorded yet.</p>
+            </section>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <main className="search-page">
       <section className="search-panel">
@@ -70,30 +132,6 @@ function App() {
             </li>
           ))}
         </ul>
-        {selectedPatient && (
-          <section className="patient-detail">
-            <h2>
-              {selectedPatient.first_name}{' '}
-              {selectedPatient.middle_name && `${selectedPatient.middle_name} `}
-              {selectedPatient.last_name}
-              {selectedPatient.suffix && ` ${selectedPatient.suffix}`}
-            </h2>
-
-            <p>
-              <strong>Date of birth:</strong> {selectedPatient.date_of_birth}
-            </p>
-
-            <p>
-              <strong>Pronouns:</strong>{' '}
-              {selectedPatient.pronouns ?? 'Not recorded'}
-            </p>
-
-            <p>
-              <strong>Sex at birth:</strong>{' '}
-              {selectedPatient.sex_at_birth ?? 'Not recorded'}
-            </p>
-          </section>
-        )}
       </section>
     </main>
   )
