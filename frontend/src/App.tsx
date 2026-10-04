@@ -4,12 +4,14 @@ import './App.css'
 type Patient = {
   id: number
   first_name: string
+  preferred_name: string | null
   middle_name: string | null
   last_name: string
   suffix: string | null
   date_of_birth: string
   pronouns: string | null
-  sex_at_birth: string | null
+  custom_pronouns: string | null
+  sex_at_birth: string
 }
 
 function App() {
@@ -53,6 +55,8 @@ function App() {
 
               <h1>
                 {selectedPatient.first_name}{' '}
+                {selectedPatient.preferred_name &&
+                  `(${selectedPatient.preferred_name}) `}
                 {selectedPatient.middle_name &&
                   `${selectedPatient.middle_name} `}
                 {selectedPatient.last_name}
@@ -132,6 +136,7 @@ function App() {
               >
                 <span className="patient-name">
                   {patient.last_name}, {patient.first_name}
+                  {patient.preferred_name && ` (${patient.preferred_name})`}
                 </span>
 
                 <span className="patient-dob">

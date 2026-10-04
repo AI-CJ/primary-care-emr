@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import engine
 from backend.models import Patient
+from backend.schemas import PatientCreate
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -47,15 +48,49 @@ def read_patients(search: str | None = None):
             {
                 "id": patient.id,
                 "first_name": patient.first_name,
+                "preferred_name": patient.preferred_name,
                 "middle_name": patient.middle_name,
                 "last_name": patient.last_name,
                 "suffix": patient.suffix,
                 "date_of_birth": patient.date_of_birth,
                 "pronouns": patient.pronouns,
+                "custom_pronouns": patient.custom_pronouns,
                 "sex_at_birth": patient.sex_at_birth,
             }
             for patient in patients
         ]
+
+@app.post("/patients", status_code=201)
+def create_patient(patient_data: PatientCreate):
+    patient = Patient(
+        first_name=patient_data.first_name,
+        preferred_name=patient_data.preferred_name,
+        middle_name=patient_data.middle_name,
+        last_name=patient_data.last_name,
+        suffix=patient_data.suffix,
+        date_of_birth=patient_data.date_of_birth,
+        pronouns=patient_data.pronouns,
+        custom_pronouns=patient_data.custom_pronouns,
+        sex_at_birth=patient_data.sex_at_birth,
+    )
+
+    with Session(engine) as session:
+        session.add(patient)
+        session.commit()
+        session.refresh(patient)
+
+        return {
+            "id": patient.id,
+            "first_name": patient.first_name,
+            "preferred_name": patient.preferred_name,
+            "middle_name": patient.middle_name,
+            "last_name": patient.last_name,
+            "suffix": patient.suffix,
+            "date_of_birth": patient.date_of_birth,
+            "pronouns": patient.pronouns,
+            "custom_pronouns": patient.custom_pronouns,
+            "sex_at_birth": patient.sex_at_birth,
+        }
 
 @app.get("/patients/{patient_id}")
 def read_patient(patient_id: int):
@@ -71,10 +106,12 @@ def read_patient(patient_id: int):
         return {
             "id": patient.id,
             "first_name": patient.first_name,
+            "preferred_name": patient.preferred_name,
             "middle_name": patient.middle_name,
             "last_name": patient.last_name,
             "suffix": patient.suffix,
             "date_of_birth": patient.date_of_birth,
             "pronouns": patient.pronouns,
+            "custom_pronouns": patient.custom_pronouns,
             "sex_at_birth": patient.sex_at_birth,
         }
