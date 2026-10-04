@@ -1,75 +1,158 @@
-import { useState, type FormEvent } from 'react'
+import {
+  useState,
+  type FormEvent,
+} from 'react'
 
-type Patient = {
-  id: number
-  first_name: string
-  preferred_name: string | null
-  middle_name: string | null
-  last_name: string
-  suffix: string | null
-  date_of_birth: string
-  pronouns: string | null
-  custom_pronouns: string | null
-  sex_at_birth: string
-}
+import {
+  API_BASE_URL,
+  getApiErrorMessage,
+} from '../api'
+
+import type {
+  Patient,
+  PatientInput,
+  Pronouns,
+  SexAtBirth,
+} from '../types'
+
 
 type PatientFormProps = {
   patient?: Patient
   onPatientSaved: (patientId: number) => void
 }
 
+type PronounSelection =
+  Exclude<Pronouns, null> | ''
+
+
 function PatientForm({
   patient,
   onPatientSaved,
 }: PatientFormProps) {
-  const [pronouns, setPronouns] = useState(
-    patient?.pronouns ?? ''
-  )
+  const [pronouns, setPronouns] =
+    useState<PronounSelection>(
+      patient?.pronouns ?? ''
+    )
+
+  const [isSaving, setIsSaving] =
+    useState(false)
+
+  const [error, setError] =
+    useState<string | null>(null)
+
+
+  function optionalText(
+    formData: FormData,
+    name: string,
+  ): string | null {
+    const value = String(
+      formData.get(name) ?? ''
+    ).trim()
+
+    return value || null
+  }
+
 
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault()
 
-    const formData = new FormData(event.currentTarget)
+    setError(null)
+    setIsSaving(true)
 
-    const patientData = {
-      first_name: formData.get('first_name'),
-      preferred_name:
-        formData.get('preferred_name') || null,
-      middle_name:
-        formData.get('middle_name') || null,
-      last_name: formData.get('last_name'),
-      suffix: formData.get('suffix') || null,
-      date_of_birth: formData.get('date_of_birth'),
-      sex_at_birth: formData.get('sex_at_birth'),
-      pronouns: formData.get('pronouns') || null,
+    const formData =
+      new FormData(event.currentTarget)
+
+    const selectedPronouns =
+      optionalText(
+        formData,
+        'pronouns',
+      ) as Pronouns
+
+    const patientData: PatientInput = {
+      first_name: String(
+        formData.get('first_name') ?? ''
+      ).trim(),
+
+      preferred_name: optionalText(
+        formData,
+        'preferred_name',
+      ),
+
+      middle_name: optionalText(
+        formData,
+        'middle_name',
+      ),
+
+      last_name: String(
+        formData.get('last_name') ?? ''
+      ).trim(),
+
+      suffix: optionalText(
+        formData,
+        'suffix',
+      ),
+
+      date_of_birth: String(
+        formData.get('date_of_birth') ?? ''
+      ),
+
+      sex_at_birth: String(
+        formData.get('sex_at_birth') ?? ''
+      ) as SexAtBirth,
+
+      pronouns: selectedPronouns,
+
       custom_pronouns:
-        pronouns === 'other'
-          ? formData.get('custom_pronouns') || null
+        selectedPronouns === 'other'
+          ? optionalText(
+              formData,
+              'custom_pronouns',
+            )
           : null,
     }
 
     const url = patient
-      ? `http://127.0.0.1:8000/patients/${patient.id}`
-      : 'http://127.0.0.1:8000/patients'
+      ? `${API_BASE_URL}/patients/${patient.id}`
+      : `${API_BASE_URL}/patients`
 
-    const response = await fetch(url, {
-      method: patient ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(patientData),
-    })
+    try {
+      const response = await fetch(url, {
+        method: patient ? 'PUT' : 'POST',
 
-    if (!response.ok) {
-      return
+        headers: {
+          'Content-Type': 'application/json',
+        },
+
+        body: JSON.stringify(
+          patientData
+        ),
+      })
+
+      if (!response.ok) {
+        setError(
+          await getApiErrorMessage(response)
+        )
+
+        return
+      }
+
+      const savedPatient: Patient =
+        await response.json()
+
+      onPatientSaved(savedPatient.id)
+    } catch (requestError) {
+      console.error(requestError)
+
+      setError(
+        'The server could not be reached. Try again.'
+      )
+    } finally {
+      setIsSaving(false)
     }
-
-    const savedPatient = await response.json()
-
-    onPatientSaved(savedPatient.id)
   }
+
 
   return (
     <form
@@ -84,9 +167,13 @@ function PatientForm({
             name="first_name"
             type="text"
             required
-            defaultValue={patient?.first_name ?? ''}
+            maxLength={100}
+            defaultValue={
+              patient?.first_name ?? ''
+            }
           />
         </label>
+
 
         <label className="form-field">
           <span>Preferred name</span>
@@ -94,11 +181,13 @@ function PatientForm({
           <input
             name="preferred_name"
             type="text"
+            maxLength={100}
             defaultValue={
               patient?.preferred_name ?? ''
             }
           />
         </label>
+
 
         <label className="form-field">
           <span>Middle name</span>
@@ -106,11 +195,13 @@ function PatientForm({
           <input
             name="middle_name"
             type="text"
+            maxLength={100}
             defaultValue={
               patient?.middle_name ?? ''
             }
           />
         </label>
+
 
         <label className="form-field">
           <span>Last name *</span>
@@ -119,9 +210,13 @@ function PatientForm({
             name="last_name"
             type="text"
             required
-            defaultValue={patient?.last_name ?? ''}
+            maxLength={100}
+            defaultValue={
+              patient?.last_name ?? ''
+            }
           />
         </label>
+
 
         <label className="form-field">
           <span>Suffix</span>
@@ -129,10 +224,14 @@ function PatientForm({
           <input
             name="suffix"
             type="text"
+            maxLength={20}
             placeholder="Jr., Sr., III..."
-            defaultValue={patient?.suffix ?? ''}
+            defaultValue={
+              patient?.suffix ?? ''
+            }
           />
         </label>
+
 
         <label className="form-field">
           <span>Date of birth *</span>
@@ -147,8 +246,11 @@ function PatientForm({
           />
         </label>
 
+
         <label className="form-field">
-          <span>Sex assigned at birth *</span>
+          <span>
+            Sex assigned at birth *
+          </span>
 
           <select
             name="sex_at_birth"
@@ -157,7 +259,10 @@ function PatientForm({
               patient?.sex_at_birth ?? ''
             }
           >
-            <option value="" disabled>
+            <option
+              value=""
+              disabled
+            >
               Select an option
             </option>
 
@@ -183,6 +288,7 @@ function PatientForm({
           </select>
         </label>
 
+
         <label className="form-field">
           <span>Pronouns</span>
 
@@ -190,7 +296,10 @@ function PatientForm({
             name="pronouns"
             value={pronouns}
             onChange={(event) =>
-              setPronouns(event.target.value)
+              setPronouns(
+                event.target
+                  .value as PronounSelection
+              )
             }
           >
             <option value="">
@@ -219,29 +328,52 @@ function PatientForm({
           </select>
         </label>
 
+
         {pronouns === 'other' && (
           <label className="form-field">
-            <span>Custom pronouns</span>
+            <span>
+              Custom pronouns *
+            </span>
 
             <input
               name="custom_pronouns"
               type="text"
+              required
+              maxLength={100}
               defaultValue={
-                patient?.custom_pronouns ?? ''
+                patient?.custom_pronouns ??
+                ''
               }
             />
           </label>
         )}
       </div>
 
+
+      {error && (
+        <p
+          className="form-error"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
+
+
       <button
         className="save-patient-button"
         type="submit"
+        disabled={isSaving}
       >
-        {patient ? 'Save Changes' : 'Save Patient'}
+        {isSaving
+          ? 'Saving...'
+          : patient
+            ? 'Save Changes'
+            : 'Save Patient'}
       </button>
     </form>
   )
 }
+
 
 export default PatientForm

@@ -1,51 +1,155 @@
 import { useState } from 'react'
+
 import './App.css'
+
+import {
+  API_BASE_URL,
+  getApiErrorMessage,
+} from './api'
+
 import PatientForm from './components/PatientForm'
 
-type Patient = {
-  id: number
-  first_name: string
-  preferred_name: string | null
-  middle_name: string | null
-  last_name: string
-  suffix: string | null
-  date_of_birth: string
-  pronouns: string | null
-  custom_pronouns: string | null
-  sex_at_birth: string
+import type { Patient } from './types'
+
+
+const sexAtBirthLabels: Record<
+  Patient['sex_at_birth'],
+  string
+> = {
+  female: 'Female',
+  male: 'Male',
+  intersex:
+    'Intersex / another sex variation',
+  unknown: 'Unknown',
+  prefer_not_to_answer:
+    'Prefer not to answer',
 }
 
+
+function patientPronouns(
+  patient: Patient,
+): string {
+  if (!patient.pronouns) {
+    return 'Pronouns not recorded'
+  }
+
+  if (patient.pronouns === 'other') {
+    return (
+      patient.custom_pronouns ??
+      'Other pronouns'
+    )
+  }
+
+  if (
+    patient.pronouns ===
+    'prefer_not_to_answer'
+  ) {
+    return 'Prefer not to answer'
+  }
+
+  return patient.pronouns
+}
+
+
 function App() {
-  const [search, setSearch] = useState('')
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [search, setSearch] =
+    useState('')
 
-  const [selectedPatient, setSelectedPatient] =
-    useState<Patient | null>(null)
+  const [patients, setPatients] =
+    useState<Patient[]>([])
 
-  const [isAddingPatient, setIsAddingPatient] =
+  const [
+    selectedPatient,
+    setSelectedPatient,
+  ] = useState<Patient | null>(null)
+
+  const [
+    isAddingPatient,
+    setIsAddingPatient,
+  ] = useState(false)
+
+  const [
+    isEditingPatient,
+    setIsEditingPatient,
+  ] = useState(false)
+
+  const [error, setError] =
+    useState<string | null>(null)
+
+  const [isSearching, setIsSearching] =
     useState(false)
 
-  const [isEditingPatient, setIsEditingPatient] =
+  const [hasSearched, setHasSearched] =
     useState(false)
+
 
   async function searchPatients() {
-    const response = await fetch(
-      `http://127.0.0.1:8000/patients?search=${encodeURIComponent(search)}`
-    )
+    setError(null)
+    setIsSearching(true)
+    setHasSearched(true)
 
-    const data = await response.json()
-    setPatients(data)
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/patients?search=${encodeURIComponent(
+          search
+        )}`
+      )
+
+      if (!response.ok) {
+        setError(
+          await getApiErrorMessage(response)
+        )
+
+        return
+      }
+
+      const data: Patient[] =
+        await response.json()
+
+      setPatients(data)
+    } catch (requestError) {
+      console.error(requestError)
+
+      setError(
+        'The server could not be reached. Try again.'
+      )
+    } finally {
+      setIsSearching(false)
+    }
   }
 
-  async function openPatient(patientId: number) {
-    const response = await fetch(
-      `http://127.0.0.1:8000/patients/${patientId}`
-    )
 
-    const patient = await response.json()
+  async function openPatient(
+    patientId: number,
+  ) {
+    setError(null)
 
-    setSelectedPatient(patient)
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/patients/${patientId}`
+      )
+
+      if (!response.ok) {
+        setError(
+          await getApiErrorMessage(response)
+        )
+
+        return
+      }
+
+      const patient: Patient =
+        await response.json()
+
+      setSelectedPatient(patient)
+    } catch (requestError) {
+      console.error(requestError)
+
+      setError(
+        'The patient record could not be opened.'
+      )
+    }
   }
+
 
   if (isAddingPatient) {
     return (
@@ -54,10 +158,13 @@ function App() {
           <button
             className="back-button"
             type="button"
-            onClick={() => setIsAddingPatient(false)}
+            onClick={() =>
+              setIsAddingPatient(false)
+            }
           >
             ← Back to patient search
           </button>
+
 
           <header className="patient-header">
             <div>
@@ -68,21 +175,25 @@ function App() {
               <h1>Add Patient</h1>
 
               <p className="patient-meta">
-                Create a new synthetic patient record.
+                Create a new synthetic patient
+                record.
               </p>
             </div>
           </header>
 
+
           <PatientForm
             onPatientSaved={(patientId) => {
               setIsAddingPatient(false)
-              openPatient(patientId)
+
+              void openPatient(patientId)
             }}
           />
         </section>
       </main>
     )
   }
+
 
   if (
     isEditingPatient &&
@@ -101,6 +212,7 @@ function App() {
             ← Back to patient overview
           </button>
 
+
           <header className="patient-header">
             <div>
               <p className="eyebrow">
@@ -115,17 +227,20 @@ function App() {
             </div>
           </header>
 
+
           <PatientForm
             patient={selectedPatient}
             onPatientSaved={(patientId) => {
               setIsEditingPatient(false)
-              openPatient(patientId)
+
+              void openPatient(patientId)
             }}
           />
         </section>
       </main>
     )
   }
+
 
   if (selectedPatient) {
     return (
@@ -141,11 +256,13 @@ function App() {
             ← Back to patient search
           </button>
 
+
           <header className="patient-header">
             <div>
               <p className="eyebrow">
                 Patient Overview
               </p>
+
 
               <h1>
                 {selectedPatient.first_name}{' '}
@@ -162,21 +279,27 @@ function App() {
                   ` ${selectedPatient.suffix}`}
               </h1>
 
+
               <p className="patient-meta">
-                DOB {selectedPatient.date_of_birth}
+                DOB{' '}
+                {selectedPatient.date_of_birth}
 
                 {' · '}
 
-                {selectedPatient.pronouns === 'other'
-                  ? selectedPatient.custom_pronouns ??
-                    'Other pronouns'
-                  : selectedPatient.pronouns ??
-                    'Pronouns not recorded'}
+                {patientPronouns(
+                  selectedPatient
+                )}
 
                 {' · '}
 
-                {selectedPatient.sex_at_birth}
+                {
+                  sexAtBirthLabels[
+                    selectedPatient
+                      .sex_at_birth
+                  ]
+                }
               </p>
+
 
               <button
                 className="add-patient-button"
@@ -189,6 +312,7 @@ function App() {
               </button>
             </div>
           </header>
+
 
           <div className="overview-grid">
             <section className="overview-card">
@@ -216,6 +340,7 @@ function App() {
     )
   }
 
+
   return (
     <main className="search-page">
       <section className="search-panel">
@@ -233,11 +358,13 @@ function App() {
           </button>
         </div>
 
+
         <form
           className="search-form"
           onSubmit={(event) => {
             event.preventDefault()
-            searchPatients()
+
+            void searchPatients()
           }}
         >
           <input
@@ -253,10 +380,34 @@ function App() {
           <button
             className="search-button"
             type="submit"
+            disabled={isSearching}
           >
-            Search
+            {isSearching
+              ? 'Searching...'
+              : 'Search'}
           </button>
         </form>
+
+
+        {error && (
+          <p
+            className="form-error"
+            role="alert"
+          >
+            {error}
+          </p>
+        )}
+
+
+        {hasSearched &&
+          !isSearching &&
+          !error &&
+          patients.length === 0 && (
+            <p className="empty-message">
+              No patients found.
+            </p>
+          )}
+
 
         <ul className="patient-list">
           {patients.map((patient) => (
@@ -264,9 +415,11 @@ function App() {
               <button
                 className="patient-result"
                 type="button"
-                onClick={() =>
-                  openPatient(patient.id)
-                }
+                onClick={() => {
+                  void openPatient(
+                    patient.id
+                  )
+                }}
               >
                 <span className="patient-name">
                   {patient.last_name},{' '}
@@ -287,5 +440,6 @@ function App() {
     </main>
   )
 }
+
 
 export default App

@@ -286,6 +286,27 @@
   outline-offset: 2px;
 }
 
+.form-error {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  color: #7a2525;
+  background: #fff1f1;
+  border: 1px solid #e8c4c4;
+  border-radius: 10px;
+  line-height: 1.5;
+}
+
+.empty-message {
+  margin: 24px 0 0;
+  color: var(--text-muted);
+}
+
+.save-patient-button:disabled,
+.search-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 /* Tablet / smaller screens */
 
 @media (max-width: 700px) {
