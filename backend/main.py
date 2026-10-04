@@ -92,6 +92,43 @@ def create_patient(patient_data: PatientCreate):
             "sex_at_birth": patient.sex_at_birth,
         }
 
+@app.put("/patients/{patient_id}")
+def update_patient(patient_id: int, patient_data: PatientCreate):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+
+        if patient is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Patient not found"
+            )
+
+        patient.first_name = patient_data.first_name
+        patient.preferred_name = patient_data.preferred_name
+        patient.middle_name = patient_data.middle_name
+        patient.last_name = patient_data.last_name
+        patient.suffix = patient_data.suffix
+        patient.date_of_birth = patient_data.date_of_birth
+        patient.pronouns = patient_data.pronouns
+        patient.custom_pronouns = patient_data.custom_pronouns
+        patient.sex_at_birth = patient_data.sex_at_birth
+
+        session.commit()
+        session.refresh(patient)
+
+        return {
+            "id": patient.id,
+            "first_name": patient.first_name,
+            "preferred_name": patient.preferred_name,
+            "middle_name": patient.middle_name,
+            "last_name": patient.last_name,
+            "suffix": patient.suffix,
+            "date_of_birth": patient.date_of_birth,
+            "pronouns": patient.pronouns,
+            "custom_pronouns": patient.custom_pronouns,
+            "sex_at_birth": patient.sex_at_birth,
+        }
+
 @app.get("/patients/{patient_id}")
 def read_patient(patient_id: int):
     with Session(engine) as session:
