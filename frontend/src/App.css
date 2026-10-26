@@ -506,6 +506,50 @@
   line-height: 1.5;
 }
 
+
+.vital-card {
+  grid-column: 1 / -1;
+}
+
+.vital-form {
+  display: grid;
+  gap: 16px;
+}
+
+.vital-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vital-form-actions .save-patient-button {
+  margin-top: 0;
+}
+
+.vital-list {
+  display: grid;
+  gap: 12px;
+}
+
+.vital-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.vital-row:first-child {
+  border-top: 0;
+}
+
+.vital-meta, .vital-notes {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
 /* Tablet / smaller screens */
 
 @media (max-width: 700px) {
@@ -603,6 +647,19 @@
   }
 
   .allergy-form-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .vital-row {
+    flex-direction: column;
+  }
+  .vital-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .vital-form-actions button {
     width: 100%;
   }
 }

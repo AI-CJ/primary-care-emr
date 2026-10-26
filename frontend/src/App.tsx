@@ -11,6 +11,7 @@ import AllergyList from './components/AllergyList'
 import MedicationList from './components/MedicationList'
 import PatientForm from './components/PatientForm'
 import ProblemList from './components/ProblemList'
+import VitalList from './components/VitalList'
 
 import type { Patient } from './types'
 
@@ -324,10 +325,7 @@ function App() {
 
             <AllergyList patientId={selectedPatient.id} />
 
-            <section className="overview-card">
-              <h2>Vitals</h2>
-              <p>No vitals recorded yet.</p>
-            </section>
+            <VitalList patientId={selectedPatient.id} />
           </div>
         </section>
       </main>

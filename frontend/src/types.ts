@@ -87,3 +87,20 @@ export type Allergy = {
 }
 
 export type AllergyInput = Omit<Allergy, 'id' | 'patient_id'>
+
+export type Vital = {
+  id: number
+  patient_id: number
+  recorded_on: string
+  systolic_bp: number | null
+  diastolic_bp: number | null
+  heart_rate: number | null
+  respiratory_rate: number | null
+  temperature_c: number | null
+  oxygen_saturation: number | null
+  height_cm: number | null
+  weight_kg: number | null
+  notes: string | null
+}
+
+export type VitalInput = Omit<Vital, 'id' | 'patient_id'>

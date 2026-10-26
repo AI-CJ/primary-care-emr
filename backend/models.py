@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import Float, ForeignKey, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -70,4 +70,23 @@ class Allergy(Base):
     severity: Mapped[str] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(20))
     onset_date: Mapped[date | None] = mapped_column(nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+
+class Vital(Base):
+    __tablename__ = "vitals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id"), index=True
+    )
+    recorded_on: Mapped[date] = mapped_column()
+    systolic_bp: Mapped[int | None] = mapped_column(nullable=True)
+    diastolic_bp: Mapped[int | None] = mapped_column(nullable=True)
+    heart_rate: Mapped[int | None] = mapped_column(nullable=True)
+    respiratory_rate: Mapped[int | None] = mapped_column(nullable=True)
+    temperature_c: Mapped[float | None] = mapped_column(Float(), nullable=True)
+    oxygen_saturation: Mapped[int | None] = mapped_column(nullable=True)
+    height_cm: Mapped[float | None] = mapped_column(Float(), nullable=True)
+    weight_kg: Mapped[float | None] = mapped_column(Float(), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)

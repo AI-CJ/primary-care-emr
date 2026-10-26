@@ -291,3 +291,70 @@ class AllergyRead(AllergyBase):
     patient_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class VitalBase(BaseModel):
+    recorded_on: date
+    systolic_bp: int | None = Field(default=None, ge=1, le=400)
+    diastolic_bp: int | None = Field(default=None, ge=1, le=300)
+    heart_rate: int | None = Field(default=None, ge=1, le=350)
+    respiratory_rate: int | None = Field(default=None, ge=1, le=150)
+    temperature_c: float | None = Field(
+        default=None, ge=0, le=60, allow_inf_nan=False
+    )
+    oxygen_saturation: int | None = Field(default=None, ge=0, le=100)
+    height_cm: float | None = Field(
+        default=None, gt=0, le=300, allow_inf_nan=False
+    )
+    weight_kg: float | None = Field(
+        default=None, gt=0, le=1000, allow_inf_nan=False
+    )
+    notes: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("recorded_on")
+    @classmethod
+    def recorded_on_cannot_be_future(cls, value: date) -> date:
+        if value > date.today():
+            raise ValueError("Recorded date cannot be in the future")
+        return value
+
+    @field_validator("notes")
+    @classmethod
+    def clean_vital_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+    @model_validator(mode="after")
+    def validate_measurements(self):
+        if (self.systolic_bp is None) != (self.diastolic_bp is None):
+            raise ValueError(
+                "Both systolic and diastolic blood pressure are required together"
+            )
+        if (
+            self.systolic_bp is not None
+            and self.diastolic_bp is not None
+            and self.systolic_bp < self.diastolic_bp
+        ):
+            raise ValueError(
+                "Systolic blood pressure cannot be below diastolic blood pressure"
+            )
+        measurements = (
+            self.systolic_bp, self.diastolic_bp, self.heart_rate,
+            self.respiratory_rate, self.temperature_c,
+            self.oxygen_saturation, self.height_cm, self.weight_kg,
+        )
+        if all(value is None for value in measurements):
+            raise ValueError("At least one vital measurement is required")
+        return self
+
+
+class VitalCreate(VitalBase):
+    pass
+
+
+class VitalRead(VitalBase):
+    id: int
+    patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)

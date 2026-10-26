@@ -4,7 +4,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.models import Allergy, Medication, Patient, Problem
+from backend.models import Allergy, Medication, Patient, Problem, Vital
 from backend.schemas import (
     AllergyCreate,
     AllergyRead,
@@ -14,6 +14,8 @@ from backend.schemas import (
     PatientRead,
     ProblemCreate,
     ProblemRead,
+    VitalCreate,
+    VitalRead,
 )
 
 
@@ -356,3 +358,56 @@ def update_allergy(
         session.commit()
         session.refresh(allergy)
         return allergy
+
+
+@app.get(
+    "/patients/{patient_id}/vitals",
+    response_model=list[VitalRead],
+)
+def read_patient_vitals(patient_id: int):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+        if patient is None:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        query = (
+            select(Vital)
+            .where(Vital.patient_id == patient_id)
+            .order_by(Vital.recorded_on.desc(), Vital.id.desc())
+        )
+        return list(session.scalars(query).all())
+
+
+@app.post(
+    "/patients/{patient_id}/vitals",
+    response_model=VitalRead,
+    status_code=201,
+)
+def create_patient_vital(patient_id: int, vital_data: VitalCreate):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+        if patient is None:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        vital = Vital(patient_id=patient_id, **vital_data.model_dump())
+        session.add(vital)
+        session.commit()
+        session.refresh(vital)
+        return vital
+
+
+@app.put(
+    "/vitals/{vital_id}",
+    response_model=VitalRead,
+)
+def update_vital(vital_id: int, vital_data: VitalCreate):
+    with Session(engine) as session:
+        vital = session.get(Vital, vital_id)
+        if vital is None:
+            raise HTTPException(status_code=404, detail="Vitals record not found")
+
+        for field, value in vital_data.model_dump().items():
+            setattr(vital, field, value)
+        session.commit()
+        session.refresh(vital)
+        return vital
