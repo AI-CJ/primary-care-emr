@@ -55,3 +55,19 @@ class Medication(Base):
     start_date: Mapped[date | None] = mapped_column(nullable=True)
     end_date: Mapped[date | None] = mapped_column(nullable=True)
     instructions: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+
+class Allergy(Base):
+    __tablename__ = "allergies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id"),
+        index=True,
+    )
+    allergen: Mapped[str] = mapped_column(String(200))
+    reaction: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    severity: Mapped[str] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20))
+    onset_date: Mapped[date | None] = mapped_column(nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text(), nullable=True)

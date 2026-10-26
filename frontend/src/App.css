@@ -455,6 +455,57 @@
   line-height: 1.5;
 }
 
+
+.allergy-card {
+  grid-column: 1 / -1;
+}
+
+.allergy-form {
+  display: grid;
+  gap: 16px;
+}
+
+.allergy-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.allergy-form-actions .save-patient-button {
+  margin-top: 0;
+}
+
+.allergy-list {
+  display: grid;
+  gap: 12px;
+}
+
+.allergy-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.allergy-row:first-child {
+  border-top: 0;
+}
+
+.allergy-meta {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.allergy-reaction,
+.allergy-notes {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 /* Tablet / smaller screens */
 
 @media (max-width: 700px) {
@@ -537,6 +588,21 @@
   }
 
   .medication-form-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .allergy-row {
+    flex-direction: column;
+  }
+
+  .allergy-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .allergy-form-actions button {
     width: 100%;
   }
 }

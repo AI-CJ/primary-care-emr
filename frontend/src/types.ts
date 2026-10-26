@@ -64,3 +64,26 @@ export type Medication = {
 }
 
 export type MedicationInput = Omit<Medication, 'id' | 'patient_id'>
+
+export type AllergySeverity =
+  | 'mild'
+  | 'moderate'
+  | 'severe'
+  | 'unknown'
+
+export type AllergyStatus =
+  | 'active'
+  | 'inactive'
+
+export type Allergy = {
+  id: number
+  patient_id: number
+  allergen: string
+  reaction: string | null
+  severity: AllergySeverity
+  status: AllergyStatus
+  onset_date: string | null
+  notes: string | null
+}
+
+export type AllergyInput = Omit<Allergy, 'id' | 'patient_id'>

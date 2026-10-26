@@ -37,6 +37,18 @@ MedicationStatus = Literal[
     "discontinued",
 ]
 
+AllergySeverity = Literal[
+    "mild",
+    "moderate",
+    "severe",
+    "unknown",
+]
+
+AllergyStatus = Literal[
+    "active",
+    "inactive",
+]
+
 
 class PatientBase(BaseModel):
     first_name: str = Field(max_length=100)
@@ -225,6 +237,56 @@ class MedicationCreate(MedicationBase):
 
 
 class MedicationRead(MedicationBase):
+    id: int
+    patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AllergyBase(BaseModel):
+    allergen: str = Field(max_length=200)
+    reaction: str | None = Field(default=None, max_length=300)
+    severity: AllergySeverity = "unknown"
+    status: AllergyStatus = "active"
+    onset_date: date | None = None
+    notes: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("allergen")
+    @classmethod
+    def allergen_must_not_be_blank(cls, value: str) -> str:
+        value = value.strip()
+
+        if not value:
+            raise ValueError("Allergen cannot be blank")
+
+        return value
+
+    @field_validator("reaction", "notes")
+    @classmethod
+    def clean_allergy_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        value = value.strip()
+        return value or None
+
+    @field_validator("onset_date")
+    @classmethod
+    def allergy_onset_cannot_be_future(
+        cls,
+        value: date | None,
+    ) -> date | None:
+        if value is not None and value > date.today():
+            raise ValueError("Allergy onset date cannot be in the future")
+
+        return value
+
+
+class AllergyCreate(AllergyBase):
+    pass
+
+
+class AllergyRead(AllergyBase):
     id: int
     patient_id: int
 

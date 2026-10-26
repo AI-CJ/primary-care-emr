@@ -4,8 +4,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.models import Medication, Patient, Problem
+from backend.models import Allergy, Medication, Patient, Problem
 from backend.schemas import (
+    AllergyCreate,
+    AllergyRead,
     MedicationCreate,
     MedicationRead,
     PatientCreate,
@@ -276,3 +278,81 @@ def update_medication(
         session.commit()
         session.refresh(medication)
         return medication
+
+
+@app.get(
+    "/patients/{patient_id}/allergies",
+    response_model=list[AllergyRead],
+)
+def read_patient_allergies(patient_id: int):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+
+        if patient is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Patient not found",
+            )
+
+        query = (
+            select(Allergy)
+            .where(Allergy.patient_id == patient_id)
+            .order_by(Allergy.status, Allergy.allergen)
+        )
+
+        allergies = session.scalars(query).all()
+        return list(allergies)
+
+
+@app.post(
+    "/patients/{patient_id}/allergies",
+    response_model=AllergyRead,
+    status_code=201,
+)
+def create_patient_allergy(
+    patient_id: int,
+    allergy_data: AllergyCreate,
+):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+
+        if patient is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Patient not found",
+            )
+
+        allergy = Allergy(
+            patient_id=patient_id,
+            **allergy_data.model_dump(),
+        )
+
+        session.add(allergy)
+        session.commit()
+        session.refresh(allergy)
+        return allergy
+
+
+@app.put(
+    "/allergies/{allergy_id}",
+    response_model=AllergyRead,
+)
+def update_allergy(
+    allergy_id: int,
+    allergy_data: AllergyCreate,
+):
+    with Session(engine) as session:
+        allergy = session.get(Allergy, allergy_id)
+
+        if allergy is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Allergy not found",
+            )
+
+        for field, value in allergy_data.model_dump().items():
+            setattr(allergy, field, value)
+
+        session.commit()
+        session.refresh(allergy)
+        return allergy
