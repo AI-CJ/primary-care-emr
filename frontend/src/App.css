@@ -307,6 +307,104 @@
   cursor: not-allowed;
 }
 
+
+.problem-card {
+  grid-column: 1 / -1;
+}
+
+.overview-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.overview-card-header h2 {
+  margin: 0;
+}
+
+.secondary-action-button {
+  padding: 9px 14px;
+  color: var(--onyx);
+  background: var(--pale-aqua);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-action-button:hover {
+  background: #dcecea;
+  border-color: var(--sea-glass);
+}
+
+.secondary-action-button:focus-visible {
+  outline: 3px solid var(--coastal-blue);
+  outline-offset: 2px;
+}
+
+.problem-form {
+  display: grid;
+  gap: 16px;
+}
+
+.form-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  color: var(--text);
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+  resize: vertical;
+}
+
+.form-field textarea:focus {
+  border-color: var(--sea-glass);
+  box-shadow: 0 0 0 3px rgba(114, 181, 170, 0.18);
+}
+
+.problem-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.problem-form-actions .save-patient-button {
+  margin-top: 0;
+}
+
+.problem-list {
+  display: grid;
+  gap: 12px;
+}
+
+.problem-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.problem-row:first-child {
+  border-top: 0;
+}
+
+.problem-meta {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.problem-notes {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 /* Tablet / smaller screens */
 
 @media (max-width: 700px) {
@@ -360,5 +458,20 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+  }
+}
+
+@media (max-width: 600px) {
+  .problem-row {
+    flex-direction: column;
+  }
+
+  .problem-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .problem-form-actions button {
+    width: 100%;
   }
 }

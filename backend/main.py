@@ -4,8 +4,13 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.models import Patient
-from backend.schemas import PatientCreate, PatientRead
+from backend.models import Patient, Problem
+from backend.schemas import (
+    PatientCreate,
+    PatientRead,
+    ProblemCreate,
+    ProblemRead,
+)
 
 
 app = FastAPI()
@@ -55,7 +60,6 @@ def read_patients(search: str | None = None):
 
     with Session(engine) as session:
         patients = session.scalars(query).all()
-
         return list(patients)
 
 
@@ -65,15 +69,12 @@ def read_patients(search: str | None = None):
     status_code=201,
 )
 def create_patient(patient_data: PatientCreate):
-    patient = Patient(
-        **patient_data.model_dump()
-    )
+    patient = Patient(**patient_data.model_dump())
 
     with Session(engine) as session:
         session.add(patient)
         session.commit()
         session.refresh(patient)
-
         return patient
 
 
@@ -86,10 +87,7 @@ def update_patient(
     patient_data: PatientCreate,
 ):
     with Session(engine) as session:
-        patient = session.get(
-            Patient,
-            patient_id,
-        )
+        patient = session.get(Patient, patient_id)
 
         if patient is None:
             raise HTTPException(
@@ -102,7 +100,6 @@ def update_patient(
 
         session.commit()
         session.refresh(patient)
-
         return patient
 
 
@@ -112,10 +109,7 @@ def update_patient(
 )
 def read_patient(patient_id: int):
     with Session(engine) as session:
-        patient = session.get(
-            Patient,
-            patient_id,
-        )
+        patient = session.get(Patient, patient_id)
 
         if patient is None:
             raise HTTPException(
@@ -124,3 +118,81 @@ def read_patient(patient_id: int):
             )
 
         return patient
+
+
+@app.get(
+    "/patients/{patient_id}/problems",
+    response_model=list[ProblemRead],
+)
+def read_patient_problems(patient_id: int):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+
+        if patient is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Patient not found",
+            )
+
+        query = (
+            select(Problem)
+            .where(Problem.patient_id == patient_id)
+            .order_by(Problem.status, Problem.name)
+        )
+
+        problems = session.scalars(query).all()
+        return list(problems)
+
+
+@app.post(
+    "/patients/{patient_id}/problems",
+    response_model=ProblemRead,
+    status_code=201,
+)
+def create_patient_problem(
+    patient_id: int,
+    problem_data: ProblemCreate,
+):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+
+        if patient is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Patient not found",
+            )
+
+        problem = Problem(
+            patient_id=patient_id,
+            **problem_data.model_dump(),
+        )
+
+        session.add(problem)
+        session.commit()
+        session.refresh(problem)
+        return problem
+
+
+@app.put(
+    "/problems/{problem_id}",
+    response_model=ProblemRead,
+)
+def update_problem(
+    problem_id: int,
+    problem_data: ProblemCreate,
+):
+    with Session(engine) as session:
+        problem = session.get(Problem, problem_id)
+
+        if problem is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Problem not found",
+            )
+
+        for field, value in problem_data.model_dump().items():
+            setattr(problem, field, value)
+
+        session.commit()
+        session.refresh(problem)
+        return problem

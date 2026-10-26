@@ -26,6 +26,11 @@ Pronouns = Literal[
     "prefer_not_to_answer",
 ]
 
+ProblemStatus = Literal[
+    "active",
+    "resolved",
+]
+
 
 class PatientBase(BaseModel):
     first_name: str = Field(max_length=100)
@@ -62,7 +67,6 @@ class PatientBase(BaseModel):
             return None
 
         value = value.strip()
-
         return value or None
 
     @field_validator("date_of_birth")
@@ -92,5 +96,68 @@ class PatientCreate(PatientBase):
 
 class PatientRead(PatientBase):
     id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProblemBase(BaseModel):
+    name: str = Field(max_length=200)
+    status: ProblemStatus = "active"
+    onset_date: date | None = None
+    resolved_date: date | None = None
+    notes: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("name")
+    @classmethod
+    def problem_name_must_not_be_blank(cls, value: str) -> str:
+        value = value.strip()
+
+        if not value:
+            raise ValueError("Problem name cannot be blank")
+
+        return value
+
+    @field_validator("notes")
+    @classmethod
+    def clean_problem_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        value = value.strip()
+        return value or None
+
+    @field_validator("onset_date", "resolved_date")
+    @classmethod
+    def problem_dates_cannot_be_future(
+        cls,
+        value: date | None,
+    ) -> date | None:
+        if value is not None and value > date.today():
+            raise ValueError("Problem dates cannot be in the future")
+
+        return value
+
+    @model_validator(mode="after")
+    def validate_problem_dates(self):
+        if self.status == "active":
+            self.resolved_date = None
+
+        if (
+            self.onset_date
+            and self.resolved_date
+            and self.resolved_date < self.onset_date
+        ):
+            raise ValueError("Resolved date cannot be before onset date")
+
+        return self
+
+
+class ProblemCreate(ProblemBase):
+    pass
+
+
+class ProblemRead(ProblemBase):
+    id: int
+    patient_id: int
 
     model_config = ConfigDict(from_attributes=True)

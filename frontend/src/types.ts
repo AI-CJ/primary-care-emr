@@ -27,3 +27,19 @@ export type Patient = {
 }
 
 export type PatientInput = Omit<Patient, 'id'>
+
+export type ProblemStatus =
+  | 'active'
+  | 'resolved'
+
+export type Problem = {
+  id: number
+  patient_id: number
+  name: string
+  status: ProblemStatus
+  onset_date: string | null
+  resolved_date: string | null
+  notes: string | null
+}
+
+export type ProblemInput = Omit<Problem, 'id' | 'patient_id'>

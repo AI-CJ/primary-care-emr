@@ -8,6 +8,7 @@ import {
 } from './api'
 
 import PatientForm from './components/PatientForm'
+import ProblemList from './components/ProblemList'
 
 import type { Patient } from './types'
 
@@ -315,10 +316,7 @@ function App() {
 
 
           <div className="overview-grid">
-            <section className="overview-card">
-              <h2>Problems</h2>
-              <p>No problems recorded yet.</p>
-            </section>
+            <ProblemList patientId={selectedPatient.id} />
 
             <section className="overview-card">
               <h2>Medications</h2>
