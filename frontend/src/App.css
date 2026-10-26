@@ -405,6 +405,56 @@
   line-height: 1.5;
 }
 
+
+.medication-card {
+  grid-column: 1 / -1;
+}
+
+.medication-form {
+  display: grid;
+  gap: 16px;
+}
+
+.medication-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.medication-form-actions .save-patient-button {
+  margin-top: 0;
+}
+
+.medication-list {
+  display: grid;
+  gap: 12px;
+}
+
+.medication-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.medication-row:first-child {
+  border-top: 0;
+}
+
+.medication-meta {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.medication-instructions {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
 /* Tablet / smaller screens */
 
 @media (max-width: 700px) {
@@ -472,6 +522,21 @@
   }
 
   .problem-form-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .medication-row {
+    flex-direction: column;
+  }
+
+  .medication-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .medication-form-actions button {
     width: 100%;
   }
 }

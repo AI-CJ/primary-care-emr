@@ -7,6 +7,7 @@ import {
   getApiErrorMessage,
 } from './api'
 
+import MedicationList from './components/MedicationList'
 import PatientForm from './components/PatientForm'
 import ProblemList from './components/ProblemList'
 
@@ -318,10 +319,7 @@ function App() {
           <div className="overview-grid">
             <ProblemList patientId={selectedPatient.id} />
 
-            <section className="overview-card">
-              <h2>Medications</h2>
-              <p>No medications recorded yet.</p>
-            </section>
+            <MedicationList patientId={selectedPatient.id} />
 
             <section className="overview-card">
               <h2>Allergies</h2>

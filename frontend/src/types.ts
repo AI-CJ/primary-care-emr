@@ -43,3 +43,24 @@ export type Problem = {
 }
 
 export type ProblemInput = Omit<Problem, 'id' | 'patient_id'>
+
+export type MedicationStatus =
+  | 'active'
+  | 'completed'
+  | 'discontinued'
+
+export type Medication = {
+  id: number
+  patient_id: number
+  name: string
+  strength: string | null
+  dose: string | null
+  route: string | null
+  frequency: string | null
+  status: MedicationStatus
+  start_date: string | null
+  end_date: string | null
+  instructions: string | null
+}
+
+export type MedicationInput = Omit<Medication, 'id' | 'patient_id'>

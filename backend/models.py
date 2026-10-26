@@ -36,3 +36,22 @@ class Problem(Base):
     onset_date: Mapped[date | None] = mapped_column(nullable=True)
     resolved_date: Mapped[date | None] = mapped_column(nullable=True)
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+
+class Medication(Base):
+    __tablename__ = "medications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id"),
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(200))
+    strength: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    dose: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    route: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    frequency: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(20))
+    start_date: Mapped[date | None] = mapped_column(nullable=True)
+    end_date: Mapped[date | None] = mapped_column(nullable=True)
+    instructions: Mapped[str | None] = mapped_column(Text(), nullable=True)

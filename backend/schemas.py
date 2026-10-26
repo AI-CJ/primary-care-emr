@@ -31,6 +31,12 @@ ProblemStatus = Literal[
     "resolved",
 ]
 
+MedicationStatus = Literal[
+    "active",
+    "completed",
+    "discontinued",
+]
+
 
 class PatientBase(BaseModel):
     first_name: str = Field(max_length=100)
@@ -157,6 +163,68 @@ class ProblemCreate(ProblemBase):
 
 
 class ProblemRead(ProblemBase):
+    id: int
+    patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MedicationBase(BaseModel):
+    name: str = Field(max_length=200)
+    strength: str | None = Field(default=None, max_length=100)
+    dose: str | None = Field(default=None, max_length=100)
+    route: str | None = Field(default=None, max_length=100)
+    frequency: str | None = Field(default=None, max_length=100)
+    status: MedicationStatus = "active"
+    start_date: date | None = None
+    end_date: date | None = None
+    instructions: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("name")
+    @classmethod
+    def medication_name_must_not_be_blank(cls, value: str) -> str:
+        value = value.strip()
+
+        if not value:
+            raise ValueError("Medication name cannot be blank")
+
+        return value
+
+    @field_validator(
+        "strength",
+        "dose",
+        "route",
+        "frequency",
+        "instructions",
+    )
+    @classmethod
+    def clean_medication_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        value = value.strip()
+        return value or None
+
+    @model_validator(mode="after")
+    def validate_medication_dates(self):
+        if self.status == "active":
+            self.end_date = None
+
+        if (
+            self.start_date
+            and self.end_date
+            and self.end_date < self.start_date
+        ):
+            raise ValueError("End date cannot be before start date")
+
+        return self
+
+
+class MedicationCreate(MedicationBase):
+    pass
+
+
+class MedicationRead(MedicationBase):
     id: int
     patient_id: int
 

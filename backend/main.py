@@ -4,8 +4,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.models import Patient, Problem
+from backend.models import Medication, Patient, Problem
 from backend.schemas import (
+    MedicationCreate,
+    MedicationRead,
     PatientCreate,
     PatientRead,
     ProblemCreate,
@@ -196,3 +198,81 @@ def update_problem(
         session.commit()
         session.refresh(problem)
         return problem
+
+
+@app.get(
+    "/patients/{patient_id}/medications",
+    response_model=list[MedicationRead],
+)
+def read_patient_medications(patient_id: int):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+
+        if patient is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Patient not found",
+            )
+
+        query = (
+            select(Medication)
+            .where(Medication.patient_id == patient_id)
+            .order_by(Medication.status, Medication.name)
+        )
+
+        medications = session.scalars(query).all()
+        return list(medications)
+
+
+@app.post(
+    "/patients/{patient_id}/medications",
+    response_model=MedicationRead,
+    status_code=201,
+)
+def create_patient_medication(
+    patient_id: int,
+    medication_data: MedicationCreate,
+):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+
+        if patient is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Patient not found",
+            )
+
+        medication = Medication(
+            patient_id=patient_id,
+            **medication_data.model_dump(),
+        )
+
+        session.add(medication)
+        session.commit()
+        session.refresh(medication)
+        return medication
+
+
+@app.put(
+    "/medications/{medication_id}",
+    response_model=MedicationRead,
+)
+def update_medication(
+    medication_id: int,
+    medication_data: MedicationCreate,
+):
+    with Session(engine) as session:
+        medication = session.get(Medication, medication_id)
+
+        if medication is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Medication not found",
+            )
+
+        for field, value in medication_data.model_dump().items():
+            setattr(medication, field, value)
+
+        session.commit()
+        session.refresh(medication)
+        return medication
