@@ -104,3 +104,17 @@ export type Vital = {
 }
 
 export type VitalInput = Omit<Vital, 'id' | 'patient_id'>
+
+export type Encounter = {
+  id: number
+  patient_id: number
+  visit_date: string
+  reason_for_visit: string
+  subjective: string | null
+  objective: string | null
+  assessment: string | null
+  plan: string | null
+}
+
+export type EncounterInput = Omit<Encounter, 'id' | 'patient_id'>
+

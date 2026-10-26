@@ -358,3 +358,54 @@ class VitalRead(VitalBase):
     patient_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EncounterBase(BaseModel):
+    visit_date: date
+    reason_for_visit: str = Field(max_length=200)
+    subjective: str | None = Field(default=None, max_length=4000)
+    objective: str | None = Field(default=None, max_length=4000)
+    assessment: str | None = Field(default=None, max_length=4000)
+    plan: str | None = Field(default=None, max_length=4000)
+
+    @field_validator("visit_date")
+    @classmethod
+    def visit_date_cannot_be_future(cls, value: date) -> date:
+        if value > date.today():
+            raise ValueError("Visit date cannot be in the future")
+        return value
+
+    @field_validator("reason_for_visit")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Reason for visit cannot be blank")
+        return value
+
+    @field_validator("subjective", "objective", "assessment", "plan")
+    @classmethod
+    def clean_note_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+    @model_validator(mode="after")
+    def at_least_one_note_section(self):
+        if not any(
+            (self.subjective, self.objective, self.assessment, self.plan)
+        ):
+            raise ValueError("Complete at least one visit note section")
+        return self
+
+
+class EncounterCreate(EncounterBase):
+    pass
+
+
+class EncounterRead(EncounterBase):
+    id: int
+    patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+

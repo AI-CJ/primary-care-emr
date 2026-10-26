@@ -90,3 +90,21 @@ class Vital(Base):
     height_cm: Mapped[float | None] = mapped_column(Float(), nullable=True)
     weight_kg: Mapped[float | None] = mapped_column(Float(), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+
+class Encounter(Base):
+    """A draft visit note for a synthetic patient chart."""
+
+    __tablename__ = "encounters"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id"), index=True
+    )
+    visit_date: Mapped[date] = mapped_column()
+    reason_for_visit: Mapped[str] = mapped_column(String(200))
+    subjective: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    objective: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    assessment: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    plan: Mapped[str | None] = mapped_column(Text(), nullable=True)
+

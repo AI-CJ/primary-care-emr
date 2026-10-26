@@ -4,10 +4,12 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.models import Allergy, Medication, Patient, Problem, Vital
+from backend.models import Allergy, Encounter, Medication, Patient, Problem, Vital
 from backend.schemas import (
     AllergyCreate,
     AllergyRead,
+    EncounterCreate,
+    EncounterRead,
     MedicationCreate,
     MedicationRead,
     PatientCreate,
@@ -411,3 +413,66 @@ def update_vital(vital_id: int, vital_data: VitalCreate):
         session.commit()
         session.refresh(vital)
         return vital
+
+
+@app.get(
+    "/patients/{patient_id}/encounters",
+    response_model=list[EncounterRead],
+)
+def read_patient_encounters(patient_id: int):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+        if patient is None:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        query = (
+            select(Encounter)
+            .where(Encounter.patient_id == patient_id)
+            .order_by(Encounter.visit_date.desc(), Encounter.id.desc())
+        )
+        return list(session.scalars(query).all())
+
+
+@app.post(
+    "/patients/{patient_id}/encounters",
+    response_model=EncounterRead,
+    status_code=201,
+)
+def create_patient_encounter(
+    patient_id: int,
+    encounter_data: EncounterCreate,
+):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+        if patient is None:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        encounter = Encounter(
+            patient_id=patient_id, **encounter_data.model_dump()
+        )
+        session.add(encounter)
+        session.commit()
+        session.refresh(encounter)
+        return encounter
+
+
+@app.put(
+    "/encounters/{encounter_id}",
+    response_model=EncounterRead,
+)
+def update_encounter(
+    encounter_id: int,
+    encounter_data: EncounterCreate,
+):
+    with Session(engine) as session:
+        encounter = session.get(Encounter, encounter_id)
+        if encounter is None:
+            raise HTTPException(status_code=404, detail="Visit note not found")
+
+        for field, value in encounter_data.model_dump().items():
+            setattr(encounter, field, value)
+
+        session.commit()
+        session.refresh(encounter)
+        return encounter
+
