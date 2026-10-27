@@ -432,6 +432,13 @@ class AppointmentBase(BaseModel):
             raise ValueError("Reason for visit cannot be blank")
         return value
 
+    @field_validator("start_time")
+    @classmethod
+    def start_time_must_be_clinic_local(cls, value: time) -> time:
+        if value.tzinfo is not None:
+            raise ValueError("Start time must be clinic-local without a timezone offset")
+        return value
+
 
 class AppointmentCreate(AppointmentBase):
     pass

@@ -4,6 +4,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.scheduling import ensure_appointment_slot_open
 from backend.models import Allergy, Appointment, Encounter, Medication, Patient, Problem, Vital
 from backend.schemas import (
     AllergyCreate,
@@ -511,9 +512,14 @@ def create_patient_appointment(
     appointment_data: AppointmentCreate,
 ):
     with Session(engine) as session:
-        patient = session.get(Patient, patient_id)
+        # Serialize scheduling changes for this patient before checking the slot.
+        patient = session.scalar(
+            select(Patient).where(Patient.id == patient_id).with_for_update()
+        )
         if patient is None:
             raise HTTPException(status_code=404, detail="Patient not found")
+
+        ensure_appointment_slot_open(session, patient_id, appointment_data)
 
         appointment = Appointment(
             patient_id=patient_id, **appointment_data.model_dump()
@@ -536,6 +542,22 @@ def update_appointment(
         appointment = session.get(Appointment, appointment_id)
         if appointment is None:
             raise HTTPException(status_code=404, detail="Appointment not found")
+
+        # Match the create path's patient lock, including on rescheduling.
+        patient_id = session.scalar(
+            select(Patient.id)
+            .where(Patient.id == appointment.patient_id)
+            .with_for_update()
+        )
+        if patient_id is None:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        ensure_appointment_slot_open(
+            session,
+            patient_id,
+            appointment_data,
+            exclude_appointment_id=appointment_id,
+        )
 
         for field, value in appointment_data.model_dump().items():
             setattr(appointment, field, value)
