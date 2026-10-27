@@ -650,6 +650,78 @@
   }
 }
 
+
+.appointment-card {
+  grid-column: 1 / -1;
+}
+
+.appointment-form {
+  display: grid;
+  gap: 16px;
+}
+
+.appointment-help {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.appointment-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.appointment-form-actions .save-patient-button {
+  margin-top: 0;
+}
+
+.appointment-list {
+  display: grid;
+  gap: 12px;
+}
+
+.appointment-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.appointment-row:first-child {
+  border-top: 0;
+}
+
+.appointment-meta {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.appointment-status {
+  font-weight: 650;
+}
+
+.appointment-status-cancelled {
+  color: #7a2525;
+}
+
+@media (max-width: 600px) {
+  .appointment-row {
+    flex-direction: column;
+  }
+
+  .appointment-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .appointment-form-actions button {
+    width: 100%;
+  }
+}
+
 /* Tablet / smaller screens */
 
 @media (max-width: 700px) {

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, time
 from typing import Literal
 
 from pydantic import (
@@ -47,6 +47,13 @@ AllergySeverity = Literal[
 AllergyStatus = Literal[
     "active",
     "inactive",
+]
+
+AppointmentStatus = Literal[
+    "scheduled",
+    "checked_in",
+    "completed",
+    "cancelled",
 ]
 
 
@@ -404,6 +411,33 @@ class EncounterCreate(EncounterBase):
 
 
 class EncounterRead(EncounterBase):
+    id: int
+    patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AppointmentBase(BaseModel):
+    scheduled_date: date
+    start_time: time
+    duration_minutes: int = Field(default=30, ge=15, le=180, multiple_of=15)
+    reason_for_visit: str = Field(max_length=200)
+    status: AppointmentStatus = "scheduled"
+
+    @field_validator("reason_for_visit")
+    @classmethod
+    def reason_must_not_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Reason for visit cannot be blank")
+        return value
+
+
+class AppointmentCreate(AppointmentBase):
+    pass
+
+
+class AppointmentRead(AppointmentBase):
     id: int
     patient_id: int
 

@@ -8,6 +8,7 @@ import {
 } from './api'
 
 import AllergyList from './components/AllergyList'
+import AppointmentList from './components/AppointmentList'
 import EncounterList from './components/EncounterList'
 import MedicationList from './components/MedicationList'
 import PatientForm from './components/PatientForm'
@@ -329,6 +330,11 @@ function App() {
             <VitalList patientId={selectedPatient.id} />
 
             <EncounterList patientId={selectedPatient.id} />
+
+            <AppointmentList
+              key={selectedPatient.id}
+              patientId={selectedPatient.id}
+            />
           </div>
         </section>
       </main>

@@ -118,3 +118,21 @@ export type Encounter = {
 
 export type EncounterInput = Omit<Encounter, 'id' | 'patient_id'>
 
+export type AppointmentStatus =
+  | 'scheduled'
+  | 'checked_in'
+  | 'completed'
+  | 'cancelled'
+
+export type Appointment = {
+  id: number
+  patient_id: number
+  scheduled_date: string
+  start_time: string
+  duration_minutes: number
+  reason_for_visit: string
+  status: AppointmentStatus
+}
+
+export type AppointmentInput = Omit<Appointment, 'id' | 'patient_id'>
+

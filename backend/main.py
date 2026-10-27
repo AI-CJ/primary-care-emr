@@ -4,10 +4,12 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.models import Allergy, Encounter, Medication, Patient, Problem, Vital
+from backend.models import Allergy, Appointment, Encounter, Medication, Patient, Problem, Vital
 from backend.schemas import (
     AllergyCreate,
     AllergyRead,
+    AppointmentCreate,
+    AppointmentRead,
     EncounterCreate,
     EncounterRead,
     MedicationCreate,
@@ -475,4 +477,70 @@ def update_encounter(
         session.commit()
         session.refresh(encounter)
         return encounter
+
+
+@app.get(
+    "/patients/{patient_id}/appointments",
+    response_model=list[AppointmentRead],
+)
+def read_patient_appointments(patient_id: int):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+        if patient is None:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        query = (
+            select(Appointment)
+            .where(Appointment.patient_id == patient_id)
+            .order_by(
+                Appointment.scheduled_date.desc(),
+                Appointment.start_time.desc(),
+                Appointment.id.desc(),
+            )
+        )
+        return list(session.scalars(query).all())
+
+
+@app.post(
+    "/patients/{patient_id}/appointments",
+    response_model=AppointmentRead,
+    status_code=201,
+)
+def create_patient_appointment(
+    patient_id: int,
+    appointment_data: AppointmentCreate,
+):
+    with Session(engine) as session:
+        patient = session.get(Patient, patient_id)
+        if patient is None:
+            raise HTTPException(status_code=404, detail="Patient not found")
+
+        appointment = Appointment(
+            patient_id=patient_id, **appointment_data.model_dump()
+        )
+        session.add(appointment)
+        session.commit()
+        session.refresh(appointment)
+        return appointment
+
+
+@app.put(
+    "/appointments/{appointment_id}",
+    response_model=AppointmentRead,
+)
+def update_appointment(
+    appointment_id: int,
+    appointment_data: AppointmentCreate,
+):
+    with Session(engine) as session:
+        appointment = session.get(Appointment, appointment_id)
+        if appointment is None:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+
+        for field, value in appointment_data.model_dump().items():
+            setattr(appointment, field, value)
+
+        session.commit()
+        session.refresh(appointment)
+        return appointment
 

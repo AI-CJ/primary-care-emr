@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, time
 
 from sqlalchemy import Float, ForeignKey, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -107,4 +107,20 @@ class Encounter(Base):
     objective: Mapped[str | None] = mapped_column(Text(), nullable=True)
     assessment: Mapped[str | None] = mapped_column(Text(), nullable=True)
     plan: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+
+class Appointment(Base):
+    """A clinic-local appointment for a synthetic patient."""
+
+    __tablename__ = "appointments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id"), index=True
+    )
+    scheduled_date: Mapped[date] = mapped_column()
+    start_time: Mapped[time] = mapped_column()
+    duration_minutes: Mapped[int] = mapped_column()
+    reason_for_visit: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(20))
 
