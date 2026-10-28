@@ -102,3 +102,30 @@ def check_in_appointment(session: Session, appointment_id: int) -> Appointment:
     ensure_appointment_status_transition(appointment.status, "checked_in")
     appointment.status = "checked_in"
     return appointment
+
+
+def complete_appointment(session: Session, appointment_id: int) -> Appointment:
+    """Complete one checked-in visit under the patient's scheduling lock."""
+    appointment = session.get(Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    patient_id = session.scalar(
+        select(Patient.id)
+        .where(Patient.id == appointment.patient_id)
+        .with_for_update()
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # Recheck status after locking to prevent concurrent completion or cancellation.
+    session.refresh(appointment)
+    if appointment.status != "checked_in":
+        raise HTTPException(
+            status_code=409,
+            detail="Only checked-in appointments can be completed.",
+        )
+
+    ensure_appointment_status_transition(appointment.status, "completed")
+    appointment.status = "completed"
+    return appointment

@@ -21,7 +21,10 @@ function AppointmentList({ patientId }: AppointmentListProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editing, setEditing] = useState<Appointment | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
-  const [checkingInId, setCheckingInId] = useState<number | null>(null)
+  const [pendingAction, setPendingAction] = useState<{
+    id: number
+    action: 'check-in' | 'complete'
+  } | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -66,13 +69,16 @@ function AppointmentList({ patientId }: AppointmentListProps) {
     setRefreshCount((count) => count + 1)
   }
 
-  async function checkIn(appointment: Appointment) {
-    setCheckingInId(appointment.id)
+  async function changeAppointmentStatus(
+    appointment: Appointment,
+    action: 'check-in' | 'complete'
+  ) {
+    setPendingAction({ id: appointment.id, action })
     setActionError(null)
 
     try {
       const response = await fetch(
-        API_BASE_URL + '/appointments/' + appointment.id + '/check-in',
+        API_BASE_URL + '/appointments/' + appointment.id + '/' + action,
         { method: 'POST' }
       )
 
@@ -84,9 +90,13 @@ function AppointmentList({ patientId }: AppointmentListProps) {
       setRefreshCount((count) => count + 1)
     } catch (requestError) {
       console.error(requestError)
-      setActionError('The appointment could not be checked in.')
+      setActionError(
+        action === 'check-in'
+          ? 'The appointment could not be checked in.'
+          : 'The appointment could not be completed.'
+      )
     } finally {
-      setCheckingInId(null)
+      setPendingAction(null)
     }
   }
 
@@ -167,23 +177,46 @@ function AppointmentList({ patientId }: AppointmentListProps) {
                     <button
                       className="secondary-action-button"
                       type="button"
-                      disabled={checkingInId !== null}
+                      disabled={pendingAction !== null}
                       aria-label={
                         'Check in appointment on ' + appointment.scheduled_date +
                         ' for ' + appointment.reason_for_visit
                       }
-                      onClick={() => void checkIn(appointment)}
+                      onClick={() =>
+                        void changeAppointmentStatus(appointment, 'check-in')
+                      }
                     >
-                      {checkingInId === appointment.id
+                      {pendingAction?.id === appointment.id &&
+                      pendingAction.action === 'check-in'
                         ? 'Checking in...'
                         : 'Check In'}
+                    </button>
+                  )}
+
+                  {appointment.status === 'checked_in' && (
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      disabled={pendingAction !== null}
+                      aria-label={
+                        'Complete appointment on ' + appointment.scheduled_date +
+                        ' for ' + appointment.reason_for_visit
+                      }
+                      onClick={() =>
+                        void changeAppointmentStatus(appointment, 'complete')
+                      }
+                    >
+                      {pendingAction?.id === appointment.id &&
+                      pendingAction.action === 'complete'
+                        ? 'Completing...'
+                        : 'Complete Appointment'}
                     </button>
                   )}
 
                   <button
                     className="secondary-action-button"
                     type="button"
-                    disabled={checkingInId !== null}
+                    disabled={pendingAction !== null}
                     aria-label={
                       'Edit appointment on ' + appointment.scheduled_date +
                       ' for ' + appointment.reason_for_visit

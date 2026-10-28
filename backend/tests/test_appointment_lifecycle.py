@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from backend.models import Appointment, Base, Patient
 from backend.scheduling import (
     check_in_appointment,
+    complete_appointment,
     ensure_appointment_status_transition,
 )
 
@@ -112,6 +113,55 @@ class AppointmentLifecycleTests(unittest.TestCase):
         with Session(self.engine) as session:
             with self.assertRaises(HTTPException) as raised:
                 check_in_appointment(session, 999)
+            self.assertEqual(raised.exception.status_code, 404)
+
+
+    def test_checked_in_visit_can_be_completed_once(self):
+        appointment_id = self.store_appointment(status="checked_in")
+        with Session(self.engine) as session:
+            appointment = complete_appointment(session, appointment_id)
+            self.assertEqual(appointment.status, "completed")
+            session.commit()
+
+        with Session(self.engine) as session:
+            self.assertEqual(
+                session.get(Appointment, appointment_id).status,
+                "completed",
+            )
+            with self.assertRaises(HTTPException) as raised:
+                complete_appointment(session, appointment_id)
+            self.assertEqual(raised.exception.status_code, 409)
+
+    def test_completion_rejects_appointments_not_checked_in(self):
+        for status in ("scheduled", "cancelled", "completed"):
+            with self.subTest(status=status):
+                appointment_id = self.store_appointment(status)
+                with Session(self.engine) as session:
+                    with self.assertRaises(HTTPException) as raised:
+                        complete_appointment(session, appointment_id)
+                    self.assertEqual(raised.exception.status_code, 409)
+                    self.assertEqual(
+                        session.get(Appointment, appointment_id).status,
+                        status,
+                    )
+
+    def test_check_in_then_complete(self):
+        appointment_id = self.store_appointment()
+        with Session(self.engine) as session:
+            check_in_appointment(session, appointment_id)
+            session.commit()
+        with Session(self.engine) as session:
+            complete_appointment(session, appointment_id)
+            session.commit()
+        with Session(self.engine) as session:
+            self.assertEqual(
+                session.get(Appointment, appointment_id).status, "completed"
+            )
+
+    def test_completion_of_missing_appointment_returns_not_found(self):
+        with Session(self.engine) as session:
+            with self.assertRaises(HTTPException) as raised:
+                complete_appointment(session, 999)
             self.assertEqual(raised.exception.status_code, 404)
 
 
