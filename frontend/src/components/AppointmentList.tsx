@@ -21,6 +21,8 @@ function AppointmentList({ patientId }: AppointmentListProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editing, setEditing] = useState<Appointment | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
+  const [checkingInId, setCheckingInId] = useState<number | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -64,6 +66,30 @@ function AppointmentList({ patientId }: AppointmentListProps) {
     setRefreshCount((count) => count + 1)
   }
 
+  async function checkIn(appointment: Appointment) {
+    setCheckingInId(appointment.id)
+    setActionError(null)
+
+    try {
+      const response = await fetch(
+        API_BASE_URL + '/appointments/' + appointment.id + '/check-in',
+        { method: 'POST' }
+      )
+
+      if (!response.ok) {
+        setActionError(await getApiErrorMessage(response))
+        return
+      }
+
+      setRefreshCount((count) => count + 1)
+    } catch (requestError) {
+      console.error(requestError)
+      setActionError('The appointment could not be checked in.')
+    } finally {
+      setCheckingInId(null)
+    }
+  }
+
   return (
     <section className="overview-card appointment-card">
       <div className="overview-card-header">
@@ -78,6 +104,10 @@ function AppointmentList({ patientId }: AppointmentListProps) {
           </button>
         )}
       </div>
+
+      {actionError && (
+        <p className="form-error" role="alert">{actionError}</p>
+      )}
 
       {isAdding && (
         <AppointmentForm
@@ -132,17 +162,37 @@ function AppointmentList({ patientId }: AppointmentListProps) {
                   </p>
                 </div>
 
-                <button
-                  className="secondary-action-button"
-                  type="button"
-                  aria-label={
-                    'Edit appointment on ' + appointment.scheduled_date +
-                    ' for ' + appointment.reason_for_visit
-                  }
-                  onClick={() => setEditing(appointment)}
-                >
-                  Edit
-                </button>
+                <div className="appointment-actions">
+                  {appointment.status === 'scheduled' && (
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      disabled={checkingInId !== null}
+                      aria-label={
+                        'Check in appointment on ' + appointment.scheduled_date +
+                        ' for ' + appointment.reason_for_visit
+                      }
+                      onClick={() => void checkIn(appointment)}
+                    >
+                      {checkingInId === appointment.id
+                        ? 'Checking in...'
+                        : 'Check In'}
+                    </button>
+                  )}
+
+                  <button
+                    className="secondary-action-button"
+                    type="button"
+                    disabled={checkingInId !== null}
+                    aria-label={
+                      'Edit appointment on ' + appointment.scheduled_date +
+                      ' for ' + appointment.reason_for_visit
+                    }
+                    onClick={() => setEditing(appointment)}
+                  >
+                    Edit
+                  </button>
+                </div>
               </article>
             ))}
           </div>

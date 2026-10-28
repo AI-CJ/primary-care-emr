@@ -4,7 +4,11 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.scheduling import ensure_appointment_slot_open
+from backend.scheduling import (
+    check_in_appointment,
+    ensure_appointment_slot_open,
+    ensure_appointment_status_transition,
+)
 from backend.models import Allergy, Appointment, Encounter, Medication, Patient, Problem, Vital
 from backend.schemas import (
     AllergyCreate,
@@ -552,6 +556,12 @@ def update_appointment(
         if patient_id is None:
             raise HTTPException(status_code=404, detail="Patient not found")
 
+        # Recheck status after acquiring the scheduling lock.
+        session.refresh(appointment)
+        ensure_appointment_status_transition(
+            appointment.status, appointment_data.status
+        )
+
         ensure_appointment_slot_open(
             session,
             patient_id,
@@ -566,3 +576,14 @@ def update_appointment(
         session.refresh(appointment)
         return appointment
 
+
+@app.post(
+    "/appointments/{appointment_id}/check-in",
+    response_model=AppointmentRead,
+)
+def check_in_patient_appointment(appointment_id: int):
+    with Session(engine) as session:
+        appointment = check_in_appointment(session, appointment_id)
+        session.commit()
+        session.refresh(appointment)
+        return appointment

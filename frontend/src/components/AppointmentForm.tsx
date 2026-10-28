@@ -11,6 +11,20 @@ type AppointmentFormProps = {
 
 const durations = [15, 30, 45, 60, 90, 120, 180]
 
+const nextStatuses: Record<AppointmentStatus, AppointmentStatus[]> = {
+  scheduled: ['scheduled', 'checked_in', 'cancelled'],
+  checked_in: ['checked_in', 'completed', 'cancelled'],
+  completed: ['completed'],
+  cancelled: ['cancelled'],
+}
+
+const statusLabels: Record<AppointmentStatus, string> = {
+  scheduled: 'Scheduled',
+  checked_in: 'Checked in',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+}
+
 function clinicToday(): string {
   const today = new Date()
   const year = today.getFullYear()
@@ -38,7 +52,9 @@ function AppointmentForm({
       start_time: String(values.get('start_time') ?? ''),
       duration_minutes: Number(values.get('duration_minutes')),
       reason_for_visit: String(values.get('reason_for_visit') ?? '').trim(),
-      status: String(values.get('status') ?? 'scheduled') as AppointmentStatus,
+      status: appointment
+        ? String(values.get('status') ?? appointment.status) as AppointmentStatus
+        : 'scheduled',
     }
 
     const url = appointment
@@ -111,19 +127,22 @@ function AppointmentForm({
           </select>
         </label>
 
-        <label className="form-field">
-          <span>Status *</span>
-          <select
-            name="status"
-            defaultValue={appointment?.status ?? 'scheduled'}
-            required
-          >
-            <option value="scheduled">Scheduled</option>
-            <option value="checked_in">Checked in</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </label>
+        {appointment && (
+          <label className="form-field">
+            <span>Status *</span>
+            <select
+              name="status"
+              defaultValue={appointment.status}
+              required
+            >
+              {nextStatuses[appointment.status].map((status) => (
+                <option value={status} key={status}>
+                  {statusLabels[status]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       <label className="form-field">

@@ -693,6 +693,13 @@
   border-top: 0;
 }
 
+.appointment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .appointment-meta {
   margin: 6px 0 0;
   color: var(--text-muted);
@@ -710,6 +717,14 @@
 @media (max-width: 600px) {
   .appointment-row {
     flex-direction: column;
+  }
+
+  .appointment-actions {
+    width: 100%;
+  }
+
+  .appointment-actions button {
+    flex: 1;
   }
 
   .appointment-form-actions {

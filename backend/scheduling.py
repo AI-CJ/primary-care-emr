@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import Appointment
+from backend.models import Appointment, Patient
 from backend.schemas import AppointmentCreate
 
 
@@ -57,3 +57,48 @@ def ensure_appointment_slot_open(
                 status_code=409,
                 detail="This patient already has an appointment during that time.",
             )
+
+
+_ALLOWED_APPOINTMENT_TRANSITIONS = {
+    "scheduled": {"scheduled", "checked_in", "cancelled"},
+    "checked_in": {"checked_in", "completed", "cancelled"},
+    "completed": {"completed"},
+    "cancelled": {"cancelled"},
+}
+
+
+def ensure_appointment_status_transition(current: str, requested: str) -> None:
+    """Prevent a finished or cancelled visit from silently reopening."""
+    if requested not in _ALLOWED_APPOINTMENT_TRANSITIONS.get(current, set()):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot change appointment status from {current} to {requested}.",
+        )
+
+
+def check_in_appointment(session: Session, appointment_id: int) -> Appointment:
+    """Check in one scheduled visit under the patient's scheduling lock."""
+    appointment = session.get(Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # Use the same parent-row lock as scheduling and rescheduling.
+    patient_id = session.scalar(
+        select(Patient.id)
+        .where(Patient.id == appointment.patient_id)
+        .with_for_update()
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # Refresh after locking, so a concurrent edit cannot race this change.
+    session.refresh(appointment)
+    if appointment.status != "scheduled":
+        raise HTTPException(
+            status_code=409,
+            detail="Only scheduled appointments can be checked in.",
+        )
+
+    ensure_appointment_status_transition(appointment.status, "checked_in")
+    appointment.status = "checked_in"
+    return appointment
