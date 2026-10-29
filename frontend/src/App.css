@@ -714,6 +714,47 @@
   color: #7a2525;
 }
 
+.appointment-history {
+  margin-top: 9px;
+}
+
+.appointment-history-toggle {
+  padding: 0;
+  color: var(--slate-blue);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.appointment-history-toggle:hover {
+  color: var(--deep-sea);
+}
+
+.appointment-history-toggle:focus-visible {
+  outline: 3px solid var(--coastal-blue);
+  outline-offset: 3px;
+}
+
+.appointment-history-list {
+  padding-left: 22px;
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.appointment-history-list li + li {
+  margin-top: 5px;
+}
+
+.appointment-history-empty {
+  margin-top: 10px !important;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 600px) {
   .appointment-row {
     flex-direction: column;

@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import Appointment, Patient
+from backend.models import Appointment, AppointmentStatusChange, Patient
 from backend.schemas import AppointmentCreate
 
 
@@ -59,6 +59,24 @@ def ensure_appointment_slot_open(
             )
 
 
+def record_appointment_status_change(
+    session: Session,
+    appointment: Appointment,
+    previous_status: str | None,
+) -> None:
+    """Record the new state in the same transaction as the appointment."""
+    if previous_status == appointment.status:
+        return
+
+    session.add(
+        AppointmentStatusChange(
+            appointment_id=appointment.id,
+            previous_status=previous_status,
+            new_status=appointment.status,
+        )
+    )
+
+
 _ALLOWED_APPOINTMENT_TRANSITIONS = {
     "scheduled": {"scheduled", "checked_in", "cancelled"},
     "checked_in": {"checked_in", "completed", "cancelled"},
@@ -100,7 +118,9 @@ def check_in_appointment(session: Session, appointment_id: int) -> Appointment:
         )
 
     ensure_appointment_status_transition(appointment.status, "checked_in")
+    previous_status = appointment.status
     appointment.status = "checked_in"
+    record_appointment_status_change(session, appointment, previous_status)
     return appointment
 
 
@@ -127,5 +147,7 @@ def complete_appointment(session: Session, appointment_id: int) -> Appointment:
         )
 
     ensure_appointment_status_transition(appointment.status, "completed")
+    previous_status = appointment.status
     appointment.status = "completed"
+    record_appointment_status_change(session, appointment, previous_status)
     return appointment

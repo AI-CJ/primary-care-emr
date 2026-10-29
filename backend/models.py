@@ -1,6 +1,6 @@
-from datetime import date, time
+from datetime import date, datetime, time, timezone
 
-from sqlalchemy import Float, ForeignKey, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -123,4 +123,24 @@ class Appointment(Base):
     duration_minutes: Mapped[int] = mapped_column()
     reason_for_visit: Mapped[str] = mapped_column(String(200))
     status: Mapped[str] = mapped_column(String(20))
+
+
+class AppointmentStatusChange(Base):
+    """A recorded status change, not a user-attributed audit event."""
+
+    __tablename__ = "appointment_status_changes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    appointment_id: Mapped[int] = mapped_column(
+        ForeignKey("appointments.id"), index=True
+    )
+    previous_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )
+    new_status: Mapped[str] = mapped_column(String(20))
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 

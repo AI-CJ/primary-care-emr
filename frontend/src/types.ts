@@ -136,3 +136,11 @@ export type Appointment = {
 
 export type AppointmentInput = Omit<Appointment, 'id' | 'patient_id'>
 
+export type AppointmentStatusChange = {
+  id: number
+  appointment_id: number
+  previous_status: AppointmentStatus | null
+  new_status: AppointmentStatus
+  changed_at: string
+}
+

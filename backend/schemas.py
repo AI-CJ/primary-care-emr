@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Literal
 
 from pydantic import (
@@ -447,6 +447,16 @@ class AppointmentCreate(AppointmentBase):
 class AppointmentRead(AppointmentBase):
     id: int
     patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AppointmentStatusChangeRead(BaseModel):
+    id: int
+    appointment_id: int
+    previous_status: AppointmentStatus | None
+    new_status: AppointmentStatus
+    changed_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

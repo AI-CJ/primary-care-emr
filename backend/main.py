@@ -9,13 +9,18 @@ from backend.scheduling import (
     complete_appointment,
     ensure_appointment_slot_open,
     ensure_appointment_status_transition,
+    record_appointment_status_change,
 )
-from backend.models import Allergy, Appointment, Encounter, Medication, Patient, Problem, Vital
+from backend.models import (
+    Allergy, Appointment, AppointmentStatusChange, Encounter,
+    Medication, Patient, Problem, Vital,
+)
 from backend.schemas import (
     AllergyCreate,
     AllergyRead,
     AppointmentCreate,
     AppointmentRead,
+    AppointmentStatusChangeRead,
     EncounterCreate,
     EncounterRead,
     MedicationCreate,
@@ -530,6 +535,8 @@ def create_patient_appointment(
             patient_id=patient_id, **appointment_data.model_dump()
         )
         session.add(appointment)
+        session.flush()
+        record_appointment_status_change(session, appointment, None)
         session.commit()
         session.refresh(appointment)
         return appointment
@@ -559,8 +566,9 @@ def update_appointment(
 
         # Recheck status after acquiring the scheduling lock.
         session.refresh(appointment)
+        previous_status = appointment.status
         ensure_appointment_status_transition(
-            appointment.status, appointment_data.status
+            previous_status, appointment_data.status
         )
 
         ensure_appointment_slot_open(
@@ -573,6 +581,7 @@ def update_appointment(
         for field, value in appointment_data.model_dump().items():
             setattr(appointment, field, value)
 
+        record_appointment_status_change(session, appointment, previous_status)
         session.commit()
         session.refresh(appointment)
         return appointment
@@ -599,3 +608,25 @@ def complete_patient_appointment(appointment_id: int):
         session.commit()
         session.refresh(appointment)
         return appointment
+
+
+@app.get(
+    "/appointments/{appointment_id}/status-history",
+    response_model=list[AppointmentStatusChangeRead],
+)
+def read_appointment_status_history(appointment_id: int):
+    with Session(engine) as session:
+        appointment = session.get(Appointment, appointment_id)
+        if appointment is None:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+
+        query = (
+            select(AppointmentStatusChange)
+            .where(AppointmentStatusChange.appointment_id == appointment_id)
+            .order_by(
+                AppointmentStatusChange.changed_at,
+                AppointmentStatusChange.id,
+            )
+        )
+        return list(session.scalars(query).all())
+

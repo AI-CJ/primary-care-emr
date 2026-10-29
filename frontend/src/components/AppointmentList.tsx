@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Appointment, AppointmentStatus } from '../types'
 import AppointmentForm from './AppointmentForm'
+import AppointmentStatusHistory from './AppointmentStatusHistory'
 
 type AppointmentListProps = {
   patientId: number
@@ -170,6 +171,7 @@ function AppointmentList({ patientId }: AppointmentListProps) {
                       {statusLabels[appointment.status]}
                     </span>
                   </p>
+                  <AppointmentStatusHistory appointmentId={appointment.id} />
                 </div>
 
                 <div className="appointment-actions">
