@@ -13,6 +13,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   checked_in: 'Checked in',
   completed: 'Completed',
   cancelled: 'Cancelled',
+  no_show: 'No-show',
 }
 
 function AppointmentList({ patientId }: AppointmentListProps) {
@@ -24,7 +25,7 @@ function AppointmentList({ patientId }: AppointmentListProps) {
   const [refreshCount, setRefreshCount] = useState(0)
   const [pendingAction, setPendingAction] = useState<{
     id: number
-    action: 'check-in' | 'complete' | 'cancel'
+    action: 'check-in' | 'complete' | 'cancel' | 'no-show'
   } | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -72,7 +73,7 @@ function AppointmentList({ patientId }: AppointmentListProps) {
 
   async function changeAppointmentStatus(
     appointment: Appointment,
-    action: 'check-in' | 'complete' | 'cancel'
+    action: 'check-in' | 'complete' | 'cancel' | 'no-show'
   ) {
     setPendingAction({ id: appointment.id, action })
     setActionError(null)
@@ -96,7 +97,9 @@ function AppointmentList({ patientId }: AppointmentListProps) {
           ? 'The appointment could not be checked in.'
           : action === 'complete'
             ? 'The appointment could not be completed.'
-            : 'The appointment could not be cancelled.'
+            : action === 'cancel'
+              ? 'The appointment could not be cancelled.'
+              : 'The appointment could not be marked as no-show.'
       )
     } finally {
       setPendingAction(null)
@@ -217,6 +220,35 @@ function AppointmentList({ patientId }: AppointmentListProps) {
                       pendingAction.action === 'complete'
                         ? 'Completing...'
                         : 'Complete Appointment'}
+                    </button>
+                  )}
+
+                  {appointment.status === 'scheduled' && (
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      disabled={pendingAction !== null}
+                      aria-label={
+                        'Mark appointment on ' + appointment.scheduled_date +
+                        ' for ' + appointment.reason_for_visit + ' as no-show'
+                      }
+                      onClick={() => {
+                        const confirmed = window.confirm(
+                          'Mark the appointment on ' +
+                            appointment.scheduled_date +
+                            ' at ' + appointment.start_time.slice(0, 5) +
+                            ' for ' + appointment.reason_for_visit +
+                            ' as no-show? This cannot be undone.'
+                        )
+                        if (confirmed) {
+                          void changeAppointmentStatus(appointment, 'no-show')
+                        }
+                      }}
+                    >
+                      {pendingAction?.id === appointment.id &&
+                      pendingAction.action === 'no-show'
+                        ? 'Recording no-show...'
+                        : 'No-show'}
                     </button>
                   )}
 

@@ -10,6 +10,7 @@ from backend.scheduling import (
     complete_appointment,
     ensure_appointment_slot_open,
     ensure_appointment_status_transition,
+    mark_appointment_no_show,
     record_appointment_status_change,
 )
 from backend.models import (
@@ -618,6 +619,18 @@ def complete_patient_appointment(appointment_id: int):
 def cancel_patient_appointment(appointment_id: int):
     with Session(engine) as session:
         appointment = cancel_appointment(session, appointment_id)
+        session.commit()
+        session.refresh(appointment)
+        return appointment
+
+
+@app.post(
+    "/appointments/{appointment_id}/no-show",
+    response_model=AppointmentRead,
+)
+def mark_patient_appointment_no_show(appointment_id: int):
+    with Session(engine) as session:
+        appointment = mark_appointment_no_show(session, appointment_id)
         session.commit()
         session.refresh(appointment)
         return appointment

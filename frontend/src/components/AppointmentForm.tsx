@@ -12,10 +12,11 @@ type AppointmentFormProps = {
 const durations = [15, 30, 45, 60, 90, 120, 180]
 
 const nextStatuses: Record<AppointmentStatus, AppointmentStatus[]> = {
-  scheduled: ['scheduled', 'checked_in', 'cancelled'],
+  scheduled: ['scheduled', 'checked_in', 'cancelled', 'no_show'],
   checked_in: ['checked_in', 'completed', 'cancelled'],
   completed: ['completed'],
   cancelled: ['cancelled'],
+  no_show: ['no_show'],
 }
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -23,6 +24,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   checked_in: 'Checked in',
   completed: 'Completed',
   cancelled: 'Cancelled',
+  no_show: 'No-show',
 }
 
 function clinicToday(): string {

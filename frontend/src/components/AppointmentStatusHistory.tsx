@@ -12,6 +12,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   checked_in: 'Checked in',
   completed: 'Completed',
   cancelled: 'Cancelled',
+  no_show: 'No-show',
 }
 
 function AppointmentStatusHistory({

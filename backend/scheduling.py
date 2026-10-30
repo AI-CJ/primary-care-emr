@@ -17,12 +17,12 @@ def ensure_appointment_slot_open(
     *,
     exclude_appointment_id: int | None = None,
 ) -> None:
-    """Check non-cancelled visits for this patient.
+    """Check visits that still reserve a slot for this patient.
 
     The caller must lock the parent patient row with FOR UPDATE before
     checking and writing, so concurrent requests do not double-book them.
     """
-    if appointment_data.status == "cancelled":
+    if appointment_data.status in ("cancelled", "no_show"):
         return
 
     proposed_start = datetime.combine(
@@ -39,7 +39,7 @@ def ensure_appointment_slot_open(
 
     query = select(Appointment).where(
         Appointment.patient_id == patient_id,
-        Appointment.status != "cancelled",
+        Appointment.status.not_in(("cancelled", "no_show")),
         Appointment.scheduled_date.between(first_day, last_day),
     )
     if exclude_appointment_id is not None:
@@ -78,10 +78,11 @@ def record_appointment_status_change(
 
 
 _ALLOWED_APPOINTMENT_TRANSITIONS = {
-    "scheduled": {"scheduled", "checked_in", "cancelled"},
+    "scheduled": {"scheduled", "checked_in", "cancelled", "no_show"},
     "checked_in": {"checked_in", "completed", "cancelled"},
     "completed": {"completed"},
     "cancelled": {"cancelled"},
+    "no_show": {"no_show"},
 }
 
 
@@ -178,5 +179,37 @@ def cancel_appointment(session: Session, appointment_id: int) -> Appointment:
     previous_status = appointment.status
     ensure_appointment_status_transition(previous_status, "cancelled")
     appointment.status = "cancelled"
+    record_appointment_status_change(session, appointment, previous_status)
+    return appointment
+
+
+def mark_appointment_no_show(
+    session: Session,
+    appointment_id: int,
+) -> Appointment:
+    """Mark one scheduled appointment as missed under the patient lock."""
+    appointment = session.get(Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    patient_id = session.scalar(
+        select(Patient.id)
+        .where(Patient.id == appointment.patient_id)
+        .with_for_update()
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # Recheck after locking so check-in and no-show cannot both succeed.
+    session.refresh(appointment)
+    if appointment.status != "scheduled":
+        raise HTTPException(
+            status_code=409,
+            detail="Only scheduled appointments can be marked as no-show.",
+        )
+
+    previous_status = appointment.status
+    ensure_appointment_status_transition(previous_status, "no_show")
+    appointment.status = "no_show"
     record_appointment_status_change(session, appointment, previous_status)
     return appointment

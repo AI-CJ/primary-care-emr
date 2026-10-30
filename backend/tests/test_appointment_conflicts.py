@@ -8,7 +8,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from backend.models import Appointment, Base, Patient
-from backend.scheduling import cancel_appointment, ensure_appointment_slot_open
+from backend.scheduling import (
+    cancel_appointment,
+    ensure_appointment_slot_open,
+    mark_appointment_no_show,
+)
 from backend.schemas import AppointmentCreate
 
 
@@ -99,6 +103,19 @@ class AppointmentConflictTests(unittest.TestCase):
         self.check()
         self.store(start=time(10))
         self.check(start=time(10), status="cancelled")
+
+    def test_no_show_appointments_do_not_reserve_a_slot(self):
+        self.store(status="no_show")
+        self.check()
+        self.store(start=time(10))
+        self.check(start=time(10), status="no_show")
+
+    def test_marking_no_show_releases_its_slot(self):
+        appointment_id = self.store()
+        with Session(self.engine) as session:
+            mark_appointment_no_show(session, appointment_id)
+            session.commit()
+        self.check()
 
     def test_cancelling_appointment_releases_its_slot(self):
         appointment_id = self.store()

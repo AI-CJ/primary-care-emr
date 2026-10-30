@@ -12,6 +12,7 @@ from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
     complete_appointment,
+    mark_appointment_no_show,
     record_appointment_status_change,
 )
 
@@ -160,6 +161,37 @@ class AppointmentStatusHistoryTests(unittest.TestCase):
         appointment_id = self.create_appointment()
         with Session(self.engine) as session:
             cancel_appointment(session, appointment_id)
+            session.rollback()
+
+        with Session(self.engine) as session:
+            self.assertEqual(
+                session.get(Appointment, appointment_id).status, "scheduled"
+            )
+        self.assertEqual(len(self.events(appointment_id)), 1)
+
+
+    def test_no_show_action_appends_one_status_change(self):
+        appointment_id = self.create_appointment()
+        with Session(self.engine) as session:
+            mark_appointment_no_show(session, appointment_id)
+            session.commit()
+
+        records = self.events(appointment_id)
+        self.assertEqual(
+            [(record.previous_status, record.new_status) for record in records],
+            [(None, "scheduled"), ("scheduled", "no_show")],
+        )
+
+        with Session(self.engine) as session:
+            with self.assertRaises(HTTPException) as raised:
+                mark_appointment_no_show(session, appointment_id)
+            self.assertEqual(raised.exception.status_code, 409)
+        self.assertEqual(len(self.events(appointment_id)), 2)
+
+    def test_no_show_rollback_restores_status_and_history(self):
+        appointment_id = self.create_appointment()
+        with Session(self.engine) as session:
+            mark_appointment_no_show(session, appointment_id)
             session.rollback()
 
         with Session(self.engine) as session:

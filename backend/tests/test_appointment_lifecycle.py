@@ -13,6 +13,7 @@ from backend.scheduling import (
     check_in_appointment,
     complete_appointment,
     ensure_appointment_status_transition,
+    mark_appointment_no_show,
 )
 
 
@@ -56,11 +57,13 @@ class AppointmentLifecycleTests(unittest.TestCase):
             ("scheduled", "scheduled"),
             ("scheduled", "checked_in"),
             ("scheduled", "cancelled"),
+            ("scheduled", "no_show"),
             ("checked_in", "checked_in"),
             ("checked_in", "completed"),
             ("checked_in", "cancelled"),
             ("completed", "completed"),
             ("cancelled", "cancelled"),
+            ("no_show", "no_show"),
         )
         for current, requested in cases:
             with self.subTest(current=current, requested=requested):
@@ -74,6 +77,12 @@ class AppointmentLifecycleTests(unittest.TestCase):
             ("completed", "cancelled"),
             ("cancelled", "checked_in"),
             ("cancelled", "scheduled"),
+            ("checked_in", "no_show"),
+            ("completed", "no_show"),
+            ("cancelled", "no_show"),
+            ("no_show", "scheduled"),
+            ("no_show", "checked_in"),
+            ("no_show", "cancelled"),
         )
         for current, requested in cases:
             with self.subTest(current=current, requested=requested):
@@ -200,6 +209,41 @@ class AppointmentLifecycleTests(unittest.TestCase):
         with Session(self.engine) as session:
             with self.assertRaises(HTTPException) as raised:
                 cancel_appointment(session, 999)
+            self.assertEqual(raised.exception.status_code, 404)
+
+
+    def test_scheduled_appointment_can_be_marked_no_show_once(self):
+        appointment_id = self.store_appointment()
+        with Session(self.engine) as session:
+            appointment = mark_appointment_no_show(session, appointment_id)
+            self.assertEqual(appointment.status, "no_show")
+            session.commit()
+
+        with Session(self.engine) as session:
+            self.assertEqual(
+                session.get(Appointment, appointment_id).status, "no_show"
+            )
+            with self.assertRaises(HTTPException) as raised:
+                mark_appointment_no_show(session, appointment_id)
+            self.assertEqual(raised.exception.status_code, 409)
+
+    def test_no_show_rejects_any_non_scheduled_appointment(self):
+        for status in ("checked_in", "completed", "cancelled", "no_show"):
+            with self.subTest(status=status):
+                appointment_id = self.store_appointment(status=status)
+                with Session(self.engine) as session:
+                    with self.assertRaises(HTTPException) as raised:
+                        mark_appointment_no_show(session, appointment_id)
+                    self.assertEqual(raised.exception.status_code, 409)
+                    self.assertEqual(
+                        session.get(Appointment, appointment_id).status,
+                        status,
+                    )
+
+    def test_no_show_of_missing_appointment_returns_not_found(self):
+        with Session(self.engine) as session:
+            with self.assertRaises(HTTPException) as raised:
+                mark_appointment_no_show(session, 999)
             self.assertEqual(raised.exception.status_code, 404)
 
 

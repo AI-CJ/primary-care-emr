@@ -123,6 +123,7 @@ export type AppointmentStatus =
   | 'checked_in'
   | 'completed'
   | 'cancelled'
+  | 'no_show'
 
 export type Appointment = {
   id: number
