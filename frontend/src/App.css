@@ -714,6 +714,18 @@
   color: #7a2525;
 }
 
+.appointment-cancel-button {
+  color: #7a2525;
+  background: #fff1f1;
+  border-color: #e8c4c4;
+}
+
+.appointment-cancel-button:hover {
+  color: #7a2525;
+  background: #fbdede;
+  border-color: #cb7777;
+}
+
 .appointment-history {
   margin-top: 9px;
 }

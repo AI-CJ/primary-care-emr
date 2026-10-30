@@ -4,6 +4,7 @@ import type { AppointmentStatus, AppointmentStatusChange } from '../types'
 
 type AppointmentStatusHistoryProps = {
   appointmentId: number
+  refreshCount: number
 }
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -15,6 +16,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
 
 function AppointmentStatusHistory({
   appointmentId,
+  refreshCount,
 }: AppointmentStatusHistoryProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [changes, setChanges] = useState<AppointmentStatusChange[]>([])
@@ -56,7 +58,7 @@ function AppointmentStatusHistory({
 
     void loadHistory()
     return () => controller.abort()
-  }, [appointmentId, isOpen])
+  }, [appointmentId, isOpen, refreshCount])
 
   const detailsId = 'appointment-status-history-' + appointmentId
 

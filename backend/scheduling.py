@@ -151,3 +151,32 @@ def complete_appointment(session: Session, appointment_id: int) -> Appointment:
     appointment.status = "completed"
     record_appointment_status_change(session, appointment, previous_status)
     return appointment
+
+
+def cancel_appointment(session: Session, appointment_id: int) -> Appointment:
+    """Cancel a scheduled or checked-in visit under the patient's scheduling lock."""
+    appointment = session.get(Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    patient_id = session.scalar(
+        select(Patient.id)
+        .where(Patient.id == appointment.patient_id)
+        .with_for_update()
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # Recheck after acquiring the lock so cancellation cannot race completion.
+    session.refresh(appointment)
+    if appointment.status not in ("scheduled", "checked_in"):
+        raise HTTPException(
+            status_code=409,
+            detail="Only scheduled or checked-in appointments can be cancelled.",
+        )
+
+    previous_status = appointment.status
+    ensure_appointment_status_transition(previous_status, "cancelled")
+    appointment.status = "cancelled"
+    record_appointment_status_change(session, appointment, previous_status)
+    return appointment

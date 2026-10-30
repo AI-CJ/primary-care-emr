@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import engine
 from backend.scheduling import (
+    cancel_appointment,
     check_in_appointment,
     complete_appointment,
     ensure_appointment_slot_open,
@@ -605,6 +606,18 @@ def check_in_patient_appointment(appointment_id: int):
 def complete_patient_appointment(appointment_id: int):
     with Session(engine) as session:
         appointment = complete_appointment(session, appointment_id)
+        session.commit()
+        session.refresh(appointment)
+        return appointment
+
+
+@app.post(
+    "/appointments/{appointment_id}/cancel",
+    response_model=AppointmentRead,
+)
+def cancel_patient_appointment(appointment_id: int):
+    with Session(engine) as session:
+        appointment = cancel_appointment(session, appointment_id)
         session.commit()
         session.refresh(appointment)
         return appointment

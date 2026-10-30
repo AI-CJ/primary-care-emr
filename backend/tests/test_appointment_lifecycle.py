@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.models import Appointment, Base, Patient
 from backend.scheduling import (
+    cancel_appointment,
     check_in_appointment,
     complete_appointment,
     ensure_appointment_status_transition,
@@ -162,6 +163,43 @@ class AppointmentLifecycleTests(unittest.TestCase):
         with Session(self.engine) as session:
             with self.assertRaises(HTTPException) as raised:
                 complete_appointment(session, 999)
+            self.assertEqual(raised.exception.status_code, 404)
+
+
+    def test_cancellation_from_scheduled_or_checked_in(self):
+        for status in ("scheduled", "checked_in"):
+            with self.subTest(status=status):
+                appointment_id = self.store_appointment(status=status)
+                with Session(self.engine) as session:
+                    appointment = cancel_appointment(session, appointment_id)
+                    self.assertEqual(appointment.status, "cancelled")
+                    session.commit()
+                with Session(self.engine) as session:
+                    self.assertEqual(
+                        session.get(Appointment, appointment_id).status,
+                        "cancelled",
+                    )
+                    with self.assertRaises(HTTPException) as raised:
+                        cancel_appointment(session, appointment_id)
+                    self.assertEqual(raised.exception.status_code, 409)
+
+    def test_cancellation_rejects_finished_visits(self):
+        for status in ("completed", "cancelled"):
+            with self.subTest(status=status):
+                appointment_id = self.store_appointment(status=status)
+                with Session(self.engine) as session:
+                    with self.assertRaises(HTTPException) as raised:
+                        cancel_appointment(session, appointment_id)
+                    self.assertEqual(raised.exception.status_code, 409)
+                    self.assertEqual(
+                        session.get(Appointment, appointment_id).status,
+                        status,
+                    )
+
+    def test_cancellation_of_missing_appointment_returns_not_found(self):
+        with Session(self.engine) as session:
+            with self.assertRaises(HTTPException) as raised:
+                cancel_appointment(session, 999)
             self.assertEqual(raised.exception.status_code, 404)
 
 

@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from backend.models import Appointment, Base, Patient
-from backend.scheduling import ensure_appointment_slot_open
+from backend.scheduling import cancel_appointment, ensure_appointment_slot_open
 from backend.schemas import AppointmentCreate
 
 
@@ -99,6 +99,13 @@ class AppointmentConflictTests(unittest.TestCase):
         self.check()
         self.store(start=time(10))
         self.check(start=time(10), status="cancelled")
+
+    def test_cancelling_appointment_releases_its_slot(self):
+        appointment_id = self.store()
+        with Session(self.engine) as session:
+            cancel_appointment(session, appointment_id)
+            session.commit()
+        self.check()
 
     def test_completed_and_checked_in_appointments_reserve_a_slot(self):
         for status, start in (("completed", time(10)), ("checked_in", time(11))):

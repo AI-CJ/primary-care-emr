@@ -24,7 +24,7 @@ function AppointmentList({ patientId }: AppointmentListProps) {
   const [refreshCount, setRefreshCount] = useState(0)
   const [pendingAction, setPendingAction] = useState<{
     id: number
-    action: 'check-in' | 'complete'
+    action: 'check-in' | 'complete' | 'cancel'
   } | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -72,7 +72,7 @@ function AppointmentList({ patientId }: AppointmentListProps) {
 
   async function changeAppointmentStatus(
     appointment: Appointment,
-    action: 'check-in' | 'complete'
+    action: 'check-in' | 'complete' | 'cancel'
   ) {
     setPendingAction({ id: appointment.id, action })
     setActionError(null)
@@ -94,7 +94,9 @@ function AppointmentList({ patientId }: AppointmentListProps) {
       setActionError(
         action === 'check-in'
           ? 'The appointment could not be checked in.'
-          : 'The appointment could not be completed.'
+          : action === 'complete'
+            ? 'The appointment could not be completed.'
+            : 'The appointment could not be cancelled.'
       )
     } finally {
       setPendingAction(null)
@@ -171,7 +173,10 @@ function AppointmentList({ patientId }: AppointmentListProps) {
                       {statusLabels[appointment.status]}
                     </span>
                   </p>
-                  <AppointmentStatusHistory appointmentId={appointment.id} />
+                  <AppointmentStatusHistory
+                    appointmentId={appointment.id}
+                    refreshCount={refreshCount}
+                  />
                 </div>
 
                 <div className="appointment-actions">
@@ -212,6 +217,36 @@ function AppointmentList({ patientId }: AppointmentListProps) {
                       pendingAction.action === 'complete'
                         ? 'Completing...'
                         : 'Complete Appointment'}
+                    </button>
+                  )}
+
+                  {(appointment.status === 'scheduled' ||
+                    appointment.status === 'checked_in') && (
+                    <button
+                      className="secondary-action-button appointment-cancel-button"
+                      type="button"
+                      disabled={pendingAction !== null}
+                      aria-label={
+                        'Cancel appointment on ' + appointment.scheduled_date +
+                        ' for ' + appointment.reason_for_visit
+                      }
+                      onClick={() => {
+                        const confirmed = window.confirm(
+                          'Cancel the appointment on ' +
+                            appointment.scheduled_date +
+                            ' at ' + appointment.start_time.slice(0, 5) +
+                            ' for ' + appointment.reason_for_visit +
+                            '? This cannot be undone.'
+                        )
+                        if (confirmed) {
+                          void changeAppointmentStatus(appointment, 'cancel')
+                        }
+                      }}
+                    >
+                      {pendingAction?.id === appointment.id &&
+                      pendingAction.action === 'cancel'
+                        ? 'Cancelling...'
+                        : 'Cancel Appointment'}
                     </button>
                   )}
 
