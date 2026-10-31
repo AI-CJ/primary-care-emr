@@ -282,18 +282,20 @@ function AppointmentList({ patientId }: AppointmentListProps) {
                     </button>
                   )}
 
-                  <button
-                    className="secondary-action-button"
-                    type="button"
-                    disabled={pendingAction !== null}
-                    aria-label={
-                      'Edit appointment on ' + appointment.scheduled_date +
-                      ' for ' + appointment.reason_for_visit
-                    }
-                    onClick={() => setEditing(appointment)}
-                  >
-                    Edit
-                  </button>
+                  {appointment.status === 'scheduled' && (
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      disabled={pendingAction !== null}
+                      aria-label={
+                        'Edit appointment on ' + appointment.scheduled_date +
+                        ' for ' + appointment.reason_for_visit
+                      }
+                      onClick={() => setEditing(appointment)}
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
               </article>
             ))}

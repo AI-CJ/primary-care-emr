@@ -9,9 +9,9 @@ from backend.scheduling import (
     check_in_appointment,
     complete_appointment,
     ensure_appointment_slot_open,
-    ensure_appointment_status_transition,
     mark_appointment_no_show,
     record_appointment_status_change,
+    reschedule_appointment,
 )
 from backend.models import (
     Allergy, Appointment, AppointmentStatusChange, Encounter,
@@ -553,37 +553,9 @@ def update_appointment(
     appointment_data: AppointmentCreate,
 ):
     with Session(engine) as session:
-        appointment = session.get(Appointment, appointment_id)
-        if appointment is None:
-            raise HTTPException(status_code=404, detail="Appointment not found")
-
-        # Match the create path's patient lock, including on rescheduling.
-        patient_id = session.scalar(
-            select(Patient.id)
-            .where(Patient.id == appointment.patient_id)
-            .with_for_update()
+        appointment = reschedule_appointment(
+            session, appointment_id, appointment_data
         )
-        if patient_id is None:
-            raise HTTPException(status_code=404, detail="Patient not found")
-
-        # Recheck status after acquiring the scheduling lock.
-        session.refresh(appointment)
-        previous_status = appointment.status
-        ensure_appointment_status_transition(
-            previous_status, appointment_data.status
-        )
-
-        ensure_appointment_slot_open(
-            session,
-            patient_id,
-            appointment_data,
-            exclude_appointment_id=appointment_id,
-        )
-
-        for field, value in appointment_data.model_dump().items():
-            setattr(appointment, field, value)
-
-        record_appointment_status_change(session, appointment, previous_status)
         session.commit()
         session.refresh(appointment)
         return appointment

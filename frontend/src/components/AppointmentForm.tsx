@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { Appointment, AppointmentInput, AppointmentStatus } from '../types'
+import type { Appointment, AppointmentInput } from '../types'
 
 type AppointmentFormProps = {
   patientId: number
@@ -10,22 +10,6 @@ type AppointmentFormProps = {
 }
 
 const durations = [15, 30, 45, 60, 90, 120, 180]
-
-const nextStatuses: Record<AppointmentStatus, AppointmentStatus[]> = {
-  scheduled: ['scheduled', 'checked_in', 'cancelled', 'no_show'],
-  checked_in: ['checked_in', 'completed', 'cancelled'],
-  completed: ['completed'],
-  cancelled: ['cancelled'],
-  no_show: ['no_show'],
-}
-
-const statusLabels: Record<AppointmentStatus, string> = {
-  scheduled: 'Scheduled',
-  checked_in: 'Checked in',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  no_show: 'No-show',
-}
 
 function clinicToday(): string {
   const today = new Date()
@@ -54,9 +38,7 @@ function AppointmentForm({
       start_time: String(values.get('start_time') ?? ''),
       duration_minutes: Number(values.get('duration_minutes')),
       reason_for_visit: String(values.get('reason_for_visit') ?? '').trim(),
-      status: appointment
-        ? String(values.get('status') ?? appointment.status) as AppointmentStatus
-        : 'scheduled',
+      status: 'scheduled',
     }
 
     const url = appointment
@@ -129,22 +111,6 @@ function AppointmentForm({
           </select>
         </label>
 
-        {appointment && (
-          <label className="form-field">
-            <span>Status *</span>
-            <select
-              name="status"
-              defaultValue={appointment.status}
-              required
-            >
-              {nextStatuses[appointment.status].map((status) => (
-                <option value={status} key={status}>
-                  {statusLabels[status]}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
       </div>
 
       <label className="form-field">

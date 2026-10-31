@@ -95,6 +95,50 @@ def ensure_appointment_status_transition(current: str, requested: str) -> None:
         )
 
 
+def reschedule_appointment(
+    session: Session,
+    appointment_id: int,
+    appointment_data: AppointmentCreate,
+) -> Appointment:
+    """Edit a scheduled visit; lifecycle changes use their own actions."""
+    appointment = session.get(Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    patient_id = session.scalar(
+        select(Patient.id)
+        .where(Patient.id == appointment.patient_id)
+        .with_for_update()
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # Refresh after the scheduling lock to avoid editing an outdated state.
+    session.refresh(appointment)
+    if appointment.status != "scheduled":
+        raise HTTPException(
+            status_code=409,
+            detail="Only scheduled appointments can be edited.",
+        )
+    if appointment_data.status != "scheduled":
+        raise HTTPException(
+            status_code=409,
+            detail="Use appointment actions to change status.",
+        )
+
+    ensure_appointment_slot_open(
+        session,
+        patient_id,
+        appointment_data,
+        exclude_appointment_id=appointment.id,
+    )
+    appointment.scheduled_date = appointment_data.scheduled_date
+    appointment.start_time = appointment_data.start_time
+    appointment.duration_minutes = appointment_data.duration_minutes
+    appointment.reason_for_visit = appointment_data.reason_for_visit
+    return appointment
+
+
 def check_in_appointment(session: Session, appointment_id: int) -> Appointment:
     """Check in one scheduled visit under the patient's scheduling lock."""
     appointment = session.get(Appointment, appointment_id)
