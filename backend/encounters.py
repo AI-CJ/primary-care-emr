@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import Appointment, Encounter, Patient
-from backend.schemas import EncounterCreate
+from backend.schemas import EncounterCreate, EncounterUpdate
 
 
 def create_encounter(
@@ -52,4 +52,28 @@ def create_encounter(
         patient_id=patient_id, **encounter_data.model_dump()
     )
     session.add(encounter)
+    return encounter
+
+
+def apply_encounter_update(
+    session: Session,
+    encounter_id: int,
+    encounter_data: EncounterUpdate,
+) -> Encounter:
+    """Keep an appointment-linked visit note on its original visit date."""
+    encounter = session.get(Encounter, encounter_id)
+    if encounter is None:
+        raise HTTPException(status_code=404, detail="Visit note not found")
+
+    if (
+        encounter.appointment_id is not None
+        and encounter_data.visit_date != encounter.visit_date
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="A visit note linked to an appointment cannot change its visit date.",
+        )
+
+    for field, value in encounter_data.model_dump().items():
+        setattr(encounter, field, value)
     return encounter

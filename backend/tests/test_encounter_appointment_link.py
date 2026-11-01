@@ -9,7 +9,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.encounters import create_encounter
+from backend.encounters import (
+    apply_encounter_update,
+    create_encounter,
+)
 from backend.models import Appointment, Base, Encounter, Patient
 from backend.schemas import EncounterCreate, EncounterRead, EncounterUpdate
 
@@ -169,6 +172,96 @@ class EncounterAppointmentLinkTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             EncounterUpdate.model_validate({**fields, "appointment_id": 1})
         EncounterUpdate.model_validate(fields)
+
+    def test_linked_note_date_cannot_change_when_edited(self):
+        appointment_id = self.appointment()
+        with Session(self.engine) as session:
+            encounter = create_encounter(
+                session, self.patient_id, self.note(appointment_id)
+            )
+            session.flush()
+            encounter_id = encounter.id
+            session.commit()
+
+        with Session(self.engine) as session:
+            with self.assertRaises(HTTPException) as raised:
+                apply_encounter_update(
+                    session,
+                    encounter_id,
+                    EncounterUpdate(
+                        visit_date=date(2026, 10, 19),
+                        reason_for_visit="Revised follow-up",
+                        assessment="Revised synthetic assessment",
+                    ),
+                )
+            self.assertEqual(raised.exception.status_code, 409)
+            session.rollback()
+
+        with Session(self.engine) as session:
+            unchanged = session.get(Encounter, encounter_id)
+            self.assertEqual(unchanged.visit_date, VISIT_DATE)
+            self.assertEqual(unchanged.assessment, "Fictional assessment")
+
+    def test_linked_note_can_update_text_on_same_date(self):
+        appointment_id = self.appointment("completed")
+        with Session(self.engine) as session:
+            encounter = create_encounter(
+                session, self.patient_id, self.note(appointment_id)
+            )
+            session.flush()
+            encounter_id = encounter.id
+            session.commit()
+
+        with Session(self.engine) as session:
+            updated = apply_encounter_update(
+                session,
+                encounter_id,
+                EncounterUpdate(
+                    visit_date=VISIT_DATE,
+                    reason_for_visit="Revised follow-up",
+                    assessment="Updated fictional assessment",
+                ),
+            )
+            session.commit()
+            self.assertEqual(updated.appointment_id, appointment_id)
+            self.assertEqual(updated.reason_for_visit, "Revised follow-up")
+
+    def test_standalone_note_can_change_visit_date(self):
+        with Session(self.engine) as session:
+            encounter = create_encounter(
+                session, self.patient_id, self.note()
+            )
+            session.flush()
+            encounter_id = encounter.id
+            session.commit()
+
+        with Session(self.engine) as session:
+            updated = apply_encounter_update(
+                session,
+                encounter_id,
+                EncounterUpdate(
+                    visit_date=date(2026, 10, 19),
+                    reason_for_visit="Corrected date",
+                    plan="Fictional follow-up",
+                ),
+            )
+            session.commit()
+            self.assertEqual(updated.visit_date, date(2026, 10, 19))
+            self.assertIsNone(updated.appointment_id)
+
+    def test_missing_note_cannot_be_edited(self):
+        with Session(self.engine) as session:
+            with self.assertRaises(HTTPException) as raised:
+                apply_encounter_update(
+                    session,
+                    999,
+                    EncounterUpdate(
+                        visit_date=VISIT_DATE,
+                        reason_for_visit="Follow-up",
+                        plan="Fictional plan",
+                    ),
+                )
+            self.assertEqual(raised.exception.status_code, 404)
 
 
 if __name__ == "__main__":

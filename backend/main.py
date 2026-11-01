@@ -6,7 +6,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.encounters import create_encounter
+from backend.encounters import (
+    apply_encounter_update,
+    create_encounter,
+)
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -480,13 +483,7 @@ def update_encounter(
     encounter_data: EncounterUpdate,
 ):
     with Session(engine) as session:
-        encounter = session.get(Encounter, encounter_id)
-        if encounter is None:
-            raise HTTPException(status_code=404, detail="Visit note not found")
-
-        for field, value in encounter_data.model_dump().items():
-            setattr(encounter, field, value)
-
+        encounter = apply_encounter_update(session, encounter_id, encounter_data)
         session.commit()
         session.refresh(encounter)
         return encounter
