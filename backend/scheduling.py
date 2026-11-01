@@ -257,3 +257,22 @@ def mark_appointment_no_show(
     appointment.status = "no_show"
     record_appointment_status_change(session, appointment, previous_status)
     return appointment
+
+
+def list_daily_schedule(
+    session: Session, day: date
+) -> list[tuple[Appointment, Patient]]:
+    """Return the full clinic schedule for one local calendar date."""
+    query = (
+        select(Appointment, Patient)
+        .join(Patient, Appointment.patient_id == Patient.id)
+        .where(Appointment.scheduled_date == day)
+        .order_by(
+            Appointment.start_time,
+            Patient.last_name,
+            Patient.first_name,
+            Appointment.id,
+        )
+    )
+    return [(appointment, patient) for appointment, patient in session.execute(query)]
+

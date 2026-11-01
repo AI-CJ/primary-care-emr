@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import or_, select
@@ -9,6 +11,7 @@ from backend.scheduling import (
     check_in_appointment,
     complete_appointment,
     ensure_appointment_slot_open,
+    list_daily_schedule,
     mark_appointment_no_show,
     record_appointment_status_change,
     reschedule_appointment,
@@ -31,6 +34,8 @@ from backend.schemas import (
     PatientRead,
     ProblemCreate,
     ProblemRead,
+    ScheduleEntryRead,
+    SchedulePatientRead,
     VitalCreate,
     VitalRead,
 )
@@ -490,6 +495,23 @@ def update_encounter(
         session.commit()
         session.refresh(encounter)
         return encounter
+
+
+
+@app.get(
+    "/schedule",
+    response_model=list[ScheduleEntryRead],
+)
+def read_daily_schedule(day: date):
+    """Read all appointments for a clinic-local day."""
+    with Session(engine) as session:
+        return [
+            ScheduleEntryRead(
+                appointment=AppointmentRead.model_validate(appointment),
+                patient=SchedulePatientRead.model_validate(patient),
+            )
+            for appointment, patient in list_daily_schedule(session, day)
+        ]
 
 
 @app.get(

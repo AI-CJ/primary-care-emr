@@ -461,3 +461,18 @@ class AppointmentStatusChangeRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class SchedulePatientRead(BaseModel):
+    id: int
+    first_name: str
+    preferred_name: str | None
+    last_name: str
+    date_of_birth: date
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScheduleEntryRead(BaseModel):
+    appointment: AppointmentRead
+    patient: SchedulePatientRead
+
