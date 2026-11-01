@@ -408,12 +408,18 @@ class EncounterBase(BaseModel):
 
 
 class EncounterCreate(EncounterBase):
-    pass
+    appointment_id: int | None = Field(default=None, gt=0)
+
+
+class EncounterUpdate(EncounterBase):
+    # The link between a visit note and its appointment is permanent.
+    model_config = ConfigDict(extra="forbid")
 
 
 class EncounterRead(EncounterBase):
     id: int
     patient_id: int
+    appointment_id: int | None
 
     model_config = ConfigDict(from_attributes=True)
 

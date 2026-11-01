@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -96,10 +96,16 @@ class Encounter(Base):
     """A draft visit note for a synthetic patient chart."""
 
     __tablename__ = "encounters"
+    __table_args__ = (
+        UniqueConstraint("appointment_id", name="uq_encounters_appointment_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     patient_id: Mapped[int] = mapped_column(
         ForeignKey("patients.id"), index=True
+    )
+    appointment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("appointments.id"), nullable=True
     )
     visit_date: Mapped[date] = mapped_column()
     reason_for_visit: Mapped[str] = mapped_column(String(200))

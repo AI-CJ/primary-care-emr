@@ -6,6 +6,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.encounters import create_encounter
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -28,6 +29,7 @@ from backend.schemas import (
     AppointmentStatusChangeRead,
     EncounterCreate,
     EncounterRead,
+    EncounterUpdate,
     MedicationCreate,
     MedicationRead,
     PatientCreate,
@@ -463,14 +465,7 @@ def create_patient_encounter(
     encounter_data: EncounterCreate,
 ):
     with Session(engine) as session:
-        patient = session.get(Patient, patient_id)
-        if patient is None:
-            raise HTTPException(status_code=404, detail="Patient not found")
-
-        encounter = Encounter(
-            patient_id=patient_id, **encounter_data.model_dump()
-        )
-        session.add(encounter)
+        encounter = create_encounter(session, patient_id, encounter_data)
         session.commit()
         session.refresh(encounter)
         return encounter
@@ -482,7 +477,7 @@ def create_patient_encounter(
 )
 def update_encounter(
     encounter_id: int,
-    encounter_data: EncounterCreate,
+    encounter_data: EncounterUpdate,
 ):
     with Session(engine) as session:
         encounter = session.get(Encounter, encounter_id)

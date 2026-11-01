@@ -108,6 +108,7 @@ export type VitalInput = Omit<Vital, 'id' | 'patient_id'>
 export type Encounter = {
   id: number
   patient_id: number
+  appointment_id: number | null
   visit_date: string
   reason_for_visit: string
   subjective: string | null
@@ -116,7 +117,10 @@ export type Encounter = {
   plan: string | null
 }
 
-export type EncounterInput = Omit<Encounter, 'id' | 'patient_id'>
+export type EncounterInput = Omit<
+  Encounter,
+  'id' | 'patient_id' | 'appointment_id'
+> & { appointment_id?: number | null }
 
 export type AppointmentStatus =
   | 'scheduled'
