@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { Encounter, EncounterInput } from '../types'
+import type { Appointment, Encounter, EncounterInput } from '../types'
 
 type EncounterFormProps = {
   patientId: number
   encounter?: Encounter
+  linkedAppointmentIds: number[]
   onSaved: () => void
   onCancel: () => void
 }
@@ -12,11 +13,70 @@ type EncounterFormProps = {
 function EncounterForm({
   patientId,
   encounter,
+  linkedAppointmentIds,
   onSaved,
   onCancel,
 }: EncounterFormProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [visitDate, setVisitDate] = useState(encounter?.visit_date ?? '')
+  const [reasonForVisit, setReasonForVisit] = useState(
+    encounter?.reason_for_visit ?? ''
+  )
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState('')
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(!encounter)
+  const [appointmentError, setAppointmentError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (encounter) return
+
+    const controller = new AbortController()
+
+    async function loadAppointments() {
+      try {
+        const response = await fetch(
+          API_BASE_URL + '/patients/' + patientId + '/appointments',
+          { signal: controller.signal }
+        )
+        if (!response.ok) {
+          const message = await getApiErrorMessage(response)
+          if (!controller.signal.aborted) setAppointmentError(message)
+          return
+        }
+
+        const records: Appointment[] = await response.json()
+        if (!controller.signal.aborted) setAppointments(records)
+      } catch (requestError) {
+        if (!controller.signal.aborted) {
+          console.error(requestError)
+          setAppointmentError('Appointments could not be loaded.')
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsLoadingAppointments(false)
+      }
+    }
+
+    void loadAppointments()
+    return () => controller.abort()
+  }, [patientId, encounter])
+
+  const availableAppointments = appointments.filter(
+    (appointment) =>
+      (appointment.status === 'checked_in' || appointment.status === 'completed') &&
+      !linkedAppointmentIds.includes(appointment.id)
+  )
+
+  function chooseAppointment(id: string) {
+    setSelectedAppointmentId(id)
+    const selected = availableAppointments.find(
+      (appointment) => String(appointment.id) === id
+    )
+    if (selected) {
+      setVisitDate(selected.scheduled_date)
+      setReasonForVisit(selected.reason_for_visit)
+    }
+  }
 
   function optionalText(formData: FormData, name: string): string | null {
     const value = String(formData.get(name) ?? '').trim()
@@ -27,14 +87,28 @@ function EncounterForm({
     event.preventDefault()
     setError(null)
 
+    const appointmentId = selectedAppointmentId
+      ? Number(selectedAppointmentId)
+      : null
+    if (
+      appointmentId !== null &&
+      !availableAppointments.some((appointment) => appointment.id === appointmentId)
+    ) {
+      setError('The selected appointment is no longer available.')
+      return
+    }
+
     const formData = new FormData(event.currentTarget)
     const encounterData: EncounterInput = {
-      visit_date: String(formData.get('visit_date') ?? ''),
-      reason_for_visit: String(formData.get('reason_for_visit') ?? '').trim(),
+      visit_date: visitDate,
+      reason_for_visit: reasonForVisit.trim(),
       subjective: optionalText(formData, 'subjective'),
       objective: optionalText(formData, 'objective'),
       assessment: optionalText(formData, 'assessment'),
       plan: optionalText(formData, 'plan'),
+      ...(!encounter && appointmentId !== null
+        ? { appointment_id: appointmentId }
+        : {}),
     }
 
     if (
@@ -79,13 +153,56 @@ function EncounterForm({
         Development only: enter fictional patient information, never real records.
       </p>
 
+      {!encounter && (
+        <>
+          <label className="form-field">
+            <span>Linked appointment (optional)</span>
+            <select
+              value={selectedAppointmentId}
+              onChange={(event) => chooseAppointment(event.target.value)}
+              disabled={isLoadingAppointments || appointmentError !== null}
+            >
+              <option value="">Standalone visit note</option>
+              {availableAppointments.map((appointment) => (
+                <option key={appointment.id} value={appointment.id}>
+                  {appointment.scheduled_date} at {appointment.start_time.slice(0, 5)}
+                  {' · '}{appointment.reason_for_visit}
+                  {' ('}{appointment.status === 'checked_in' ? 'Checked in' : 'Completed'}{')'}
+                </option>
+              ))}
+            </select>
+          </label>
+          {isLoadingAppointments && (
+            <p className="encounter-help" role="status">Loading appointments...</p>
+          )}
+          {appointmentError && (
+            <p className="form-error" role="alert">
+              {appointmentError} You can still save a standalone note.
+            </p>
+          )}
+          {!isLoadingAppointments && !appointmentError && (
+            <p className="encounter-help">
+              Only checked-in or completed appointments without a visit note can be linked.
+            </p>
+          )}
+        </>
+      )}
+
+      {encounter?.appointment_id != null && (
+        <p className="encounter-help">
+          Linked to appointment #{encounter.appointment_id}. The link cannot be changed.
+        </p>
+      )}
+
       <label className="form-field">
         <span>Visit date *</span>
         <input
           type="date"
           name="visit_date"
           required
-          defaultValue={encounter?.visit_date ?? ''}
+          value={visitDate}
+          onChange={(event) => setVisitDate(event.target.value)}
+          readOnly={selectedAppointmentId !== '' || encounter?.appointment_id != null}
         />
       </label>
 
@@ -96,7 +213,8 @@ function EncounterForm({
           name="reason_for_visit"
           required
           maxLength={200}
-          defaultValue={encounter?.reason_for_visit ?? ''}
+          value={reasonForVisit}
+          onChange={(event) => setReasonForVisit(event.target.value)}
         />
       </label>
 

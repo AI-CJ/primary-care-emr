@@ -58,6 +58,10 @@ function EncounterList({ patientId }: EncounterListProps) {
     void loadEncounters()
   }
 
+  const linkedAppointmentIds = encounters.flatMap((encounter) =>
+    encounter.appointment_id === null ? [] : [encounter.appointment_id]
+  )
+
   return (
     <section className="overview-card encounter-card">
       <div className="overview-card-header">
@@ -76,6 +80,7 @@ function EncounterList({ patientId }: EncounterListProps) {
       {isAdding && (
         <EncounterForm
           patientId={patientId}
+          linkedAppointmentIds={linkedAppointmentIds}
           onSaved={finishEditing}
           onCancel={() => setIsAdding(false)}
         />
@@ -85,6 +90,7 @@ function EncounterList({ patientId }: EncounterListProps) {
         <EncounterForm
           patientId={patientId}
           encounter={editing}
+          linkedAppointmentIds={linkedAppointmentIds}
           onSaved={finishEditing}
           onCancel={() => setEditing(null)}
         />
@@ -111,6 +117,9 @@ function EncounterList({ patientId }: EncounterListProps) {
                       Visit date: <time dateTime={encounter.visit_date}>
                         {encounter.visit_date}
                       </time>
+                      {encounter.appointment_id !== null && (
+                        <span> · Linked appointment #{encounter.appointment_id}</span>
+                      )}
                     </p>
                   </div>
                   <button
