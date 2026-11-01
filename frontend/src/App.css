@@ -903,3 +903,143 @@
     width: 100%;
   }
 }
+
+
+/* Clinic daily schedule */
+
+.search-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.schedule-panel {
+  width: min(1060px, 100%);
+}
+
+.schedule-header p {
+  margin: -12px 0 24px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.schedule-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.schedule-date-field {
+  display: grid;
+  flex: 1 1 165px;
+  gap: 7px;
+  color: var(--onyx);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.schedule-date-field input {
+  width: 100%;
+  min-height: 39px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.schedule-date-field input:focus-visible {
+  outline: 3px solid var(--coastal-blue);
+  outline-offset: 2px;
+}
+
+.schedule-count {
+  margin: 22px 0 4px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.clinic-schedule-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.clinic-schedule-row {
+  display: grid;
+  grid-template-columns: 115px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 18px;
+  padding: 20px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.schedule-time {
+  display: grid;
+  gap: 5px;
+}
+
+.schedule-time time {
+  color: var(--onyx);
+  font-weight: 700;
+}
+
+.schedule-time span,
+.schedule-dob {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.schedule-entry-detail p {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.schedule-patient-link {
+  padding: 0;
+  color: var(--slate-blue);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.schedule-patient-link:hover {
+  color: var(--deep-sea);
+}
+
+.schedule-patient-link:focus-visible {
+  outline: 3px solid var(--coastal-blue);
+  outline-offset: 3px;
+}
+
+.clinic-schedule-row > .appointment-status {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .search-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clinic-schedule-row {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .schedule-time {
+    display: flex;
+    gap: 12px;
+  }
+
+  .schedule-controls > button {
+    flex: 1 1 auto;
+  }
+}

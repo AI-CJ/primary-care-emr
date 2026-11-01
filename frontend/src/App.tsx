@@ -9,6 +9,7 @@ import {
 
 import AllergyList from './components/AllergyList'
 import AppointmentList from './components/AppointmentList'
+import ClinicSchedule, { localDate } from './components/ClinicSchedule'
 import EncounterList from './components/EncounterList'
 import MedicationList from './components/MedicationList'
 import PatientForm from './components/PatientForm'
@@ -60,6 +61,12 @@ function patientPronouns(
 function App() {
   const [search, setSearch] =
     useState('')
+
+  const [showSchedule, setShowSchedule] =
+    useState(false)
+
+  const [scheduleDay, setScheduleDay] =
+    useState(localDate)
 
   const [patients, setPatients] =
     useState<Patient[]>([])
@@ -259,7 +266,7 @@ function App() {
               setSelectedPatient(null)
             }
           >
-            ← Back to patient search
+            ← Back to {showSchedule ? 'clinic schedule' : 'patient search'}
           </button>
 
 
@@ -342,21 +349,51 @@ function App() {
   }
 
 
+  if (showSchedule) {
+    return (
+      <ClinicSchedule
+        day={scheduleDay}
+        onDayChange={setScheduleDay}
+        onBack={() => {
+          setError(null)
+          setShowSchedule(false)
+        }}
+        onOpenPatient={(patientId) => {
+          void openPatient(patientId)
+        }}
+        patientError={error}
+      />
+    )
+  }
+
+
   return (
     <main className="search-page">
       <section className="search-panel">
         <div className="search-panel-header">
           <h1>Patient Search</h1>
 
-          <button
-            className="add-patient-button"
-            type="button"
-            onClick={() =>
-              setIsAddingPatient(true)
-            }
-          >
-            + Add Patient
-          </button>
+          <div className="search-header-actions">
+            <button
+              className="secondary-action-button"
+              type="button"
+              onClick={() => {
+                setError(null)
+                setShowSchedule(true)
+              }}
+            >
+              Clinic Schedule
+            </button>
+            <button
+              className="add-patient-button"
+              type="button"
+              onClick={() =>
+                setIsAddingPatient(true)
+              }
+            >
+              + Add Patient
+            </button>
+          </div>
         </div>
 
 

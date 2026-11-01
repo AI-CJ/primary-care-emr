@@ -145,3 +145,13 @@ export type AppointmentStatusChange = {
   changed_at: string
 }
 
+
+export type SchedulePatient = Pick<
+  Patient,
+  'id' | 'first_name' | 'preferred_name' | 'last_name' | 'date_of_birth'
+>
+
+export type ScheduleEntry = {
+  appointment: Appointment
+  patient: SchedulePatient
+}
