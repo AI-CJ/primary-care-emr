@@ -127,7 +127,7 @@ export type EncounterProblem = {
   linked_at: string
 }
 
-export type EncounterAddendum = {export type EncounterAddendum = {
+export type EncounterAddendum = {
   id: number
   encounter_id: number
   content: string
