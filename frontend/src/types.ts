@@ -115,11 +115,12 @@ export type Encounter = {
   objective: string | null
   assessment: string | null
   plan: string | null
+  finalized_at: string | null
 }
 
 export type EncounterInput = Omit<
   Encounter,
-  'id' | 'patient_id' | 'appointment_id'
+  'id' | 'patient_id' | 'appointment_id' | 'finalized_at'
 > & { appointment_id?: number | null }
 
 export type AppointmentStatus =

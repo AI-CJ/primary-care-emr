@@ -23,10 +23,13 @@ function EncounterList({ patientId }: EncounterListProps) {
   const [error, setError] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const [editing, setEditing] = useState<Encounter | null>(null)
+  const [finalizingId, setFinalizingId] = useState<number | null>(null)
+  const [finalizeError, setFinalizeError] = useState<string | null>(null)
 
   const loadEncounters = useCallback(async () => {
     setIsLoading(true)
     setError(null)
+    setFinalizeError(null)
     setEncounters([])
 
     try {
@@ -56,6 +59,31 @@ function EncounterList({ patientId }: EncounterListProps) {
     setIsAdding(false)
     setEditing(null)
     void loadEncounters()
+  }
+
+  async function handleFinalize(encounter: Encounter) {
+    if (!window.confirm('Finalize this visit note? It cannot be edited afterward.')) {
+      return
+    }
+
+    setFinalizeError(null)
+    setFinalizingId(encounter.id)
+    try {
+      const response = await fetch(
+        API_BASE_URL + '/encounters/' + encounter.id + '/finalize',
+        { method: 'POST' }
+      )
+      if (!response.ok) {
+        setFinalizeError(await getApiErrorMessage(response))
+        return
+      }
+      await loadEncounters()
+    } catch (requestError) {
+      console.error(requestError)
+      setFinalizeError('The visit note could not be finalized.')
+    } finally {
+      setFinalizingId(null)
+    }
   }
 
   const linkedAppointmentIds = encounters.flatMap((encounter) =>
@@ -102,6 +130,10 @@ function EncounterList({ patientId }: EncounterListProps) {
         <p className="form-error" role="alert">{error}</p>
       )}
 
+      {!isAdding && !editing && finalizeError && (
+        <p className="form-error" role="alert">{finalizeError}</p>
+      )}
+
       {!isAdding && !editing && !isLoading && !error &&
         encounters.length === 0 && <p>No visit notes recorded yet.</p>}
 
@@ -120,19 +152,36 @@ function EncounterList({ patientId }: EncounterListProps) {
                       {encounter.appointment_id !== null && (
                         <span> · Linked appointment #{encounter.appointment_id}</span>
                       )}
+                      {encounter.finalized_at !== null && (
+                        <span> · Finalized <time dateTime={encounter.finalized_at}>{encounter.finalized_at.slice(0, 10)}</time></span>
+                      )}
                     </p>
                   </div>
-                  <button
-                    className="secondary-action-button"
-                    type="button"
-                    aria-label={
-                      'Edit visit note from ' + encounter.visit_date +
-                      ': ' + encounter.reason_for_visit
-                    }
-                    onClick={() => setEditing(encounter)}
-                  >
-                    Edit
-                  </button>
+                  {encounter.finalized_at === null && (
+                    <div className="encounter-form-actions">
+                      <button
+                        className="secondary-action-button"
+                        type="button"
+                        aria-label={
+                          'Edit visit note from ' + encounter.visit_date +
+                          ': ' + encounter.reason_for_visit
+                        }
+                        disabled={finalizingId !== null}
+                        onClick={() => setEditing(encounter)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="secondary-action-button"
+                        type="button"
+                        aria-label={'Finalize visit note from ' + encounter.visit_date}
+                        disabled={finalizingId !== null}
+                        onClick={() => void handleFinalize(encounter)}
+                      >
+                        {finalizingId === encounter.id ? 'Finalizing...' : 'Finalize'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <details className="encounter-details">

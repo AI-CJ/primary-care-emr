@@ -420,6 +420,7 @@ class EncounterRead(EncounterBase):
     id: int
     patient_id: int
     appointment_id: int | None
+    finalized_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
 

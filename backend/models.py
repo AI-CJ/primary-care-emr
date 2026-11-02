@@ -93,7 +93,7 @@ class Vital(Base):
 
 
 class Encounter(Base):
-    """A draft visit note for a synthetic patient chart."""
+    """A visit note for a synthetic patient chart."""
 
     __tablename__ = "encounters"
     __table_args__ = (
@@ -113,6 +113,9 @@ class Encounter(Base):
     objective: Mapped[str | None] = mapped_column(Text(), nullable=True)
     assessment: Mapped[str | None] = mapped_column(Text(), nullable=True)
     plan: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    finalized_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Appointment(Base):

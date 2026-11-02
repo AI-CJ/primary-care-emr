@@ -1,4 +1,6 @@
-"""Create patient visit notes, optionally associated with an appointment."""
+"""Create and finalize patient visit notes."""
+
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -61,9 +63,13 @@ def apply_encounter_update(
     encounter_data: EncounterUpdate,
 ) -> Encounter:
     """Keep an appointment-linked visit note on its original visit date."""
-    encounter = session.get(Encounter, encounter_id)
+    encounter = session.scalar(
+        select(Encounter).where(Encounter.id == encounter_id).with_for_update()
+    )
     if encounter is None:
         raise HTTPException(status_code=404, detail="Visit note not found")
+    if encounter.finalized_at is not None:
+        raise HTTPException(status_code=409, detail="Finalized visit notes cannot be edited.")
 
     if (
         encounter.appointment_id is not None
@@ -76,4 +82,23 @@ def apply_encounter_update(
 
     for field, value in encounter_data.model_dump().items():
         setattr(encounter, field, value)
+    return encounter
+
+
+def finalize_encounter(session: Session, encounter_id: int) -> Encounter:
+    """Finalize an assessed and planned draft visit note."""
+    encounter = session.scalar(
+        select(Encounter).where(Encounter.id == encounter_id).with_for_update()
+    )
+    if encounter is None:
+        raise HTTPException(status_code=404, detail="Visit note not found")
+    if encounter.finalized_at is not None:
+        raise HTTPException(status_code=409, detail="Visit note is already finalized.")
+    if not encounter.assessment or not encounter.plan:
+        raise HTTPException(
+            status_code=409,
+            detail="Assessment and plan are required to finalize a visit note.",
+        )
+
+    encounter.finalized_at = datetime.now(timezone.utc)
     return encounter

@@ -9,6 +9,7 @@ from backend.database import engine
 from backend.encounters import (
     apply_encounter_update,
     create_encounter,
+    finalize_encounter,
 )
 from backend.scheduling import (
     cancel_appointment,
@@ -488,6 +489,17 @@ def update_encounter(
         session.refresh(encounter)
         return encounter
 
+
+@app.post(
+    "/encounters/{encounter_id}/finalize",
+    response_model=EncounterRead,
+)
+def finalize_patient_encounter(encounter_id: int):
+    with Session(engine) as session:
+        encounter = finalize_encounter(session, encounter_id)
+        session.commit()
+        session.refresh(encounter)
+        return encounter
 
 
 @app.get(
