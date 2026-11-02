@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter } from '../types'
 import EncounterForm from './EncounterForm'
+import EncounterAddenda from './EncounterAddenda'
 
 type EncounterListProps = {
   patientId: number
@@ -16,6 +17,33 @@ const noteSections: Array<{
   { key: 'assessment', heading: 'Assessment' },
   { key: 'plan', heading: 'Plan' },
 ]
+
+
+function EncounterDetails({ encounter }: { encounter: Encounter }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  return (
+    <details
+      className="encounter-details"
+      onToggle={(event) => setIsExpanded(event.currentTarget.open)}
+    >
+      <summary>View note</summary>
+      <div className="encounter-sections">
+        {noteSections.map(({ key, heading }) =>
+          encounter[key] && (
+            <section className="encounter-section" key={key}>
+              <h3>{heading}</h3>
+              <p>{encounter[key]}</p>
+            </section>
+          )
+        )}
+        {encounter.finalized_at !== null && isExpanded && (
+          <EncounterAddenda encounterId={encounter.id} />
+        )}
+      </div>
+    </details>
+  )
+}
 
 function EncounterList({ patientId }: EncounterListProps) {
   const [encounters, setEncounters] = useState<Encounter[]>([])
@@ -184,19 +212,7 @@ function EncounterList({ patientId }: EncounterListProps) {
                   )}
                 </div>
 
-                <details className="encounter-details">
-                  <summary>View note</summary>
-                  <div className="encounter-sections">
-                    {noteSections.map(({ key, heading }) =>
-                      encounter[key] && (
-                        <section className="encounter-section" key={key}>
-                          <h3>{heading}</h3>
-                          <p>{encounter[key]}</p>
-                        </section>
-                      )
-                    )}
-                  </div>
-                </details>
+                <EncounterDetails encounter={encounter} />
               </article>
             ))}
           </div>

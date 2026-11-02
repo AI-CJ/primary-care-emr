@@ -118,6 +118,13 @@ export type Encounter = {
   finalized_at: string | null
 }
 
+export type EncounterAddendum = {
+  id: number
+  encounter_id: number
+  content: string
+  created_at: string
+}
+
 export type EncounterInput = Omit<
   Encounter,
   'id' | 'patient_id' | 'appointment_id' | 'finalized_at'

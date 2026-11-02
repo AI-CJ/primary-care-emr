@@ -635,6 +635,40 @@
   line-height: 1.6;
 }
 
+.encounter-addenda {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.encounter-addenda-list {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 18px;
+}
+
+.encounter-addendum {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--pale-aqua);
+}
+
+.encounter-addendum p + p {
+  margin-top: 8px;
+}
+
+.encounter-addenda-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.encounter-addenda-form .save-patient-button {
+  justify-self: start;
+  margin-top: 0;
+}
+
+
 @media (max-width: 600px) {
   .encounter-row-header {
     flex-direction: column;
