@@ -118,7 +118,16 @@ export type Encounter = {
   finalized_at: string | null
 }
 
-export type EncounterAddendum = {
+export type EncounterProblem = {
+  id: number
+  encounter_id: number
+  problem_id: number
+  problem_name_at_link: string
+  problem_status_at_link: ProblemStatus
+  linked_at: string
+}
+
+export type EncounterAddendum = {export type EncounterAddendum = {
   id: number
   encounter_id: number
   content: string

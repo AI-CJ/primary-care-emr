@@ -3,6 +3,7 @@ import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter } from '../types'
 import EncounterForm from './EncounterForm'
 import EncounterAddenda from './EncounterAddenda'
+import EncounterProblems from './EncounterProblems'import EncounterAddenda from './EncounterAddenda'
 
 type EncounterListProps = {
   patientId: number
@@ -37,7 +38,8 @@ function EncounterDetails({ encounter }: { encounter: Encounter }) {
             </section>
           )
         )}
-        {encounter.finalized_at !== null && isExpanded && (
+        {isExpanded && <EncounterProblems encounter={encounter} />}
+        {encounter.finalized_at !== null && isExpanded && (        {encounter.finalized_at !== null && isExpanded && (
           <EncounterAddenda encounterId={encounter.id} />
         )}
       </div>

@@ -635,7 +635,50 @@
   line-height: 1.6;
 }
 
-.encounter-addenda {
+.encounter-problems {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.encounter-problems h3 {
+  margin: 0 0 8px;
+  color: var(--onyx);
+  font-size: 0.95rem;
+}
+
+.encounter-problems-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 12px 0;
+  list-style: none;
+}
+
+.encounter-problem-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.encounter-problem-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.encounter-problem-form .form-field {
+  flex: 1 1 220px;
+}
+
+.encounter-problem-form button {
+  min-height: 40px;
+}
+
+.encounter-addenda {.encounter-addenda {
   border-top: 1px solid var(--border);
   padding-top: 16px;
 }
