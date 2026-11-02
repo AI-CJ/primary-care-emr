@@ -447,6 +447,22 @@ class EncounterAddendumRead(EncounterAddendumCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class EncounterProblemLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    problem_id: int = Field(gt=0)
+
+
+class EncounterProblemRead(EncounterProblemLinkCreate):
+    id: int
+    encounter_id: int
+    problem_name_at_link: str
+    problem_status_at_link: ProblemStatus
+    linked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

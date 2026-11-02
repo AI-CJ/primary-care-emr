@@ -135,6 +135,32 @@ class EncounterAddendum(Base):
     )
 
 
+class EncounterProblem(Base):
+    """A visit's reference to a chart problem, frozen at time of linking."""
+
+    __tablename__ = "encounter_problems"
+    __table_args__ = (
+        UniqueConstraint(
+            "encounter_id", "problem_id", name="uq_encounter_problems_visit_problem"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    encounter_id: Mapped[int] = mapped_column(
+        ForeignKey("encounters.id", ondelete="RESTRICT"), nullable=False
+    )
+    problem_id: Mapped[int] = mapped_column(
+        ForeignKey("problems.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    problem_name_at_link: Mapped[str] = mapped_column(String(200), nullable=False)
+    problem_status_at_link: Mapped[str] = mapped_column(String(20), nullable=False)
+    linked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 

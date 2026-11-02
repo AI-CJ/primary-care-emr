@@ -12,6 +12,11 @@ from backend.encounters import (
     create_encounter_addendum,
     finalize_encounter,
 )
+from backend.encounter_problems import (
+    link_encounter_problem,
+    list_encounter_problems,
+    unlink_encounter_problem,
+)
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -34,6 +39,8 @@ from backend.schemas import (
     AppointmentStatusChangeRead,
     EncounterAddendumCreate,
     EncounterAddendumRead,
+    EncounterProblemLinkCreate,
+    EncounterProblemRead,
     EncounterCreate,
     EncounterRead,
     EncounterUpdate,
@@ -537,6 +544,37 @@ def add_encounter_addendum(
         session.commit()
         session.refresh(addendum)
         return addendum
+
+
+@app.get(
+    "/encounters/{encounter_id}/problems",
+    response_model=list[EncounterProblemRead],
+)
+def read_encounter_problems(encounter_id: int):
+    with Session(engine) as session:
+        return list_encounter_problems(session, encounter_id)
+
+
+@app.post(
+    "/encounters/{encounter_id}/problems",
+    response_model=EncounterProblemRead,
+    status_code=201,
+)
+def add_encounter_problem(
+    encounter_id: int, link_data: EncounterProblemLinkCreate
+):
+    with Session(engine) as session:
+        link = link_encounter_problem(session, encounter_id, link_data)
+        session.commit()
+        session.refresh(link)
+        return link
+
+
+@app.delete("/encounters/{encounter_id}/problems/{problem_id}", status_code=204)
+def remove_encounter_problem(encounter_id: int, problem_id: int):
+    with Session(engine) as session:
+        unlink_encounter_problem(session, encounter_id, problem_id)
+        session.commit()
 
 
 @app.get(
