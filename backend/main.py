@@ -17,6 +17,11 @@ from backend.encounter_problems import (
     list_encounter_problems,
     unlink_encounter_problem,
 )
+from backend.encounter_vitals import (
+    link_encounter_vital,
+    list_encounter_vitals,
+    unlink_encounter_vital,
+)
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -41,6 +46,8 @@ from backend.schemas import (
     EncounterAddendumRead,
     EncounterProblemLinkCreate,
     EncounterProblemRead,
+    EncounterVitalLinkCreate,
+    EncounterVitalRead,
     EncounterCreate,
     EncounterRead,
     EncounterUpdate,
@@ -574,6 +581,37 @@ def add_encounter_problem(
 def remove_encounter_problem(encounter_id: int, problem_id: int):
     with Session(engine) as session:
         unlink_encounter_problem(session, encounter_id, problem_id)
+        session.commit()
+
+
+@app.get(
+    "/encounters/{encounter_id}/vitals",
+    response_model=list[EncounterVitalRead],
+)
+def read_encounter_vitals(encounter_id: int):
+    with Session(engine) as session:
+        return list_encounter_vitals(session, encounter_id)
+
+
+@app.post(
+    "/encounters/{encounter_id}/vitals",
+    response_model=EncounterVitalRead,
+    status_code=201,
+)
+def add_encounter_vital(
+    encounter_id: int, link_data: EncounterVitalLinkCreate
+):
+    with Session(engine) as session:
+        link = link_encounter_vital(session, encounter_id, link_data)
+        session.commit()
+        session.refresh(link)
+        return link
+
+
+@app.delete("/encounters/{encounter_id}/vitals/{vital_id}", status_code=204)
+def remove_encounter_vital(encounter_id: int, vital_id: int):
+    with Session(engine) as session:
+        unlink_encounter_vital(session, encounter_id, vital_id)
         session.commit()
 
 

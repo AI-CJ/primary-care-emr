@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import Appointment, Encounter, EncounterAddendum, Patient
+from backend.models import Appointment, Encounter, EncounterAddendum, EncounterVital, Patient
 from backend.schemas import EncounterAddendumCreate, EncounterCreate, EncounterUpdate
 
 
@@ -79,6 +79,16 @@ def apply_encounter_update(
             status_code=409,
             detail="A visit note linked to an appointment cannot change its visit date.",
         )
+
+    if encounter_data.visit_date != encounter.visit_date:
+        linked_vital = session.scalar(
+            select(EncounterVital.id).where(EncounterVital.encounter_id == encounter_id).limit(1)
+        )
+        if linked_vital is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Remove linked vitals before changing the visit date.",
+            )
 
     for field, value in encounter_data.model_dump().items():
         setattr(encounter, field, value)

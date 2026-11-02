@@ -463,6 +463,31 @@ class EncounterProblemRead(EncounterProblemLinkCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+
+class EncounterVitalLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    vital_id: int = Field(gt=0)
+
+
+class EncounterVitalRead(EncounterVitalLinkCreate):
+    id: int
+    encounter_id: int
+    recorded_on_at_link: date
+    systolic_bp_at_link: int | None
+    diastolic_bp_at_link: int | None
+    heart_rate_at_link: int | None
+    respiratory_rate_at_link: int | None
+    temperature_c_at_link: float | None
+    oxygen_saturation_at_link: int | None
+    height_cm_at_link: float | None
+    weight_kg_at_link: float | None
+    notes_at_link: str | None
+    linked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

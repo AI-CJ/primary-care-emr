@@ -161,6 +161,35 @@ class EncounterProblem(Base):
     )
 
 
+class EncounterVital(Base):
+    """A historical snapshot of a vital record linked to a visit."""
+
+    __tablename__ = "encounter_vitals"
+    __table_args__ = (
+        UniqueConstraint("encounter_id", "vital_id", name="uq_encounter_vitals_visit_vital"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    encounter_id: Mapped[int] = mapped_column(
+        ForeignKey("encounters.id", ondelete="RESTRICT"), nullable=False
+    )
+    vital_id: Mapped[int] = mapped_column(
+        ForeignKey("vitals.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    recorded_on_at_link: Mapped[date] = mapped_column(nullable=False)
+    systolic_bp_at_link: Mapped[int | None] = mapped_column(nullable=True)
+    diastolic_bp_at_link: Mapped[int | None] = mapped_column(nullable=True)
+    heart_rate_at_link: Mapped[int | None] = mapped_column(nullable=True)
+    respiratory_rate_at_link: Mapped[int | None] = mapped_column(nullable=True)
+    temperature_c_at_link: Mapped[float | None] = mapped_column(Float(), nullable=True)
+    oxygen_saturation_at_link: Mapped[int | None] = mapped_column(nullable=True)
+    height_cm_at_link: Mapped[float | None] = mapped_column(Float(), nullable=True)
+    weight_kg_at_link: Mapped[float | None] = mapped_column(Float(), nullable=True)
+    notes_at_link: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    linked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 
