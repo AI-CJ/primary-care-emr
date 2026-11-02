@@ -425,6 +425,28 @@ class EncounterRead(EncounterBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EncounterAddendumCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("content")
+    @classmethod
+    def content_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Addendum cannot be blank")
+        return value
+
+
+class EncounterAddendumRead(EncounterAddendumCreate):
+    id: int
+    encounter_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

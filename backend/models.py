@@ -118,6 +118,23 @@ class Encounter(Base):
     )
 
 
+class EncounterAddendum(Base):
+    """A permanent addition to a finalized visit note."""
+
+    __tablename__ = "encounter_addenda"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    encounter_id: Mapped[int] = mapped_column(
+        ForeignKey("encounters.id", ondelete="RESTRICT"), index=True
+    )
+    content: Mapped[str] = mapped_column(Text(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 

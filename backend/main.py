@@ -9,6 +9,7 @@ from backend.database import engine
 from backend.encounters import (
     apply_encounter_update,
     create_encounter,
+    create_encounter_addendum,
     finalize_encounter,
 )
 from backend.scheduling import (
@@ -23,7 +24,7 @@ from backend.scheduling import (
 )
 from backend.models import (
     Allergy, Appointment, AppointmentStatusChange, Encounter,
-    Medication, Patient, Problem, Vital,
+    EncounterAddendum, Medication, Patient, Problem, Vital,
 )
 from backend.schemas import (
     AllergyCreate,
@@ -31,6 +32,8 @@ from backend.schemas import (
     AppointmentCreate,
     AppointmentRead,
     AppointmentStatusChangeRead,
+    EncounterAddendumCreate,
+    EncounterAddendumRead,
     EncounterCreate,
     EncounterRead,
     EncounterUpdate,
@@ -500,6 +503,40 @@ def finalize_patient_encounter(encounter_id: int):
         session.commit()
         session.refresh(encounter)
         return encounter
+
+
+@app.get(
+    "/encounters/{encounter_id}/addenda",
+    response_model=list[EncounterAddendumRead],
+)
+def read_encounter_addenda(encounter_id: int):
+    with Session(engine) as session:
+        if session.get(Encounter, encounter_id) is None:
+            raise HTTPException(status_code=404, detail="Visit note not found")
+
+        query = (
+            select(EncounterAddendum)
+            .where(EncounterAddendum.encounter_id == encounter_id)
+            .order_by(EncounterAddendum.created_at, EncounterAddendum.id)
+        )
+        return list(session.scalars(query).all())
+
+
+@app.post(
+    "/encounters/{encounter_id}/addenda",
+    response_model=EncounterAddendumRead,
+    status_code=201,
+)
+def add_encounter_addendum(
+    encounter_id: int, addendum_data: EncounterAddendumCreate
+):
+    with Session(engine) as session:
+        addendum = create_encounter_addendum(
+            session, encounter_id, addendum_data
+        )
+        session.commit()
+        session.refresh(addendum)
+        return addendum
 
 
 @app.get(

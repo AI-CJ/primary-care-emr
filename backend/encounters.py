@@ -6,8 +6,8 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import Appointment, Encounter, Patient
-from backend.schemas import EncounterCreate, EncounterUpdate
+from backend.models import Appointment, Encounter, EncounterAddendum, Patient
+from backend.schemas import EncounterAddendumCreate, EncounterCreate, EncounterUpdate
 
 
 def create_encounter(
@@ -102,3 +102,25 @@ def finalize_encounter(session: Session, encounter_id: int) -> Encounter:
 
     encounter.finalized_at = datetime.now(timezone.utc)
     return encounter
+
+
+def create_encounter_addendum(
+    session: Session, encounter_id: int, addendum_data: EncounterAddendumCreate
+) -> EncounterAddendum:
+    """Add a new entry without changing a finalized note's original content."""
+    encounter = session.scalar(
+        select(Encounter).where(Encounter.id == encounter_id).with_for_update()
+    )
+    if encounter is None:
+        raise HTTPException(status_code=404, detail="Visit note not found")
+    if encounter.finalized_at is None:
+        raise HTTPException(
+            status_code=409, detail="Finalize the visit note before adding an addendum."
+        )
+
+    addendum = EncounterAddendum(
+        encounter_id=encounter_id, **addendum_data.model_dump()
+    )
+    session.add(addendum)
+    session.flush()
+    return addendum
