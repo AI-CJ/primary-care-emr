@@ -127,6 +127,23 @@ export type EncounterProblem = {
   linked_at: string
 }
 
+export type EncounterVital = {
+  id: number
+  encounter_id: number
+  vital_id: number
+  recorded_on_at_link: string
+  systolic_bp_at_link: number | null
+  diastolic_bp_at_link: number | null
+  heart_rate_at_link: number | null
+  respiratory_rate_at_link: number | null
+  temperature_c_at_link: number | null
+  oxygen_saturation_at_link: number | null
+  height_cm_at_link: number | null
+  weight_kg_at_link: number | null
+  notes_at_link: string | null
+  linked_at: string
+}
+
 export type EncounterAddendum = {
   id: number
   encounter_id: number

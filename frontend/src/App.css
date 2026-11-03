@@ -635,18 +635,21 @@
   line-height: 1.6;
 }
 
-.encounter-problems {
+.encounter-problems,
+.encounter-vitals {
   border-top: 1px solid var(--border);
   padding-top: 16px;
 }
 
-.encounter-problems h3 {
+.encounter-problems h3,
+.encounter-vitals h3 {
   margin: 0 0 8px;
   color: var(--onyx);
   font-size: 0.95rem;
 }
 
-.encounter-problems-list {
+.encounter-problems-list,
+.encounter-vitals-list {
   display: grid;
   gap: 12px;
   padding: 0;
@@ -654,7 +657,8 @@
   list-style: none;
 }
 
-.encounter-problem-row {
+.encounter-problem-row,
+.encounter-vital-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -662,7 +666,8 @@
   gap: 12px;
 }
 
-.encounter-problem-form {
+.encounter-problem-form,
+.encounter-vital-form {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
@@ -670,11 +675,13 @@
   margin-top: 14px;
 }
 
-.encounter-problem-form .form-field {
+.encounter-problem-form .form-field,
+.encounter-vital-form .form-field {
   flex: 1 1 220px;
 }
 
-.encounter-problem-form button {
+.encounter-problem-form button,
+.encounter-vital-form button {
   min-height: 40px;
 }
 
