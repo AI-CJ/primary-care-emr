@@ -511,6 +511,26 @@ class EncounterMedicationRead(EncounterMedicationLinkCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class EncounterAllergyLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    allergy_id: int = Field(gt=0)
+
+
+class EncounterAllergyRead(EncounterAllergyLinkCreate):
+    id: int
+    encounter_id: int
+    allergen_at_link: str
+    reaction_at_link: str | None
+    severity_at_link: AllergySeverity
+    status_at_link: AllergyStatus
+    onset_date_at_link: date | None
+    notes_at_link: str | None
+    linked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

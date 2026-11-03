@@ -22,6 +22,11 @@ from backend.encounter_medications import (
     list_encounter_medications,
     unlink_encounter_medication,
 )
+from backend.encounter_allergies import (
+    link_encounter_allergy,
+    list_encounter_allergies,
+    unlink_encounter_allergy,
+)
 from backend.encounter_vitals import (
     link_encounter_vital,
     list_encounter_vitals,
@@ -43,6 +48,8 @@ from backend.models import (
 )
 from backend.schemas import (
     AllergyCreate,
+    EncounterAllergyLinkCreate,
+    EncounterAllergyRead,
     AllergyRead,
     AppointmentCreate,
     AppointmentRead,
@@ -651,6 +658,35 @@ def add_encounter_medication(
 def remove_encounter_medication(encounter_id: int, medication_id: int):
     with Session(engine) as session:
         unlink_encounter_medication(session, encounter_id, medication_id)
+        session.commit()
+
+
+@app.get(
+    "/encounters/{encounter_id}/allergies",
+    response_model=list[EncounterAllergyRead],
+)
+def read_encounter_allergies(encounter_id: int):
+    with Session(engine) as session:
+        return list_encounter_allergies(session, encounter_id)
+
+
+@app.post(
+    "/encounters/{encounter_id}/allergies",
+    response_model=EncounterAllergyRead,
+    status_code=201,
+)
+def add_encounter_allergy(encounter_id: int, link_data: EncounterAllergyLinkCreate):
+    with Session(engine) as session:
+        link = link_encounter_allergy(session, encounter_id, link_data)
+        session.commit()
+        session.refresh(link)
+        return link
+
+
+@app.delete("/encounters/{encounter_id}/allergies/{allergy_id}", status_code=204)
+def remove_encounter_allergy(encounter_id: int, allergy_id: int):
+    with Session(engine) as session:
+        unlink_encounter_allergy(session, encounter_id, allergy_id)
         session.commit()
 
 

@@ -221,6 +221,32 @@ class EncounterMedication(Base):
     )
 
 
+class EncounterAllergy(Base):
+    """A historical snapshot of a chart allergy linked to a visit."""
+
+    __tablename__ = "encounter_allergies"
+    __table_args__ = (
+        UniqueConstraint("encounter_id", "allergy_id", name="uq_encounter_allergies_visit_allergy"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    encounter_id: Mapped[int] = mapped_column(
+        ForeignKey("encounters.id", ondelete="RESTRICT"), nullable=False
+    )
+    allergy_id: Mapped[int] = mapped_column(
+        ForeignKey("allergies.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    allergen_at_link: Mapped[str] = mapped_column(String(200), nullable=False)
+    reaction_at_link: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    severity_at_link: Mapped[str] = mapped_column(String(20), nullable=False)
+    status_at_link: Mapped[str] = mapped_column(String(20), nullable=False)
+    onset_date_at_link: Mapped[date | None] = mapped_column(nullable=True)
+    notes_at_link: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    linked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 
