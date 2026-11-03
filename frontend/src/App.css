@@ -637,14 +637,16 @@
 
 .encounter-problems,
 .encounter-vitals,
-.encounter-medications {
+.encounter-medications,
+.encounter-allergies {
   border-top: 1px solid var(--border);
   padding-top: 16px;
 }
 
 .encounter-problems h3,
 .encounter-vitals h3,
-.encounter-medications h3 {
+.encounter-medications h3,
+.encounter-allergies h3 {
   margin: 0 0 8px;
   color: var(--onyx);
   font-size: 0.95rem;
@@ -652,7 +654,8 @@
 
 .encounter-problems-list,
 .encounter-vitals-list,
-.encounter-medications-list {
+.encounter-medications-list,
+.encounter-allergies-list {
   display: grid;
   gap: 12px;
   padding: 0;
@@ -662,7 +665,8 @@
 
 .encounter-problem-row,
 .encounter-vital-row,
-.encounter-medication-row {
+.encounter-medication-row,
+.encounter-allergy-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -672,7 +676,8 @@
 
 .encounter-problem-form,
 .encounter-vital-form,
-.encounter-medication-form {
+.encounter-medication-form,
+.encounter-allergy-form {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
@@ -682,17 +687,20 @@
 
 .encounter-problem-form .form-field,
 .encounter-vital-form .form-field,
-.encounter-medication-form .form-field {
+.encounter-medication-form .form-field,
+.encounter-allergy-form .form-field {
   flex: 1 1 220px;
 }
 
 .encounter-problem-form button,
 .encounter-vital-form button,
-.encounter-medication-form button {
+.encounter-medication-form button,
+.encounter-allergy-form button {
   min-height: 40px;
 }
 
-.encounter-medication-instructions {
+.encounter-medication-instructions,
+.encounter-allergy-notes {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 1.5;

@@ -143,6 +143,19 @@ export type EncounterMedication = {
   linked_at: string
 }
 
+export type EncounterAllergy = {
+  id: number
+  encounter_id: number
+  allergy_id: number
+  allergen_at_link: string
+  reaction_at_link: string | null
+  severity_at_link: AllergySeverity
+  status_at_link: AllergyStatus
+  onset_date_at_link: string | null
+  notes_at_link: string | null
+  linked_at: string
+}
+
 export type EncounterVital = {
   id: number
   encounter_id: number
