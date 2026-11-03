@@ -190,6 +190,37 @@ class EncounterVital(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
+class EncounterMedication(Base):
+    """A historical snapshot of a chart medication linked to a visit."""
+
+    __tablename__ = "encounter_medications"
+    __table_args__ = (
+        UniqueConstraint(
+            "encounter_id", "medication_id", name="uq_encounter_medications_visit_medication"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    encounter_id: Mapped[int] = mapped_column(
+        ForeignKey("encounters.id", ondelete="RESTRICT"), nullable=False
+    )
+    medication_id: Mapped[int] = mapped_column(
+        ForeignKey("medications.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    name_at_link: Mapped[str] = mapped_column(String(200), nullable=False)
+    strength_at_link: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    dose_at_link: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    route_at_link: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    frequency_at_link: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status_at_link: Mapped[str] = mapped_column(String(20), nullable=False)
+    start_date_at_link: Mapped[date | None] = mapped_column(nullable=True)
+    end_date_at_link: Mapped[date | None] = mapped_column(nullable=True)
+    instructions_at_link: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    linked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 

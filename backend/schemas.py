@@ -488,6 +488,29 @@ class EncounterVitalRead(EncounterVitalLinkCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class EncounterMedicationLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medication_id: int = Field(gt=0)
+
+
+class EncounterMedicationRead(EncounterMedicationLinkCreate):
+    id: int
+    encounter_id: int
+    name_at_link: str
+    strength_at_link: str | None
+    dose_at_link: str | None
+    route_at_link: str | None
+    frequency_at_link: str | None
+    status_at_link: MedicationStatus
+    start_date_at_link: date | None
+    end_date_at_link: date | None
+    instructions_at_link: str | None
+    linked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

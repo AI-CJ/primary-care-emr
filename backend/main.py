@@ -17,6 +17,11 @@ from backend.encounter_problems import (
     list_encounter_problems,
     unlink_encounter_problem,
 )
+from backend.encounter_medications import (
+    link_encounter_medication,
+    list_encounter_medications,
+    unlink_encounter_medication,
+)
 from backend.encounter_vitals import (
     link_encounter_vital,
     list_encounter_vitals,
@@ -44,6 +49,8 @@ from backend.schemas import (
     AppointmentStatusChangeRead,
     EncounterAddendumCreate,
     EncounterAddendumRead,
+    EncounterMedicationLinkCreate,
+    EncounterMedicationRead,
     EncounterProblemLinkCreate,
     EncounterProblemRead,
     EncounterVitalLinkCreate,
@@ -612,6 +619,38 @@ def add_encounter_vital(
 def remove_encounter_vital(encounter_id: int, vital_id: int):
     with Session(engine) as session:
         unlink_encounter_vital(session, encounter_id, vital_id)
+        session.commit()
+
+
+
+@app.get(
+    "/encounters/{encounter_id}/medications",
+    response_model=list[EncounterMedicationRead],
+)
+def read_encounter_medications(encounter_id: int):
+    with Session(engine) as session:
+        return list_encounter_medications(session, encounter_id)
+
+
+@app.post(
+    "/encounters/{encounter_id}/medications",
+    response_model=EncounterMedicationRead,
+    status_code=201,
+)
+def add_encounter_medication(
+    encounter_id: int, link_data: EncounterMedicationLinkCreate
+):
+    with Session(engine) as session:
+        link = link_encounter_medication(session, encounter_id, link_data)
+        session.commit()
+        session.refresh(link)
+        return link
+
+
+@app.delete("/encounters/{encounter_id}/medications/{medication_id}", status_code=204)
+def remove_encounter_medication(encounter_id: int, medication_id: int):
+    with Session(engine) as session:
+        unlink_encounter_medication(session, encounter_id, medication_id)
         session.commit()
 
 
