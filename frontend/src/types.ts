@@ -127,6 +127,22 @@ export type EncounterProblem = {
   linked_at: string
 }
 
+export type EncounterMedication = {
+  id: number
+  encounter_id: number
+  medication_id: number
+  name_at_link: string
+  strength_at_link: string | null
+  dose_at_link: string | null
+  route_at_link: string | null
+  frequency_at_link: string | null
+  status_at_link: MedicationStatus
+  start_date_at_link: string | null
+  end_date_at_link: string | null
+  instructions_at_link: string | null
+  linked_at: string
+}
+
 export type EncounterVital = {
   id: number
   encounter_id: number

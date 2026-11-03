@@ -636,20 +636,23 @@
 }
 
 .encounter-problems,
-.encounter-vitals {
+.encounter-vitals,
+.encounter-medications {
   border-top: 1px solid var(--border);
   padding-top: 16px;
 }
 
 .encounter-problems h3,
-.encounter-vitals h3 {
+.encounter-vitals h3,
+.encounter-medications h3 {
   margin: 0 0 8px;
   color: var(--onyx);
   font-size: 0.95rem;
 }
 
 .encounter-problems-list,
-.encounter-vitals-list {
+.encounter-vitals-list,
+.encounter-medications-list {
   display: grid;
   gap: 12px;
   padding: 0;
@@ -658,7 +661,8 @@
 }
 
 .encounter-problem-row,
-.encounter-vital-row {
+.encounter-vital-row,
+.encounter-medication-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -667,7 +671,8 @@
 }
 
 .encounter-problem-form,
-.encounter-vital-form {
+.encounter-vital-form,
+.encounter-medication-form {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
@@ -676,13 +681,21 @@
 }
 
 .encounter-problem-form .form-field,
-.encounter-vital-form .form-field {
+.encounter-vital-form .form-field,
+.encounter-medication-form .form-field {
   flex: 1 1 220px;
 }
 
 .encounter-problem-form button,
-.encounter-vital-form button {
+.encounter-vital-form button,
+.encounter-medication-form button {
   min-height: 40px;
+}
+
+.encounter-medication-instructions {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 .encounter-addenda {
