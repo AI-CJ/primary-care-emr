@@ -1,0 +1,45 @@
+"""Lab test requests associated with a visit note."""
+
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from backend.models import Encounter, LabOrder
+from backend.schemas import LabOrderCreate
+
+
+def list_lab_orders(session: Session, encounter_id: int) -> list[LabOrder]:
+    if session.get(Encounter, encounter_id) is None:
+        raise HTTPException(status_code=404, detail="Visit note not found")
+
+    query = (
+        select(LabOrder)
+        .where(LabOrder.encounter_id == encounter_id)
+        .order_by(LabOrder.ordered_at, LabOrder.id)
+    )
+    return list(session.scalars(query).all())
+
+
+def create_lab_order(
+    session: Session, encounter_id: int, order_data: LabOrderCreate
+) -> LabOrder:
+    # Serializes order placement with note finalization.
+    encounter = session.scalar(
+        select(Encounter).where(Encounter.id == encounter_id).with_for_update()
+    )
+    if encounter is None:
+        raise HTTPException(status_code=404, detail="Visit note not found")
+    if encounter.finalized_at is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Lab orders cannot be added to a finalized visit note.",
+        )
+
+    order = LabOrder(
+        encounter_id=encounter.id,
+        status="ordered",
+        **order_data.model_dump(),
+    )
+    session.add(order)
+    session.flush()
+    return order

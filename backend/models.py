@@ -247,6 +247,26 @@ class EncounterAllergy(Base):
     )
 
 
+class LabOrder(Base):
+    """A synthetic lab test request made during a visit."""
+
+    __tablename__ = "lab_orders"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    encounter_id: Mapped[int] = mapped_column(
+        ForeignKey("encounters.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    test_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    priority: Mapped[str] = mapped_column(String(20), nullable=False)
+    clinical_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="ordered", nullable=False)
+    ordered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 

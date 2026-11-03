@@ -531,6 +531,38 @@ class EncounterAllergyRead(EncounterAllergyLinkCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class LabOrderCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    test_name: str = Field(min_length=1, max_length=200)
+    priority: Literal["routine", "urgent"] = "routine"
+    clinical_reason: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("test_name")
+    @classmethod
+    def test_name_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Lab test name cannot be blank")
+        return value
+
+    @field_validator("clinical_reason")
+    @classmethod
+    def clean_clinical_reason(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class LabOrderRead(LabOrderCreate):
+    id: int
+    encounter_id: int
+    status: Literal["ordered"]
+    ordered_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

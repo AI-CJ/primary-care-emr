@@ -32,6 +32,7 @@ from backend.encounter_vitals import (
     list_encounter_vitals,
     unlink_encounter_vital,
 )
+from backend.lab_orders import create_lab_order, list_lab_orders
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -65,6 +66,8 @@ from backend.schemas import (
     EncounterCreate,
     EncounterRead,
     EncounterUpdate,
+    LabOrderCreate,
+    LabOrderRead,
     MedicationCreate,
     MedicationRead,
     PatientCreate,
@@ -688,6 +691,28 @@ def remove_encounter_allergy(encounter_id: int, allergy_id: int):
     with Session(engine) as session:
         unlink_encounter_allergy(session, encounter_id, allergy_id)
         session.commit()
+
+
+@app.get(
+    "/encounters/{encounter_id}/lab-orders",
+    response_model=list[LabOrderRead],
+)
+def read_encounter_lab_orders(encounter_id: int):
+    with Session(engine) as session:
+        return list_lab_orders(session, encounter_id)
+
+
+@app.post(
+    "/encounters/{encounter_id}/lab-orders",
+    response_model=LabOrderRead,
+    status_code=201,
+)
+def add_encounter_lab_order(encounter_id: int, order_data: LabOrderCreate):
+    with Session(engine) as session:
+        order = create_lab_order(session, encounter_id, order_data)
+        session.commit()
+        session.refresh(order)
+        return order
 
 
 @app.get(
