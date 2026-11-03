@@ -706,6 +706,47 @@
   line-height: 1.5;
 }
 
+.encounter-lab-orders {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.encounter-lab-orders h3 {
+  margin: 0 0 8px;
+  color: var(--onyx);
+  font-size: 0.95rem;
+}
+
+.encounter-lab-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 12px 0;
+  list-style: none;
+}
+
+.encounter-lab-row {
+  overflow-wrap: anywhere;
+}
+
+.encounter-lab-reason {
+  margin-top: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.encounter-lab-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.encounter-lab-form .secondary-action-button {
+  min-height: 40px;
+  justify-self: start;
+}
+
 .encounter-addenda {
   border-top: 1px solid var(--border);
   padding-top: 16px;

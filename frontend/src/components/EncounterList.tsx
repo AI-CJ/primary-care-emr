@@ -7,6 +7,7 @@ import EncounterProblems from './EncounterProblems'
 import EncounterVitals from './EncounterVitals'
 import EncounterMedications from './EncounterMedications'
 import EncounterAllergies from './EncounterAllergies'
+import EncounterLabOrders from './EncounterLabOrders'
 
 type EncounterListProps = {
   patientId: number
@@ -45,6 +46,7 @@ function EncounterDetails({ encounter }: { encounter: Encounter }) {
         {isExpanded && <EncounterVitals encounter={encounter} />}
         {isExpanded && <EncounterMedications encounter={encounter} />}
         {isExpanded && <EncounterAllergies encounter={encounter} />}
+        {isExpanded && <EncounterLabOrders encounter={encounter} />}
         {encounter.finalized_at !== null && isExpanded && (
           <EncounterAddenda encounterId={encounter.id} />
         )}

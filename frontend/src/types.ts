@@ -173,6 +173,20 @@ export type EncounterVital = {
   linked_at: string
 }
 
+export type LabOrderPriority = 'routine' | 'urgent'
+
+export type LabOrder = {
+  id: number
+  encounter_id: number
+  test_name: string
+  priority: LabOrderPriority
+  clinical_reason: string | null
+  status: 'ordered'
+  ordered_at: string
+}
+
+export type LabOrderInput = Pick<LabOrder, 'test_name' | 'priority' | 'clinical_reason'>
+
 export type EncounterAddendum = {
   id: number
   encounter_id: number
