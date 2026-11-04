@@ -162,7 +162,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
                   <strong>{referral.specialty}</strong>
                   <p className="encounter-meta">
                     {referral.priority === 'urgent' ? 'Urgent' : 'Routine'}
-                    {referral.status === 'cancelled' ? ' · Cancelled · ' : ' · Request recorded · '}
+                    {referral.status === 'cancelled' ? ' · Cancelled · ' : referral.status === 'completed' ? ' · Completed · ' : ' · Request recorded · '}
                     <time dateTime={referral.requested_at}>
                       {new Date(referral.requested_at).toLocaleString()}
                     </time>
@@ -174,6 +174,17 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
                       {referral.cancelled_at && (
                         <> · <time dateTime={referral.cancelled_at}>
                           {new Date(referral.cancelled_at).toLocaleString()}
+                        </time></>
+                      )}
+                    </p>
+                  )}
+                  {referral.status === 'completed' && (
+                    <p className="encounter-referral-reason">
+                      Specialist seen: {referral.seen_on ?? 'Date not recorded'}
+                      {' · '}Follow-up: {referral.follow_up_summary}
+                      {referral.completed_at && (
+                        <> · Recorded <time dateTime={referral.completed_at}>
+                          {new Date(referral.completed_at).toLocaleString()}
                         </time></>
                       )}
                     </p>

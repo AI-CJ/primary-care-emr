@@ -315,6 +315,11 @@ class Referral(Base):
         DateTime(timezone=True), nullable=True
     )
     cancellation_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    seen_on: Mapped[date | None] = mapped_column(nullable=True)
+    follow_up_summary: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
 
 class Appointment(Base):

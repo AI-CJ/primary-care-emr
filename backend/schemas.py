@@ -639,13 +639,38 @@ class ReferralCancel(BaseModel):
         return value
 
 
+class ReferralComplete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    seen_on: date
+    follow_up_summary: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("seen_on")
+    @classmethod
+    def visit_date_cannot_be_future(cls, value: date) -> date:
+        if value > date.today():
+            raise ValueError("Specialist visit date cannot be in the future")
+        return value
+
+    @field_validator("follow_up_summary")
+    @classmethod
+    def follow_up_summary_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Follow-up summary cannot be blank")
+        return value
+
+
 class ReferralRead(ReferralCreate):
     id: int
     encounter_id: int
-    status: Literal["requested", "cancelled"]
+    status: Literal["requested", "cancelled", "completed"]
     requested_at: datetime
     cancelled_at: datetime | None
     cancellation_reason: str | None
+    completed_at: datetime | None
+    seen_on: date | None
+    follow_up_summary: str | None
 
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 

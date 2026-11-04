@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, Referral
-from backend.schemas import ReferralCancel, ReferralCreate
+from backend.schemas import ReferralCancel, ReferralComplete, ReferralCreate
 
 
 def list_referrals(session: Session, encounter_id: int) -> list[Referral]:
@@ -64,5 +64,34 @@ def cancel_referral(
     referral.status = "cancelled"
     referral.cancelled_at = datetime.now(timezone.utc)
     referral.cancellation_reason = cancellation.reason
+    session.flush()
+    return referral
+
+
+def complete_referral(
+    session: Session, referral_id: int, follow_up: ReferralComplete
+) -> Referral:
+    referral = session.scalar(
+        select(Referral).where(Referral.id == referral_id).with_for_update()
+    )
+    if referral is None:
+        raise HTTPException(status_code=404, detail="Referral request not found")
+    if referral.status != "requested":
+        raise HTTPException(
+            status_code=409, detail="Only pending referrals can be completed."
+        )
+
+    encounter = session.get(Encounter, referral.encounter_id)
+    if follow_up.seen_on < encounter.visit_date:
+        raise HTTPException(
+            status_code=409,
+            detail="Specialist visit date cannot precede the referring visit.",
+        )
+
+    # Follow-up can be recorded after the original visit note is finalized.
+    referral.status = "completed"
+    referral.completed_at = datetime.now(timezone.utc)
+    referral.seen_on = follow_up.seen_on
+    referral.follow_up_summary = follow_up.follow_up_summary
     session.flush()
     return referral
