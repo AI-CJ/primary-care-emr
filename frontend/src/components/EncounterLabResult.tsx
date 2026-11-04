@@ -92,6 +92,8 @@ function EncounterLabResult({ order, visitDate, onRecorded }: EncounterLabResult
     }
   }
 
+  if (order.status === 'cancelled') return null
+
   return (
     <section className="encounter-lab-result" aria-label={'Result for ' + order.test_name + ' request ' + order.id}>
       {order.status === 'resulted' ? (

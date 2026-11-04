@@ -181,8 +181,10 @@ export type LabOrder = {
   test_name: string
   priority: LabOrderPriority
   clinical_reason: string | null
-  status: 'ordered' | 'resulted'
+  status: 'ordered' | 'resulted' | 'cancelled'
   ordered_at: string
+  cancelled_at: string | null
+  cancellation_reason: string | null
 }
 
 export type LabOrderInput = Pick<LabOrder, 'test_name' | 'priority' | 'clinical_reason'>

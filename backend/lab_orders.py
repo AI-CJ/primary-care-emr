@@ -1,11 +1,13 @@
 """Lab test requests associated with a visit note."""
 
+from datetime import datetime, timezone
+
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, LabOrder, LabResult
-from backend.schemas import LabOrderCreate, LabResultCreate
+from backend.schemas import LabOrderCancel, LabOrderCreate, LabResultCreate
 
 
 def list_lab_orders(session: Session, encounter_id: int) -> list[LabOrder]:
@@ -41,6 +43,26 @@ def create_lab_order(
         **order_data.model_dump(),
     )
     session.add(order)
+    session.flush()
+    return order
+
+
+def cancel_lab_order(
+    session: Session, order_id: int, cancellation: LabOrderCancel
+) -> LabOrder:
+    order = session.scalar(
+        select(LabOrder).where(LabOrder.id == order_id).with_for_update()
+    )
+    if order is None:
+        raise HTTPException(status_code=404, detail="Lab request not found")
+    if order.status != "ordered":
+        raise HTTPException(
+            status_code=409, detail="Only pending lab requests can be cancelled."
+        )
+
+    order.status = "cancelled"
+    order.cancelled_at = datetime.now(timezone.utc)
+    order.cancellation_reason = cancellation.reason
     session.flush()
     return order
 

@@ -554,11 +554,27 @@ class LabOrderCreate(BaseModel):
         return value.strip() or None
 
 
+class LabOrderCancel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Cancellation reason cannot be blank")
+        return value
+
+
 class LabOrderRead(LabOrderCreate):
     id: int
     encounter_id: int
-    status: Literal["ordered", "resulted"]
+    status: Literal["ordered", "resulted", "cancelled"]
     ordered_at: datetime
+    cancelled_at: datetime | None
+    cancellation_reason: str | None
 
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 

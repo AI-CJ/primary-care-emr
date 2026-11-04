@@ -33,6 +33,7 @@ from backend.encounter_vitals import (
     unlink_encounter_vital,
 )
 from backend.lab_orders import (
+    cancel_lab_order,
     create_lab_order,
     list_lab_orders,
     read_lab_result,
@@ -71,6 +72,7 @@ from backend.schemas import (
     EncounterCreate,
     EncounterRead,
     EncounterUpdate,
+    LabOrderCancel,
     LabOrderCreate,
     LabOrderRead,
     LabResultCreate,
@@ -717,6 +719,18 @@ def read_encounter_lab_orders(encounter_id: int):
 def add_encounter_lab_order(encounter_id: int, order_data: LabOrderCreate):
     with Session(engine) as session:
         order = create_lab_order(session, encounter_id, order_data)
+        session.commit()
+        session.refresh(order)
+        return order
+
+
+@app.post(
+    "/lab-orders/{order_id}/cancel",
+    response_model=LabOrderRead,
+)
+def cancel_order_request(order_id: int, cancellation: LabOrderCancel):
+    with Session(engine) as session:
+        order = cancel_lab_order(session, order_id, cancellation)
         session.commit()
         session.refresh(order)
         return order

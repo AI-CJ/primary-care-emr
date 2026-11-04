@@ -14,6 +14,9 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
   const [actionError, setActionError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [cancelOrderId, setCancelOrderId] = useState<number | null>(null)
+  const [cancellationReason, setCancellationReason] = useState('')
+  const [isCancelling, setIsCancelling] = useState(false)
   const [testName, setTestName] = useState('')
   const [priority, setPriority] = useState<LabOrderPriority>('routine')
   const [clinicalReason, setClinicalReason] = useState('')
@@ -93,6 +96,41 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
     }
   }
 
+  async function handleCancel(event: FormEvent<HTMLFormElement>, order: LabOrder) {
+    event.preventDefault()
+    const reason = cancellationReason.trim()
+    if (!reason || isCancelling || order.status !== 'ordered') return
+    if (!window.confirm('Cancel this lab request? This cannot be undone.')) return
+
+    setIsCancelling(true)
+    setActionError(null)
+    setSuccessMessage(null)
+    try {
+      const response = await fetch(
+        API_BASE_URL + '/lab-orders/' + order.id + '/cancel',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+        }
+      )
+      if (!response.ok) {
+        setActionError(await getApiErrorMessage(response))
+        return
+      }
+      const saved: LabOrder = await response.json()
+      setOrders((current) => current.map((entry) => entry.id === saved.id ? saved : entry))
+      setCancelOrderId(null)
+      setCancellationReason('')
+      setSuccessMessage('Lab request cancelled. The record remains in the visit.')
+    } catch (requestError) {
+      console.error(requestError)
+      setActionError('The lab request could not be cancelled.')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
   return (
     <section className="encounter-lab-orders" aria-label="Visit lab requests">
       <h3>Lab Requests</h3>
@@ -108,13 +146,25 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
                   <strong>{order.test_name}</strong>
                   <p className="encounter-meta">
                     {order.priority === 'urgent' ? 'Urgent' : 'Routine'}
-                    {order.status === 'resulted' ? ' · Result available · ' : ' · Ordered · '}
+                    {order.status === 'resulted'
+                      ? ' · Result available · '
+                      : order.status === 'cancelled' ? ' · Cancelled · ' : ' · Ordered · '}
                     <time dateTime={order.ordered_at}>
                       {order.ordered_at.slice(0, 16).replace('T', ' ')}
                     </time>
                   </p>
                   {order.clinical_reason && (
                     <p className="encounter-lab-reason">Reason: {order.clinical_reason}</p>
+                  )}
+                  {order.status === 'cancelled' && (
+                    <p className="encounter-lab-reason">
+                      Cancellation reason: {order.cancellation_reason}
+                      {order.cancelled_at && (
+                        <> · <time dateTime={order.cancelled_at}>
+                          {order.cancelled_at.slice(0, 16).replace('T', ' ')}
+                        </time></>
+                      )}
+                    </p>
                   )}
                   <EncounterLabResult
                     order={order}
@@ -123,13 +173,56 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
                       entry.id === orderId ? { ...entry, status: 'resulted' } : entry
                     ))}
                   />
+                  {order.status === 'ordered' && (
+                    cancelOrderId === order.id ? (
+                      <form className="encounter-lab-form" onSubmit={(event) => void handleCancel(event, order)}>
+                        <label className="form-field">
+                          <span>Reason for cancelling {order.test_name} *</span>
+                          <textarea
+                            value={cancellationReason}
+                            onChange={(event) => setCancellationReason(event.target.value)}
+                            maxLength={1000}
+                            rows={2}
+                            required
+                            disabled={isCancelling}
+                          />
+                        </label>
+                        <div className="encounter-form-actions">
+                          <button className="secondary-action-button" type="submit" disabled={isCancelling || !cancellationReason.trim()}>
+                            {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                          </button>
+                          <button className="secondary-action-button" type="button" disabled={isCancelling} onClick={() => {
+                            setCancelOrderId(null)
+                            setCancellationReason('')
+                            setActionError(null)
+                          }}>
+                            Keep Request
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <button
+                        className="secondary-action-button"
+                        type="button"
+                        disabled={isCancelling}
+                        onClick={() => {
+                          setCancelOrderId(order.id)
+                          setCancellationReason('')
+                          setActionError(null)
+                          setSuccessMessage(null)
+                        }}
+                      >
+                        Cancel Request
+                      </button>
+                    )
+                  )}
                 </li>
               ))}
             </ul>
           )}
           {isFinalized ? (
             <p className="encounter-help">
-              New lab requests cannot be added after finalization. Existing requests may still receive results.
+              New lab requests cannot be added after finalization. Pending requests may still receive results or be cancelled.
             </p>
           ) : (
             <form className="encounter-lab-form" onSubmit={(event) => void handleSubmit(event)}>
