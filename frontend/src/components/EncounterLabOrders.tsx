@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, LabOrder, LabOrderInput, LabOrderPriority } from '../types'
+import EncounterLabResult from './EncounterLabResult'
 
 type EncounterLabOrdersProps = {
   encounter: Encounter
@@ -115,13 +116,20 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
                   {order.clinical_reason && (
                     <p className="encounter-lab-reason">Reason: {order.clinical_reason}</p>
                   )}
+                  <EncounterLabResult
+                    order={order}
+                    visitDate={encounter.visit_date}
+                    onRecorded={(orderId) => setOrders((current) => current.map((entry) =>
+                      entry.id === orderId ? { ...entry, status: 'resulted' } : entry
+                    ))}
+                  />
                 </li>
               ))}
             </ul>
           )}
           {isFinalized ? (
             <p className="encounter-help">
-              Lab requests are read-only after visit note finalization.
+              New lab requests cannot be added after finalization. Existing requests may still receive results.
             </p>
           ) : (
             <form className="encounter-lab-form" onSubmit={(event) => void handleSubmit(event)}>

@@ -187,6 +187,14 @@ export type LabOrder = {
 
 export type LabOrderInput = Pick<LabOrder, 'test_name' | 'priority' | 'clinical_reason'>
 
+export type LabResult = {
+  id: number
+  lab_order_id: number
+  collected_on: string
+  result_text: string
+  reported_at: string
+}
+
 export type EncounterAddendum = {
   id: number
   encounter_id: number

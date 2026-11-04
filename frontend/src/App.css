@@ -742,6 +742,23 @@
   margin-top: 14px;
 }
 
+.encounter-lab-result {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--border);
+  background: var(--pale-aqua);
+  border-radius: 0 8px 8px 0;
+}
+
+.encounter-lab-result h4 {
+  margin: 0 0 8px;
+  color: var(--onyx);
+}
+
+.encounter-lab-result > .secondary-action-button {
+  min-height: 40px;
+}
+
 .encounter-lab-form .secondary-action-button {
   min-height: 40px;
   justify-self: start;
