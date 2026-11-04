@@ -1206,3 +1206,50 @@
     flex: 1 1 auto;
   }
 }
+
+.encounter-referrals {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.encounter-referrals h3 {
+  margin: 0 0 8px;
+  color: var(--onyx);
+  font-size: 0.95rem;
+}
+
+.encounter-referral-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 12px 0;
+  list-style: none;
+}
+
+.encounter-referral-row {
+  overflow-wrap: anywhere;
+}
+
+.encounter-referral-reason {
+  margin-top: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.encounter-referral-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.encounter-referral-form button {
+  justify-self: start;
+}
+
+@media (max-width: 600px) {
+  .encounter-referral-form button {
+    width: 100%;
+    justify-self: stretch;
+  }
+}

@@ -173,6 +173,20 @@ export type EncounterVital = {
   linked_at: string
 }
 
+export type ReferralPriority = 'routine' | 'urgent'
+
+export type Referral = {
+  id: number
+  encounter_id: number
+  specialty: string
+  reason: string
+  priority: ReferralPriority
+  status: 'requested'
+  requested_at: string
+}
+
+export type ReferralInput = Pick<Referral, 'specialty' | 'reason' | 'priority'>
+
 export type LabOrderPriority = 'routine' | 'urgent'
 
 export type LabOrder = {
