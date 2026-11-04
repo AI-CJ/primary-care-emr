@@ -609,6 +609,31 @@ class LabResultRead(LabResultCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class ReferralCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    specialty: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=1000)
+    priority: Literal["routine", "urgent"] = "routine"
+
+    @field_validator("specialty", "reason")
+    @classmethod
+    def required_text_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field cannot be blank")
+        return value
+
+
+class ReferralRead(ReferralCreate):
+    id: int
+    encounter_id: int
+    status: Literal["requested"]
+    requested_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

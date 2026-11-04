@@ -293,6 +293,26 @@ class LabResult(Base):
     )
 
 
+class Referral(Base):
+    """A synthetic specialist referral request from a visit."""
+
+    __tablename__ = "referrals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    encounter_id: Mapped[int] = mapped_column(
+        ForeignKey("encounters.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    specialty: Mapped[str] = mapped_column(String(200), nullable=False)
+    reason: Mapped[str] = mapped_column(Text(), nullable=False)
+    priority: Mapped[str] = mapped_column(String(20), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="requested", nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 
