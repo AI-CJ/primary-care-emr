@@ -181,7 +181,7 @@ export type LabOrder = {
   test_name: string
   priority: LabOrderPriority
   clinical_reason: string | null
-  status: 'ordered'
+  status: 'ordered' | 'resulted'
   ordered_at: string
 }
 

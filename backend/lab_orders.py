@@ -4,8 +4,8 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import Encounter, LabOrder
-from backend.schemas import LabOrderCreate
+from backend.models import Encounter, LabOrder, LabResult
+from backend.schemas import LabOrderCreate, LabResultCreate
 
 
 def list_lab_orders(session: Session, encounter_id: int) -> list[LabOrder]:
@@ -43,3 +43,43 @@ def create_lab_order(
     session.add(order)
     session.flush()
     return order
+
+
+def read_lab_result(session: Session, order_id: int) -> LabResult:
+    if session.get(LabOrder, order_id) is None:
+        raise HTTPException(status_code=404, detail="Lab request not found")
+
+    result = session.scalar(
+        select(LabResult).where(LabResult.lab_order_id == order_id)
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Lab result not found")
+    return result
+
+
+def record_lab_result(
+    session: Session, order_id: int, result_data: LabResultCreate
+) -> LabResult:
+    # One result per request; the row lock also prevents duplicate concurrent entries.
+    order = session.scalar(
+        select(LabOrder).where(LabOrder.id == order_id).with_for_update()
+    )
+    if order is None:
+        raise HTTPException(status_code=404, detail="Lab request not found")
+    if order.status != "ordered":
+        raise HTTPException(status_code=409, detail="Lab request already has a result.")
+
+    encounter = session.get(Encounter, order.encounter_id)
+    if result_data.collected_on < encounter.visit_date:
+        raise HTTPException(
+            status_code=409,
+            detail="Collection date cannot precede the visit.",
+        )
+
+    result = LabResult(
+        lab_order_id=order.id, **result_data.model_dump()
+    )
+    session.add(result)
+    order.status = "resulted"
+    session.flush()
+    return result

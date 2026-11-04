@@ -107,7 +107,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
                   <strong>{order.test_name}</strong>
                   <p className="encounter-meta">
                     {order.priority === 'urgent' ? 'Urgent' : 'Routine'}
-                    {' · Ordered · '}
+                    {order.status === 'resulted' ? ' · Result available · ' : ' · Ordered · '}
                     <time dateTime={order.ordered_at}>
                       {order.ordered_at.slice(0, 16).replace('T', ' ')}
                     </time>

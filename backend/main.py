@@ -32,7 +32,12 @@ from backend.encounter_vitals import (
     list_encounter_vitals,
     unlink_encounter_vital,
 )
-from backend.lab_orders import create_lab_order, list_lab_orders
+from backend.lab_orders import (
+    create_lab_order,
+    list_lab_orders,
+    read_lab_result,
+    record_lab_result,
+)
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -68,6 +73,8 @@ from backend.schemas import (
     EncounterUpdate,
     LabOrderCreate,
     LabOrderRead,
+    LabResultCreate,
+    LabResultRead,
     MedicationCreate,
     MedicationRead,
     PatientCreate,
@@ -713,6 +720,28 @@ def add_encounter_lab_order(encounter_id: int, order_data: LabOrderCreate):
         session.commit()
         session.refresh(order)
         return order
+
+
+@app.get(
+    "/lab-orders/{order_id}/result",
+    response_model=LabResultRead,
+)
+def read_order_result(order_id: int):
+    with Session(engine) as session:
+        return read_lab_result(session, order_id)
+
+
+@app.post(
+    "/lab-orders/{order_id}/result",
+    response_model=LabResultRead,
+    status_code=201,
+)
+def add_order_result(order_id: int, result_data: LabResultCreate):
+    with Session(engine) as session:
+        result = record_lab_result(session, order_id, result_data)
+        session.commit()
+        session.refresh(result)
+        return result
 
 
 @app.get(

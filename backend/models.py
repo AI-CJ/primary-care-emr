@@ -266,6 +266,28 @@ class LabOrder(Base):
         nullable=False,
     )
 
+ 
+class LabResult(Base):
+    """A permanent synthetic result attached to a lab request."""
+
+    __tablename__ = "lab_results"
+    __table_args__ = (
+        UniqueConstraint("lab_order_id", name="uq_lab_results_order"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lab_order_id: Mapped[int] = mapped_column(
+        ForeignKey("lab_orders.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    collected_on: Mapped[date] = mapped_column(nullable=False)
+    result_text: Mapped[str] = mapped_column(Text(), nullable=False)
+    reported_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
 
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""

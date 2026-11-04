@@ -557,8 +557,38 @@ class LabOrderCreate(BaseModel):
 class LabOrderRead(LabOrderCreate):
     id: int
     encounter_id: int
-    status: Literal["ordered"]
+    status: Literal["ordered", "resulted"]
     ordered_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class LabResultCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    collected_on: date
+    result_text: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("collected_on")
+    @classmethod
+    def collected_on_cannot_be_future(cls, value: date) -> date:
+        if value > date.today():
+            raise ValueError("Collection date cannot be in the future")
+        return value
+
+    @field_validator("result_text")
+    @classmethod
+    def result_text_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Lab result cannot be blank")
+        return value
+
+
+class LabResultRead(LabResultCreate):
+    id: int
+    lab_order_id: int
+    reported_at: datetime
 
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
