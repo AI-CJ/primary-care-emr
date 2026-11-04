@@ -1,11 +1,13 @@
 """Specialist referral requests recorded during a visit."""
 
+from datetime import datetime, timezone
+
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, Referral
-from backend.schemas import ReferralCreate
+from backend.schemas import ReferralCancel, ReferralCreate
 
 
 def list_referrals(session: Session, encounter_id: int) -> list[Referral]:
@@ -41,5 +43,26 @@ def create_referral(
         **referral_data.model_dump(),
     )
     session.add(referral)
+    session.flush()
+    return referral
+
+
+def cancel_referral(
+    session: Session, referral_id: int, cancellation: ReferralCancel
+) -> Referral:
+    referral = session.scalar(
+        select(Referral).where(Referral.id == referral_id).with_for_update()
+    )
+    if referral is None:
+        raise HTTPException(status_code=404, detail="Referral request not found")
+    if referral.status != "requested":
+        raise HTTPException(
+            status_code=409, detail="Only pending referral requests can be cancelled."
+        )
+
+    # A pending request may be withdrawn after its visit note is finalized.
+    referral.status = "cancelled"
+    referral.cancelled_at = datetime.now(timezone.utc)
+    referral.cancellation_reason = cancellation.reason
     session.flush()
     return referral

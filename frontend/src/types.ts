@@ -181,8 +181,10 @@ export type Referral = {
   specialty: string
   reason: string
   priority: ReferralPriority
-  status: 'requested'
+  status: 'requested' | 'cancelled'
   requested_at: string
+  cancelled_at: string | null
+  cancellation_reason: string | null
 }
 
 export type ReferralInput = Pick<Referral, 'specialty' | 'reason' | 'priority'>

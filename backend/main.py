@@ -39,7 +39,7 @@ from backend.lab_orders import (
     read_lab_result,
     record_lab_result,
 )
-from backend.referrals import create_referral, list_referrals
+from backend.referrals import cancel_referral, create_referral, list_referrals
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -78,6 +78,7 @@ from backend.schemas import (
     LabOrderRead,
     LabResultCreate,
     LabResultRead,
+    ReferralCancel,
     ReferralCreate,
     ReferralRead,
     MedicationCreate,
@@ -778,6 +779,18 @@ def read_encounter_referrals(encounter_id: int):
 def add_encounter_referral(encounter_id: int, referral_data: ReferralCreate):
     with Session(engine) as session:
         referral = create_referral(session, encounter_id, referral_data)
+        session.commit()
+        session.refresh(referral)
+        return referral
+
+
+@app.post(
+    "/referrals/{referral_id}/cancel",
+    response_model=ReferralRead,
+)
+def cancel_referral_request(referral_id: int, cancellation: ReferralCancel):
+    with Session(engine) as session:
+        referral = cancel_referral(session, referral_id, cancellation)
         session.commit()
         session.refresh(referral)
         return referral

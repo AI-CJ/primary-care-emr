@@ -311,6 +311,10 @@ class Referral(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    cancelled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancellation_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
 
 class Appointment(Base):
