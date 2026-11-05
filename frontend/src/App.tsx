@@ -13,6 +13,7 @@ import ClinicSchedule, { localDate } from './components/ClinicSchedule'
 import EncounterList from './components/EncounterList'
 import MedicationList from './components/MedicationList'
 import PatientLabHistory from './components/PatientLabHistory'
+import PendingLabWorklist from './components/PendingLabWorklist'
 import PatientReferralHistory from './components/PatientReferralHistory'
 import PatientForm from './components/PatientForm'
 import ProblemList from './components/ProblemList'
@@ -65,6 +66,9 @@ function App() {
     useState('')
 
   const [showSchedule, setShowSchedule] =
+    useState(false)
+
+  const [showPendingLabs, setShowPendingLabs] =
     useState(false)
 
   const [scheduleDay, setScheduleDay] =
@@ -268,7 +272,7 @@ function App() {
               setSelectedPatient(null)
             }
           >
-            ← Back to {showSchedule ? 'clinic schedule' : 'patient search'}
+            ← Back to {showPendingLabs ? 'pending labs' : showSchedule ? 'clinic schedule' : 'patient search'}
           </button>
 
 
@@ -361,6 +365,21 @@ function App() {
   }
 
 
+  if (showPendingLabs) {
+    return (
+      <PendingLabWorklist
+        onBack={() => {
+          setError(null)
+          setShowPendingLabs(false)
+        }}
+        onOpenPatient={(patientId) => {
+          void openPatient(patientId)
+        }}
+        patientError={error}
+      />
+    )
+  }
+
   if (showSchedule) {
     return (
       <ClinicSchedule
@@ -391,10 +410,22 @@ function App() {
               type="button"
               onClick={() => {
                 setError(null)
+                setShowPendingLabs(false)
                 setShowSchedule(true)
               }}
             >
               Clinic Schedule
+            </button>
+            <button
+              className="secondary-action-button"
+              type="button"
+              onClick={() => {
+                setError(null)
+                setShowSchedule(false)
+                setShowPendingLabs(true)
+              }}
+            >
+              Pending Labs
             </button>
             <button
               className="add-patient-button"

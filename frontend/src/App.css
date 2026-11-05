@@ -1355,3 +1355,90 @@
   border-left: 3px solid var(--sea-glass);
   border-radius: 0 8px 8px 0;
 }
+
+/* Clinic-wide lab follow-up */
+
+.pending-lab-intro {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.pending-lab-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.pending-lab-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(155px, auto);
+  gap: 20px;
+  padding: 20px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pending-lab-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  color: var(--onyx);
+  overflow-wrap: anywhere;
+}
+
+.pending-lab-priority {
+  display: inline-block;
+  padding: 3px 9px;
+  color: var(--slate-blue);
+  background: var(--pale-aqua);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.pending-lab-priority-urgent {
+  color: #7a2525;
+  background: #fff1f1;
+}
+
+.pending-lab-meta,
+.pending-lab-reason {
+  margin: 7px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.pending-lab-reason {
+  white-space: pre-wrap;
+}
+
+.pending-lab-patient {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pending-lab-patient > span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.pending-lab-disclaimer {
+  margin-top: 24px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .pending-lab-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .search-panel-header {
+    flex-wrap: wrap;
+  }
+}
