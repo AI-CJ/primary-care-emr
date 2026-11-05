@@ -216,6 +216,11 @@ export type LabResult = {
   reported_at: string
 }
 
+export type PatientLabOrder = LabOrder & {
+  visit_date: string
+  result: LabResult | null
+}
+
 export type EncounterAddendum = {
   id: number
   encounter_id: number
