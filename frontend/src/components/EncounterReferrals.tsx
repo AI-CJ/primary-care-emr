@@ -16,11 +16,21 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
   const [cancelReferralId, setCancelReferralId] = useState<number | null>(null)
   const [cancellationReason, setCancellationReason] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
+  const [completeReferralId, setCompleteReferralId] = useState<number | null>(null)
+  const [specialistSeenOn, setSpecialistSeenOn] = useState('')
+  const [followUpSummary, setFollowUpSummary] = useState('')
+  const [isCompleting, setIsCompleting] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
   const [specialty, setSpecialty] = useState('')
   const [reason, setReason] = useState('')
   const [priority, setPriority] = useState<ReferralPriority>('routine')
   const isFinalized = encounter.finalized_at !== null
+  const today = new Date()
+  const latestSeenOn = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -61,7 +71,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
     event.preventDefault()
     const cleanedSpecialty = specialty.trim()
     const cleanedReason = reason.trim()
-    if (isSaving || isFinalized || !cleanedSpecialty || !cleanedReason) return
+    if (isSaving || isCompleting || isFinalized || !cleanedSpecialty || !cleanedReason) return
 
     const referralData: ReferralInput = {
       specialty: cleanedSpecialty,
@@ -102,7 +112,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
   async function handleCancel(event: FormEvent<HTMLFormElement>, referral: Referral) {
     event.preventDefault()
     const reason = cancellationReason.trim()
-    if (isCancelling || !reason || referral.status !== 'requested') return
+    if (isCancelling || isCompleting || !reason || referral.status !== 'requested') return
     if (!window.confirm('Cancel this referral request? This cannot be undone.')) return
 
     setIsCancelling(true)
@@ -133,6 +143,51 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
       setSaveError('The referral request could not be cancelled.')
     } finally {
       setIsCancelling(false)
+    }
+  }
+
+  async function handleComplete(event: FormEvent<HTMLFormElement>, referral: Referral) {
+    event.preventDefault()
+    const summary = followUpSummary.trim()
+    if (
+      isCompleting || isCancelling || referral.status !== 'requested' ||
+      !specialistSeenOn || specialistSeenOn < encounter.visit_date ||
+      specialistSeenOn > latestSeenOn || !summary
+    ) return
+    if (!window.confirm('Record this specialist follow-up? It cannot be edited afterward.')) return
+
+    setIsCompleting(true)
+    setSaveError(null)
+    setSuccessMessage(null)
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/referrals/${referral.id}/complete`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seen_on: specialistSeenOn,
+            follow_up_summary: summary,
+          }),
+        }
+      )
+      if (!response.ok) {
+        setSaveError(await getApiErrorMessage(response))
+        return
+      }
+      const saved: Referral = await response.json()
+      setReferrals((current) => current.map((entry) =>
+        entry.id === saved.id ? saved : entry
+      ))
+      setCompleteReferralId(null)
+      setSpecialistSeenOn('')
+      setFollowUpSummary('')
+      setSuccessMessage('Specialist follow-up recorded. The referring note was not changed.')
+    } catch (requestError) {
+      console.error(requestError)
+      setSaveError('The specialist follow-up could not be recorded.')
+    } finally {
+      setIsCompleting(false)
     }
   }
 
@@ -190,42 +245,115 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
                     </p>
                   )}
                   {referral.status === 'requested' && (
-                    cancelReferralId === referral.id ? (
-                      <form className="encounter-referral-form" onSubmit={(event) => void handleCancel(event, referral)}>
-                        <label className="form-field">
-                          <span>Reason for cancelling {referral.specialty} *</span>
-                          <textarea
-                            value={cancellationReason}
-                            onChange={(event) => setCancellationReason(event.target.value)}
-                            maxLength={1000}
-                            rows={2}
-                            required
-                            disabled={isCancelling}
-                          />
-                        </label>
-                        <div className="encounter-form-actions">
-                          <button className="secondary-action-button" type="submit" disabled={isCancelling || !cancellationReason.trim()}>
-                            {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
-                          </button>
-                          <button className="secondary-action-button" type="button" disabled={isCancelling} onClick={() => {
-                            setCancelReferralId(null)
-                            setCancellationReason('')
-                            setSaveError(null)
-                          }}>
-                            Keep Referral
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <button className="secondary-action-button" type="button" disabled={isCancelling} onClick={() => {
-                        setCancelReferralId(referral.id)
-                        setCancellationReason('')
-                        setSaveError(null)
-                        setSuccessMessage(null)
-                      }}>
-                        Cancel Referral
-                      </button>
-                    )
+                    <>
+                      {completeReferralId === referral.id ? (
+                        <form className="encounter-referral-form" onSubmit={(event) => void handleComplete(event, referral)}>
+                          <label className="form-field">
+                            <span>Date specialist was seen *</span>
+                            <input
+                              type="date"
+                              value={specialistSeenOn}
+                              min={encounter.visit_date}
+                              max={latestSeenOn}
+                              required
+                              disabled={isCompleting}
+                              onChange={(event: ChangeEvent<HTMLInputElement>) => setSpecialistSeenOn(event.target.value)}
+                            />
+                          </label>
+                          <label className="form-field">
+                            <span>Specialist follow-up summary *</span>
+                            <textarea
+                              value={followUpSummary}
+                              onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setFollowUpSummary(event.target.value)}
+                              maxLength={4000}
+                              rows={3}
+                              required
+                              disabled={isCompleting}
+                            />
+                          </label>
+                          <p className="encounter-help">
+                            Use fictional details only. Recorded follow-up cannot be edited.
+                          </p>
+                          <div className="encounter-form-actions">
+                            <button
+                              className="secondary-action-button"
+                              type="submit"
+                              disabled={
+                                isCompleting || !followUpSummary.trim() ||
+                                !specialistSeenOn || specialistSeenOn < encounter.visit_date ||
+                                specialistSeenOn > latestSeenOn
+                              }
+                            >
+                              {isCompleting ? 'Recording...' : 'Save Follow-up'}
+                            </button>
+                            <button
+                              className="secondary-action-button"
+                              type="button"
+                              disabled={isCompleting}
+                              onClick={() => {
+                                setCompleteReferralId(null)
+                                setSpecialistSeenOn('')
+                                setFollowUpSummary('')
+                                setSaveError(null)
+                              }}
+                            >
+                              Keep Pending
+                            </button>
+                          </div>
+                        </form>
+                      ) : cancelReferralId !== referral.id && (
+                        <button className="secondary-action-button" type="button" disabled={isCancelling || isCompleting} onClick={() => {
+                          setCompleteReferralId(referral.id)
+                          setSpecialistSeenOn('')
+                          setFollowUpSummary('')
+                          setCancelReferralId(null)
+                          setCancellationReason('')
+                          setSaveError(null)
+                          setSuccessMessage(null)
+                        }}>
+                          Record Follow-up
+                        </button>
+                      )}
+                      {cancelReferralId === referral.id ? (
+                        <form className="encounter-referral-form" onSubmit={(event) => void handleCancel(event, referral)}>
+                          <label className="form-field">
+                            <span>Reason for cancelling {referral.specialty} *</span>
+                            <textarea
+                              value={cancellationReason}
+                              onChange={(event) => setCancellationReason(event.target.value)}
+                              maxLength={1000}
+                              rows={2}
+                              required
+                              disabled={isCancelling}
+                            />
+                          </label>
+                          <div className="encounter-form-actions">
+                            <button className="secondary-action-button" type="submit" disabled={isCancelling || !cancellationReason.trim()}>
+                              {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                            </button>
+                            <button className="secondary-action-button" type="button" disabled={isCancelling} onClick={() => {
+                              setCancelReferralId(null)
+                              setCancellationReason('')
+                              setSaveError(null)
+                            }}>
+                              Keep Referral
+                            </button>
+                          </div>
+                        </form>
+                      ) : completeReferralId !== referral.id && (
+                        <button className="secondary-action-button" type="button" disabled={isCancelling || isCompleting} onClick={() => {
+                          setCancelReferralId(referral.id)
+                          setCancellationReason('')
+                          setCompleteReferralId(null)
+                          setSpecialistSeenOn('')
+                          setFollowUpSummary('')
+                          setSaveError(null)
+                          setSuccessMessage(null)
+                        }}>
+                          Cancel Referral
+                        </button>
+                      )}
+                    </>
                   )}
                 </li>
               ))}
@@ -233,7 +361,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
           )}
           {isFinalized ? (
             <p className="encounter-help">
-              New referrals cannot be added after the visit note is finalized. Pending referrals may still be cancelled.
+              New referrals cannot be added after the visit note is finalized. Pending referrals may still be completed or cancelled.
             </p>
           ) : (
             <form className="encounter-referral-form" onSubmit={(event: FormEvent<HTMLFormElement>) => void handleSubmit(event)}>
