@@ -13,6 +13,7 @@ import ClinicSchedule, { localDate } from './components/ClinicSchedule'
 import EncounterList from './components/EncounterList'
 import MedicationList from './components/MedicationList'
 import PatientLabHistory from './components/PatientLabHistory'
+import PatientReferralHistory from './components/PatientReferralHistory'
 import PatientForm from './components/PatientForm'
 import ProblemList from './components/ProblemList'
 import VitalList from './components/VitalList'
@@ -338,6 +339,11 @@ function App() {
             <VitalList patientId={selectedPatient.id} />
 
             <PatientLabHistory
+              key={selectedPatient.id}
+              patientId={selectedPatient.id}
+            />
+
+            <PatientReferralHistory
               key={selectedPatient.id}
               patientId={selectedPatient.id}
             />

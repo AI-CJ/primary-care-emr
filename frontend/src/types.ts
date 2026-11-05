@@ -192,6 +192,10 @@ export type Referral = {
 
 export type ReferralInput = Pick<Referral, 'specialty' | 'reason' | 'priority'>
 
+export type PatientReferral = Referral & {
+  visit_date: string
+}
+
 export type LabOrderPriority = 'routine' | 'urgent'
 
 export type LabOrder = {

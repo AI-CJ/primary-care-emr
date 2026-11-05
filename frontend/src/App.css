@@ -1304,3 +1304,54 @@
   border-left: 3px solid var(--sea-glass);
   border-radius: 0 8px 8px 0;
 }
+
+.patient-referral-card {
+  grid-column: 1 / -1;
+}
+
+.patient-referral-list {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+  margin: 14px 0 0;
+  list-style: none;
+}
+
+.patient-referral-row {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.patient-referral-row-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 16px;
+}
+
+.patient-referral-status {
+  color: var(--slate-blue);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.patient-referral-row .encounter-meta,
+.patient-referral-row .patient-referral-details {
+  margin-top: 6px;
+}
+
+.patient-referral-details {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.patient-referral-follow-up {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--pale-aqua);
+  border-left: 3px solid var(--sea-glass);
+  border-radius: 0 8px 8px 0;
+}
