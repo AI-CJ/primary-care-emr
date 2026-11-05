@@ -614,6 +614,13 @@ class PatientLabOrderRead(LabOrderRead):
     result: LabResultRead | None
 
 
+
+class PendingLabOrderRead(LabOrderRead):
+    patient_id: int
+    patient_name: str
+    visit_date: date
+
+
 class ReferralCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

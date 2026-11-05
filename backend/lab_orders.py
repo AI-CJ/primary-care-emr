@@ -3,7 +3,7 @@
 from datetime import date, datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, LabOrder, LabResult, Patient
@@ -39,6 +39,25 @@ def list_patient_lab_orders(
             Encounter.visit_date.desc(),
             LabOrder.ordered_at.desc(),
             LabOrder.id.desc(),
+        )
+    )
+    return list(session.execute(query).all())
+
+
+
+def list_pending_lab_orders(
+    session: Session,
+) -> list[tuple[LabOrder, date, Patient]]:
+    """Outstanding orders for the clinic worklist, oldest first within priority."""
+    query = (
+        select(LabOrder, Encounter.visit_date, Patient)
+        .join(Encounter, LabOrder.encounter_id == Encounter.id)
+        .join(Patient, Encounter.patient_id == Patient.id)
+        .where(LabOrder.status == "ordered")
+        .order_by(
+            case((LabOrder.priority == "urgent", 0), else_=1),
+            LabOrder.ordered_at,
+            LabOrder.id,
         )
     )
     return list(session.execute(query).all())
