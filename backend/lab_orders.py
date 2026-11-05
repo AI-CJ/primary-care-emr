@@ -1,12 +1,12 @@
 """Lab test requests associated with a visit note."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import Encounter, LabOrder, LabResult
+from backend.models import Encounter, LabOrder, LabResult, Patient
 from backend.schemas import LabOrderCancel, LabOrderCreate, LabResultCreate
 
 
@@ -20,6 +20,28 @@ def list_lab_orders(session: Session, encounter_id: int) -> list[LabOrder]:
         .order_by(LabOrder.ordered_at, LabOrder.id)
     )
     return list(session.scalars(query).all())
+
+
+
+def list_patient_lab_orders(
+    session: Session, patient_id: int
+) -> list[tuple[LabOrder, date, LabResult | None]]:
+    """Return all lab requests and available results across a patient's visits."""
+    if session.get(Patient, patient_id) is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    query = (
+        select(LabOrder, Encounter.visit_date, LabResult)
+        .join(Encounter, LabOrder.encounter_id == Encounter.id)
+        .outerjoin(LabResult, LabResult.lab_order_id == LabOrder.id)
+        .where(Encounter.patient_id == patient_id)
+        .order_by(
+            Encounter.visit_date.desc(),
+            LabOrder.ordered_at.desc(),
+            LabOrder.id.desc(),
+        )
+    )
+    return list(session.execute(query).all())
 
 
 def create_lab_order(

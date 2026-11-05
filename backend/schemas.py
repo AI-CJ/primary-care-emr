@@ -609,6 +609,11 @@ class LabResultRead(LabResultCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class PatientLabOrderRead(LabOrderRead):
+    visit_date: date
+    result: LabResultRead | None
+
+
 class ReferralCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

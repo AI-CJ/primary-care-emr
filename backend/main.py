@@ -36,6 +36,7 @@ from backend.lab_orders import (
     cancel_lab_order,
     create_lab_order,
     list_lab_orders,
+    list_patient_lab_orders,
     read_lab_result,
     record_lab_result,
 )
@@ -84,6 +85,7 @@ from backend.schemas import (
     LabOrderRead,
     LabResultCreate,
     LabResultRead,
+    PatientLabOrderRead,
     ReferralCancel,
     ReferralComplete,
     ReferralCreate,
@@ -712,6 +714,22 @@ def remove_encounter_allergy(encounter_id: int, allergy_id: int):
     with Session(engine) as session:
         unlink_encounter_allergy(session, encounter_id, allergy_id)
         session.commit()
+
+
+@app.get(
+    "/patients/{patient_id}/lab-orders",
+    response_model=list[PatientLabOrderRead],
+)
+def read_patient_lab_orders(patient_id: int):
+    with Session(engine) as session:
+        return [
+            PatientLabOrderRead(
+                **LabOrderRead.model_validate(order).model_dump(),
+                visit_date=visit_date,
+                result=LabResultRead.model_validate(result) if result else None,
+            )
+            for order, visit_date, result in list_patient_lab_orders(session, patient_id)
+        ]
 
 
 @app.get(
