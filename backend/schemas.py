@@ -675,6 +675,10 @@ class ReferralRead(ReferralCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class PatientReferralRead(ReferralRead):
+    visit_date: date
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

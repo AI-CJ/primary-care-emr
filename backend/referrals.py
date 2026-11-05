@@ -1,12 +1,12 @@
 """Specialist referral requests recorded during a visit."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import Encounter, Referral
+from backend.models import Encounter, Patient, Referral
 from backend.schemas import ReferralCancel, ReferralComplete, ReferralCreate
 
 
@@ -20,6 +20,26 @@ def list_referrals(session: Session, encounter_id: int) -> list[Referral]:
         .order_by(Referral.requested_at, Referral.id)
     )
     return list(session.scalars(query).all())
+
+
+def list_patient_referrals(
+    session: Session, patient_id: int
+) -> list[tuple[Referral, date]]:
+    """Return referrals from all visits in one patient's chart."""
+    if session.get(Patient, patient_id) is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    query = (
+        select(Referral, Encounter.visit_date)
+        .join(Encounter, Referral.encounter_id == Encounter.id)
+        .where(Encounter.patient_id == patient_id)
+        .order_by(
+            Encounter.visit_date.desc(),
+            Referral.requested_at.desc(),
+            Referral.id.desc(),
+        )
+    )
+    return list(session.execute(query).all())
 
 
 def create_referral(
