@@ -1442,3 +1442,83 @@
     flex-wrap: wrap;
   }
 }
+
+
+/* Longitudinal patient care goals */
+
+.care-goal-card {
+  grid-column: 1 / -1;
+}
+
+.care-goal-list {
+  padding: 0;
+  margin: 12px 0 0;
+  list-style: none;
+}
+
+.care-goal-row {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+
+.care-goal-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.care-goal-title,
+.care-goal-notes {
+  overflow-wrap: anywhere;
+}
+
+.care-goal-status {
+  color: var(--slate-blue);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.care-goal-row .care-goal-meta,
+.care-goal-row .care-goal-notes {
+  margin-top: 7px;
+  line-height: 1.6;
+}
+
+.care-goal-notes {
+  white-space: pre-wrap;
+}
+
+.care-goal-form {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  margin: 14px 0;
+  background: var(--pale-aqua);
+  border-radius: 10px;
+}
+
+.care-goal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.care-goal-actions .save-patient-button {
+  margin-top: 0;
+}
+
+.care-goal-complete-button {
+  margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+  .care-goal-actions {
+    flex-direction: column;
+  }
+
+  .care-goal-actions button {
+    width: 100%;
+  }
+}

@@ -274,3 +274,15 @@ export type ScheduleEntry = {
   appointment: Appointment
   patient: SchedulePatient
 }
+
+export type CareGoal = {
+  id: number
+  patient_id: number
+  title: string
+  target_date: string | null
+  status: 'active' | 'completed'
+  created_at: string
+  completed_at: string | null
+  completion_note: string | null
+}
+

@@ -9,6 +9,7 @@ import {
 
 import AllergyList from './components/AllergyList'
 import AppointmentList from './components/AppointmentList'
+import CareGoals from './components/CareGoals'
 import ClinicSchedule, { localDate } from './components/ClinicSchedule'
 import EncounterList from './components/EncounterList'
 import MedicationList from './components/MedicationList'
@@ -345,6 +346,8 @@ function App() {
             <AllergyList patientId={selectedPatient.id} />
 
             <VitalList patientId={selectedPatient.id} />
+
+            <CareGoals key={selectedPatient.id} patientId={selectedPatient.id} />
 
             <PatientLabHistory
               key={selectedPatient.id}
