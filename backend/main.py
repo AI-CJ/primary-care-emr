@@ -9,6 +9,7 @@ from backend.database import engine
 from backend.care_goals import (
     complete_care_goal,
     create_care_goal,
+    discontinue_care_goal,
     list_care_goals,
     list_goal_progress,
     record_goal_progress,
@@ -74,6 +75,7 @@ from backend.schemas import (
     AllergyCreate,
     CareGoalComplete,
     CareGoalCreate,
+    CareGoalDiscontinue,
     CareGoalProgressCreate,
     CareGoalProgressRead,
     CareGoalRead,
@@ -256,6 +258,18 @@ def add_patient_care_goal(patient_id: int, goal_data: CareGoalCreate):
 def complete_patient_care_goal(goal_id: int, completion: CareGoalComplete):
     with Session(engine) as session:
         goal = complete_care_goal(session, goal_id, completion)
+        session.commit()
+        session.refresh(goal)
+        return goal
+
+
+@app.post(
+    "/care-goals/{goal_id}/discontinue",
+    response_model=CareGoalRead,
+)
+def discontinue_patient_care_goal(goal_id: int, discontinuation: CareGoalDiscontinue):
+    with Session(engine) as session:
+        goal = discontinue_care_goal(session, goal_id, discontinuation)
         session.commit()
         session.refresh(goal)
         return goal

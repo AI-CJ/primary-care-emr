@@ -341,6 +341,10 @@ class CareGoal(Base):
         DateTime(timezone=True), nullable=True
     )
     completion_note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    discontinued_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    discontinuation_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
 
 class CareGoalProgress(Base):

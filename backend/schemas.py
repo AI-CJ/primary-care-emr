@@ -726,13 +726,29 @@ class CareGoalComplete(BaseModel):
         return value
 
 
+class CareGoalDiscontinue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Discontinuation reason cannot be blank")
+        return value
+
+
 class CareGoalRead(CareGoalCreate):
     id: int
     patient_id: int
-    status: Literal["active", "completed"]
+    status: Literal["active", "completed", "discontinued"]
     created_at: datetime
     completed_at: datetime | None
     completion_note: str | None
+    discontinued_at: datetime | None
+    discontinuation_reason: str | None
 
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 

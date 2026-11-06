@@ -18,6 +18,8 @@ function CareGoals({ patientId }: CareGoalsProps) {
   const [targetDate, setTargetDate] = useState('')
   const [completingId, setCompletingId] = useState<number | null>(null)
   const [completionNote, setCompletionNote] = useState('')
+  const [discontinuingId, setDiscontinuingId] = useState<number | null>(null)
+  const [discontinuationReason, setDiscontinuationReason] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -131,6 +133,42 @@ function CareGoals({ patientId }: CareGoalsProps) {
     }
   }
 
+  async function discontinueGoal(event: FormEvent<HTMLFormElement>, goalId: number) {
+    event.preventDefault()
+    const reason = discontinuationReason.trim()
+    if (!reason) {
+      setActionError('Enter a reason before discontinuing this goal.')
+      return
+    }
+
+    setIsSaving(true)
+    setActionError(null)
+    try {
+      const response = await fetch(
+        API_BASE_URL + '/care-goals/' + goalId + '/discontinue',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+        }
+      )
+      if (!response.ok) {
+        throw new Error(await getApiErrorMessage(response))
+      }
+      setDiscontinuingId(null)
+      setDiscontinuationReason('')
+      setReloadCount((count) => count + 1)
+    } catch (requestError) {
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'The care goal could not be discontinued.'
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <section className="overview-card care-goal-card" aria-labelledby="care-goals-heading">
       <div className="overview-card-header">
@@ -142,6 +180,7 @@ function CareGoals({ patientId }: CareGoalsProps) {
           onClick={() => {
             setShowAddForm((show) => !show)
             setCompletingId(null)
+            setDiscontinuingId(null)
             setActionError(null)
           }}
         >
@@ -213,7 +252,7 @@ function CareGoals({ patientId }: CareGoalsProps) {
               <div className="care-goal-header">
                 <strong className="care-goal-title">{goal.title}</strong>
                 <span className="care-goal-status">
-                  {goal.status === 'active' ? 'Active' : 'Completed'}
+                  {goal.status === 'active' ? 'Active' : goal.status === 'completed' ? 'Completed' : 'Discontinued'}
                 </span>
               </div>
               <p className="care-goal-meta">
@@ -230,11 +269,21 @@ function CareGoals({ patientId }: CareGoalsProps) {
                     </time>
                   </>
                 )}
+                {goal.discontinued_at && (
+                  <>
+                    {' · '}Discontinued <time dateTime={goal.discontinued_at}>
+                      {goal.discontinued_at.slice(0, 10)}
+                    </time>
+                  </>
+                )}
               </p>
               {goal.completion_note && (
                 <p className="care-goal-notes">Outcome: {goal.completion_note}</p>
               )}
-              {goal.status === 'active' && completingId !== goal.id && (
+              {goal.discontinuation_reason && (
+                <p className="care-goal-notes">Reason for discontinuation: {goal.discontinuation_reason}</p>
+              )}
+              {goal.status === 'active' && completingId !== goal.id && discontinuingId !== goal.id && (
                 <button
                   className="secondary-action-button care-goal-complete-button"
                   type="button"
@@ -243,6 +292,7 @@ function CareGoals({ patientId }: CareGoalsProps) {
                   onClick={() => {
                     setShowAddForm(false)
                     setCompletingId(goal.id)
+                    setDiscontinuingId(null)
                     setCompletionNote('')
                     setActionError(null)
                   }}
@@ -276,6 +326,57 @@ function CareGoals({ patientId }: CareGoalsProps) {
                       disabled={isSaving}
                       onClick={() => {
                         setCompletingId(null)
+                        setActionError(null)
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+              {goal.status === 'active' && completingId !== goal.id && discontinuingId !== goal.id && (
+                <button
+                  className="secondary-action-button care-goal-complete-button"
+                  type="button"
+                  disabled={isSaving}
+                  aria-label={'Discontinue goal: ' + goal.title}
+                  onClick={() => {
+                    setShowAddForm(false)
+                    setCompletingId(null)
+                    setDiscontinuingId(goal.id)
+                    setDiscontinuationReason('')
+                    setActionError(null)
+                  }}
+                >
+                  Discontinue Goal
+                </button>
+              )}
+              {discontinuingId === goal.id && goal.status === 'active' && (
+                <form
+                  className="care-goal-form"
+                  onSubmit={(event) => void discontinueGoal(event, goal.id)}
+                >
+                  <label className="form-field">
+                    <span>Reason for discontinuation *</span>
+                    <textarea
+                      required
+                      maxLength={2000}
+                      rows={3}
+                      value={discontinuationReason}
+                      onChange={(event) => setDiscontinuationReason(event.target.value)}
+                      placeholder="Explain why this goal is no longer being pursued."
+                    />
+                  </label>
+                  <div className="care-goal-actions">
+                    <button className="save-patient-button" type="submit" disabled={isSaving}>
+                      {isSaving ? 'Saving...' : 'Discontinue Goal'}
+                    </button>
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => {
+                        setDiscontinuingId(null)
                         setActionError(null)
                       }}
                     >

@@ -156,7 +156,7 @@ function CareGoalProgress({ goalId, goalTitle, isActive }: CareGoalProgressProps
             </form>
           )}
           {!isActive && (
-            <p className="care-goal-progress-closed">Completed goals retain their progress history.</p>
+            <p className="care-goal-progress-closed">Closed goals retain their progress history.</p>
           )}
         </div>
       )}

@@ -280,9 +280,11 @@ export type CareGoal = {
   patient_id: number
   title: string
   target_date: string | null
-  status: 'active' | 'completed'
+  status: 'active' | 'completed' | 'discontinued'
   created_at: string
   completed_at: string | null
   completion_note: string | null
+  discontinued_at: string | null
+  discontinuation_reason: string | null
 }
 
