@@ -691,6 +691,12 @@ class PatientReferralRead(ReferralRead):
     visit_date: date
 
 
+class PendingReferralRead(ReferralRead):
+    patient_id: int
+    patient_name: str
+    visit_date: date
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

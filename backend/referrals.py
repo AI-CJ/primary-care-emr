@@ -3,7 +3,7 @@
 from datetime import date, datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, Patient, Referral
@@ -37,6 +37,24 @@ def list_patient_referrals(
             Encounter.visit_date.desc(),
             Referral.requested_at.desc(),
             Referral.id.desc(),
+        )
+    )
+    return list(session.execute(query).all())
+
+
+def list_pending_referrals(
+    session: Session,
+) -> list[tuple[Referral, date, Patient]]:
+    """Outstanding specialist requests across the clinic, urgent first."""
+    query = (
+        select(Referral, Encounter.visit_date, Patient)
+        .join(Encounter, Referral.encounter_id == Encounter.id)
+        .join(Patient, Encounter.patient_id == Patient.id)
+        .where(Referral.status == "requested")
+        .order_by(
+            case((Referral.priority == "urgent", 0), else_=1),
+            Referral.requested_at,
+            Referral.id,
         )
     )
     return list(session.execute(query).all())

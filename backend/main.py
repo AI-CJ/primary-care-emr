@@ -47,6 +47,7 @@ from backend.referrals import (
     create_referral,
     list_referrals,
     list_patient_referrals,
+    list_pending_referrals,
 )
 from backend.scheduling import (
     cancel_appointment,
@@ -93,6 +94,7 @@ from backend.schemas import (
     ReferralCreate,
     ReferralRead,
     PatientReferralRead,
+    PendingReferralRead,
     MedicationCreate,
     MedicationRead,
     PatientCreate,
@@ -806,6 +808,23 @@ def add_order_result(order_id: int, result_data: LabResultCreate):
         session.commit()
         session.refresh(result)
         return result
+
+
+@app.get(
+    "/worklists/pending-referrals",
+    response_model=list[PendingReferralRead],
+)
+def read_pending_referrals():
+    with Session(engine) as session:
+        return [
+            PendingReferralRead(
+                **ReferralRead.model_validate(referral).model_dump(),
+                patient_id=patient.id,
+                patient_name=f"{patient.preferred_name or patient.first_name} {patient.last_name}",
+                visit_date=visit_date,
+            )
+            for referral, visit_date, patient in list_pending_referrals(session)
+        ]
 
 
 @app.get(
