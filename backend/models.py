@@ -322,6 +322,27 @@ class Referral(Base):
     follow_up_summary: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
 
+class CareGoal(Base):
+    """A longitudinal care goal that stays in the chart after completion."""
+
+    __tablename__ = "care_goals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    target_date: Mapped[date | None] = mapped_column(nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completion_note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 
