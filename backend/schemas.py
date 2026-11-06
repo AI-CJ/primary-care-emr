@@ -737,6 +737,28 @@ class CareGoalRead(CareGoalCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class CareGoalProgressCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    note: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("note")
+    @classmethod
+    def note_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Progress note cannot be blank")
+        return value
+
+
+class CareGoalProgressRead(CareGoalProgressCreate):
+    id: int
+    goal_id: int
+    recorded_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

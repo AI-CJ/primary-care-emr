@@ -6,7 +6,13 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
-from backend.care_goals import complete_care_goal, create_care_goal, list_care_goals
+from backend.care_goals import (
+    complete_care_goal,
+    create_care_goal,
+    list_care_goals,
+    list_goal_progress,
+    record_goal_progress,
+)
 from backend.encounters import (
     apply_encounter_update,
     create_encounter,
@@ -68,6 +74,8 @@ from backend.schemas import (
     AllergyCreate,
     CareGoalComplete,
     CareGoalCreate,
+    CareGoalProgressCreate,
+    CareGoalProgressRead,
     CareGoalRead,
     EncounterAllergyLinkCreate,
     EncounterAllergyRead,
@@ -251,6 +259,28 @@ def complete_patient_care_goal(goal_id: int, completion: CareGoalComplete):
         session.commit()
         session.refresh(goal)
         return goal
+
+
+@app.get(
+    "/care-goals/{goal_id}/progress",
+    response_model=list[CareGoalProgressRead],
+)
+def read_care_goal_progress(goal_id: int):
+    with Session(engine) as session:
+        return list_goal_progress(session, goal_id)
+
+
+@app.post(
+    "/care-goals/{goal_id}/progress",
+    response_model=CareGoalProgressRead,
+    status_code=201,
+)
+def add_care_goal_progress(goal_id: int, progress_data: CareGoalProgressCreate):
+    with Session(engine) as session:
+        entry = record_goal_progress(session, goal_id, progress_data)
+        session.commit()
+        session.refresh(entry)
+        return entry
 
 
 @app.get(

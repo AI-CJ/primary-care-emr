@@ -343,6 +343,21 @@ class CareGoal(Base):
     completion_note: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
 
+class CareGoalProgress(Base):
+    """A dated, append-only progress entry for a care goal."""
+
+    __tablename__ = "care_goal_progress"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    goal_id: Mapped[int] = mapped_column(
+        ForeignKey("care_goals.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    note: Mapped[str] = mapped_column(Text(), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 
