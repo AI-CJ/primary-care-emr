@@ -15,6 +15,11 @@ from backend.care_goals import (
     list_goal_progress,
     record_goal_progress,
 )
+from backend.follow_up_tasks import (
+    complete_follow_up_task,
+    create_follow_up_task,
+    list_follow_up_tasks,
+)
 from backend.encounters import (
     apply_encounter_update,
     create_encounter,
@@ -81,6 +86,9 @@ from backend.schemas import (
     CareGoalProgressCreate,
     CareGoalProgressRead,
     CareGoalRead,
+    FollowUpTaskComplete,
+    FollowUpTaskCreate,
+    FollowUpTaskRead,
     EncounterAllergyLinkCreate,
     EncounterAllergyRead,
     AllergyRead,
@@ -314,6 +322,40 @@ def add_care_goal_progress(goal_id: int, progress_data: CareGoalProgressCreate):
         session.commit()
         session.refresh(entry)
         return entry
+
+
+@app.get(
+    "/patients/{patient_id}/follow-up-tasks",
+    response_model=list[FollowUpTaskRead],
+)
+def read_patient_follow_up_tasks(patient_id: int):
+    with Session(engine) as session:
+        return list_follow_up_tasks(session, patient_id)
+
+
+@app.post(
+    "/patients/{patient_id}/follow-up-tasks",
+    response_model=FollowUpTaskRead,
+    status_code=201,
+)
+def add_patient_follow_up_task(patient_id: int, task_data: FollowUpTaskCreate):
+    with Session(engine) as session:
+        task = create_follow_up_task(session, patient_id, task_data)
+        session.commit()
+        session.refresh(task)
+        return task
+
+
+@app.post(
+    "/follow-up-tasks/{task_id}/complete",
+    response_model=FollowUpTaskRead,
+)
+def complete_patient_follow_up_task(task_id: int, completion: FollowUpTaskComplete):
+    with Session(engine) as session:
+        task = complete_follow_up_task(session, task_id, completion)
+        session.commit()
+        session.refresh(task)
+        return task
 
 
 @app.get(

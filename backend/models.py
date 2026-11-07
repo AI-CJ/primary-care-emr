@@ -362,6 +362,28 @@ class CareGoalProgress(Base):
     )
 
 
+class FollowUpTask(Base):
+    """A patient-specific staff follow-up item, retained after completion."""
+
+    __tablename__ = "follow_up_tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id", ondelete="RESTRICT"), index=True, nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    details: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    due_date: Mapped[date | None] = mapped_column(nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="open", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completion_note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 

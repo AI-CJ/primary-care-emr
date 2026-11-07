@@ -1,0 +1,52 @@
+"""Patient-specific staff follow-up tasks for the synthetic clinic."""
+
+from datetime import datetime, timezone
+
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from backend.models import FollowUpTask, Patient
+from backend.schemas import FollowUpTaskComplete, FollowUpTaskCreate
+
+
+def list_follow_up_tasks(session: Session, patient_id: int) -> list[FollowUpTask]:
+    if session.get(Patient, patient_id) is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    query = (
+        select(FollowUpTask)
+        .where(FollowUpTask.patient_id == patient_id)
+        .order_by(FollowUpTask.created_at.desc(), FollowUpTask.id.desc())
+    )
+    return list(session.scalars(query).all())
+
+
+def create_follow_up_task(
+    session: Session, patient_id: int, task_data: FollowUpTaskCreate
+) -> FollowUpTask:
+    if session.get(Patient, patient_id) is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    task = FollowUpTask(patient_id=patient_id, status="open", **task_data.model_dump())
+    session.add(task)
+    session.flush()
+    return task
+
+
+def complete_follow_up_task(
+    session: Session, task_id: int, completion: FollowUpTaskComplete
+) -> FollowUpTask:
+    task = session.scalar(
+        select(FollowUpTask).where(FollowUpTask.id == task_id).with_for_update()
+    )
+    if task is None:
+        raise HTTPException(status_code=404, detail="Follow-up task not found")
+    if task.status != "open":
+        raise HTTPException(status_code=409, detail="Only open tasks can be completed.")
+
+    task.status = "completed"
+    task.completed_at = datetime.now(timezone.utc)
+    task.completion_note = completion.completion_note
+    session.flush()
+    return task

@@ -780,6 +780,52 @@ class CareGoalProgressRead(CareGoalProgressCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class FollowUpTaskCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=200)
+    details: str | None = Field(default=None, max_length=2000)
+    due_date: date | None = None
+
+    @field_validator("title")
+    @classmethod
+    def title_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Task title cannot be blank")
+        return value
+
+    @field_validator("details")
+    @classmethod
+    def normalize_details(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+
+class FollowUpTaskComplete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    completion_note: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("completion_note")
+    @classmethod
+    def completion_note_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Completion note cannot be blank")
+        return value
+
+
+class FollowUpTaskRead(FollowUpTaskCreate):
+    id: int
+    patient_id: int
+    status: Literal["open", "completed"]
+    created_at: datetime
+    completed_at: datetime | None
+    completion_note: str | None
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time
