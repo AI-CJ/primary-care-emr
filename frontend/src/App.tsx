@@ -7,6 +7,7 @@ import {
   getApiErrorMessage,
 } from './api'
 
+import ActiveCareGoalsWorklist from './components/ActiveCareGoalsWorklist'
 import AllergyList from './components/AllergyList'
 import AppointmentList from './components/AppointmentList'
 import CareGoals from './components/CareGoals'
@@ -74,6 +75,9 @@ function App() {
     useState(false)
 
   const [showPendingReferrals, setShowPendingReferrals] =
+    useState(false)
+
+  const [showActiveCareGoals, setShowActiveCareGoals] =
     useState(false)
 
   const [scheduleDay, setScheduleDay] =
@@ -277,7 +281,7 @@ function App() {
               setSelectedPatient(null)
             }
           >
-            ← Back to {showPendingReferrals ? 'pending referrals' : showPendingLabs ? 'pending labs' : showSchedule ? 'clinic schedule' : 'patient search'}
+            ← Back to {showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showPendingLabs ? 'pending labs' : showSchedule ? 'clinic schedule' : 'patient search'}
           </button>
 
 
@@ -372,6 +376,21 @@ function App() {
   }
 
 
+  if (showActiveCareGoals) {
+    return (
+      <ActiveCareGoalsWorklist
+        onBack={() => {
+          setError(null)
+          setShowActiveCareGoals(false)
+        }}
+        onOpenPatient={(patientId) => {
+          void openPatient(patientId)
+        }}
+        patientError={error}
+      />
+    )
+  }
+
   if (showPendingReferrals) {
     return (
       <PendingReferralWorklist
@@ -434,6 +453,7 @@ function App() {
                 setError(null)
                 setShowPendingLabs(false)
                 setShowPendingReferrals(false)
+                setShowActiveCareGoals(false)
                 setShowSchedule(true)
               }}
             >
@@ -446,6 +466,7 @@ function App() {
                 setError(null)
                 setShowSchedule(false)
                 setShowPendingReferrals(false)
+                setShowActiveCareGoals(false)
                 setShowPendingLabs(true)
               }}
             >
@@ -458,10 +479,24 @@ function App() {
                 setError(null)
                 setShowSchedule(false)
                 setShowPendingLabs(false)
+                setShowActiveCareGoals(false)
                 setShowPendingReferrals(true)
               }}
             >
               Pending Referrals
+            </button>
+            <button
+              className="secondary-action-button"
+              type="button"
+              onClick={() => {
+                setError(null)
+                setShowSchedule(false)
+                setShowPendingLabs(false)
+                setShowPendingReferrals(false)
+                setShowActiveCareGoals(true)
+              }}
+            >
+              Active Care Goals
             </button>
             <button
               className="add-patient-button"
