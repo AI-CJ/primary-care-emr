@@ -371,6 +371,9 @@ class FollowUpTask(Base):
     patient_id: Mapped[int] = mapped_column(
         ForeignKey("patients.id", ondelete="RESTRICT"), index=True, nullable=False
     )
+    care_goal_id: Mapped[int | None] = mapped_column(
+        ForeignKey("care_goals.id", ondelete="RESTRICT"), index=True, nullable=True
+    )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     details: Mapped[str | None] = mapped_column(Text(), nullable=True)
     due_date: Mapped[date | None] = mapped_column(nullable=True)

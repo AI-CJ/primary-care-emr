@@ -292,6 +292,7 @@ export type CareGoal = {
 export type FollowUpTask = {
   id: number
   patient_id: number
+  care_goal_id: number | null
   title: string
   details: string | null
   due_date: string | null

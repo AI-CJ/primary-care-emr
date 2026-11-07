@@ -786,6 +786,7 @@ class FollowUpTaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     details: str | None = Field(default=None, max_length=2000)
     due_date: date | None = None
+    care_goal_id: int | None = Field(default=None, gt=0)
 
     @field_validator("title")
     @classmethod

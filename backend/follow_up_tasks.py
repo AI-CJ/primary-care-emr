@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import FollowUpTask, Patient
+from backend.models import CareGoal, FollowUpTask, Patient
 from backend.schemas import FollowUpTaskComplete, FollowUpTaskCreate
 
 
@@ -42,6 +42,23 @@ def create_follow_up_task(
 ) -> FollowUpTask:
     if session.get(Patient, patient_id) is None:
         raise HTTPException(status_code=404, detail="Patient not found")
+
+    if task_data.care_goal_id is not None:
+        goal = session.scalar(
+            select(CareGoal)
+            .where(
+                CareGoal.id == task_data.care_goal_id,
+                CareGoal.patient_id == patient_id,
+            )
+            .with_for_update()
+        )
+        if goal is None:
+            raise HTTPException(status_code=404, detail="Care goal not found for patient")
+        if goal.status != "active":
+            raise HTTPException(
+                status_code=409,
+                detail="Only active care goals can have new follow-up tasks.",
+            )
 
     task = FollowUpTask(patient_id=patient_id, status="open", **task_data.model_dump())
     session.add(task)
