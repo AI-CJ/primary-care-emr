@@ -288,3 +288,15 @@ export type CareGoal = {
   discontinuation_reason: string | null
 }
 
+
+export type FollowUpTask = {
+  id: number
+  patient_id: number
+  title: string
+  details: string | null
+  due_date: string | null
+  status: 'open' | 'completed'
+  created_at: string
+  completed_at: string | null
+  completion_note: string | null
+}

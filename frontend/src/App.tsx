@@ -13,6 +13,7 @@ import AppointmentList from './components/AppointmentList'
 import CareGoals from './components/CareGoals'
 import ClinicSchedule, { localDate } from './components/ClinicSchedule'
 import EncounterList from './components/EncounterList'
+import FollowUpTasks from './components/FollowUpTasks'
 import MedicationList from './components/MedicationList'
 import PatientLabHistory from './components/PatientLabHistory'
 import PendingLabWorklist from './components/PendingLabWorklist'
@@ -352,6 +353,8 @@ function App() {
             <VitalList patientId={selectedPatient.id} />
 
             <CareGoals key={selectedPatient.id} patientId={selectedPatient.id} />
+
+            <FollowUpTasks key={selectedPatient.id} patientId={selectedPatient.id} />
 
             <PatientLabHistory
               key={selectedPatient.id}
