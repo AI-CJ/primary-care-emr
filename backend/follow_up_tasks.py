@@ -21,6 +21,21 @@ def list_follow_up_tasks(session: Session, patient_id: int) -> list[FollowUpTask
     )
     return list(session.scalars(query).all())
 
+    
+def list_open_follow_up_tasks(session: Session) -> list[tuple[FollowUpTask, Patient]]:
+    """Open follow-up tasks across the clinic, nearest due dates first."""
+    query = (
+        select(FollowUpTask, Patient)
+        .join(Patient, FollowUpTask.patient_id == Patient.id)
+        .where(FollowUpTask.status == "open")
+        .order_by(
+            FollowUpTask.due_date.is_(None),
+            FollowUpTask.due_date,
+            FollowUpTask.created_at,
+            FollowUpTask.id,
+        )
+    )
+    return list(session.execute(query).all())
 
 def create_follow_up_task(
     session: Session, patient_id: int, task_data: FollowUpTaskCreate

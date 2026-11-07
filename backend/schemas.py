@@ -826,6 +826,11 @@ class FollowUpTaskRead(FollowUpTaskCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class OpenFollowUpTaskRead(FollowUpTaskRead):
+    patient_name: str
+    is_overdue: bool
+
+
 class AppointmentBase(BaseModel):
     scheduled_date: date
     start_time: time

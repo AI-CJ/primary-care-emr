@@ -18,6 +18,7 @@ from backend.care_goals import (
 from backend.follow_up_tasks import (
     complete_follow_up_task,
     create_follow_up_task,
+    list_open_follow_up_tasks,
     list_follow_up_tasks,
 )
 from backend.encounters import (
@@ -88,6 +89,7 @@ from backend.schemas import (
     CareGoalRead,
     FollowUpTaskComplete,
     FollowUpTaskCreate,
+    OpenFollowUpTaskRead,
     FollowUpTaskRead,
     EncounterAllergyLinkCreate,
     EncounterAllergyRead,
@@ -322,6 +324,23 @@ def add_care_goal_progress(goal_id: int, progress_data: CareGoalProgressCreate):
         session.commit()
         session.refresh(entry)
         return entry
+
+
+@app.get(
+    "/worklists/open-follow-up-tasks",
+    response_model=list[OpenFollowUpTaskRead],
+)
+def read_open_follow_up_tasks():
+    today = date.today()
+    with Session(engine) as session:
+        return [
+            OpenFollowUpTaskRead(
+                **FollowUpTaskRead.model_validate(task).model_dump(),
+                patient_name=f"{patient.preferred_name or patient.first_name} {patient.last_name}",
+                is_overdue=task.due_date is not None and task.due_date < today,
+            )
+            for task, patient in list_open_follow_up_tasks(session)
+        ]
 
 
 @app.get(
