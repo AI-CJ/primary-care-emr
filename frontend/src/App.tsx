@@ -14,6 +14,7 @@ import CareGoals from './components/CareGoals'
 import ClinicSchedule, { localDate } from './components/ClinicSchedule'
 import EncounterList from './components/EncounterList'
 import FollowUpTasks from './components/FollowUpTasks'
+import OpenFollowUpTasksWorklist from './components/OpenFollowUpTasksWorklist'
 import MedicationList from './components/MedicationList'
 import PatientLabHistory from './components/PatientLabHistory'
 import PendingLabWorklist from './components/PendingLabWorklist'
@@ -79,6 +80,9 @@ function App() {
     useState(false)
 
   const [showActiveCareGoals, setShowActiveCareGoals] =
+    useState(false)
+
+  const [showOpenFollowUpTasks, setShowOpenFollowUpTasks] =
     useState(false)
 
   const [scheduleDay, setScheduleDay] =
@@ -282,7 +286,7 @@ function App() {
               setSelectedPatient(null)
             }
           >
-            ← Back to {showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showPendingLabs ? 'pending labs' : showSchedule ? 'clinic schedule' : 'patient search'}
+            ← Back to {showOpenFollowUpTasks ? 'open follow-ups' : showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showPendingLabs ? 'pending labs' : showSchedule ? 'clinic schedule' : 'patient search'}
           </button>
 
 
@@ -379,6 +383,21 @@ function App() {
   }
 
 
+  if (showOpenFollowUpTasks) {
+    return (
+      <OpenFollowUpTasksWorklist
+        onBack={() => {
+          setError(null)
+          setShowOpenFollowUpTasks(false)
+        }}
+        onOpenPatient={(patientId) => {
+          void openPatient(patientId)
+        }}
+        patientError={error}
+      />
+    )
+  }
+
   if (showActiveCareGoals) {
     return (
       <ActiveCareGoalsWorklist
@@ -457,6 +476,7 @@ function App() {
                 setShowPendingLabs(false)
                 setShowPendingReferrals(false)
                 setShowActiveCareGoals(false)
+                setShowOpenFollowUpTasks(false)
                 setShowSchedule(true)
               }}
             >
@@ -470,6 +490,7 @@ function App() {
                 setShowSchedule(false)
                 setShowPendingReferrals(false)
                 setShowActiveCareGoals(false)
+                setShowOpenFollowUpTasks(false)
                 setShowPendingLabs(true)
               }}
             >
@@ -483,6 +504,7 @@ function App() {
                 setShowSchedule(false)
                 setShowPendingLabs(false)
                 setShowActiveCareGoals(false)
+                setShowOpenFollowUpTasks(false)
                 setShowPendingReferrals(true)
               }}
             >
@@ -496,10 +518,25 @@ function App() {
                 setShowSchedule(false)
                 setShowPendingLabs(false)
                 setShowPendingReferrals(false)
+                setShowOpenFollowUpTasks(false)
                 setShowActiveCareGoals(true)
               }}
             >
               Active Care Goals
+            </button>
+            <button
+              className="secondary-action-button"
+              type="button"
+              onClick={() => {
+                setError(null)
+                setShowSchedule(false)
+                setShowPendingLabs(false)
+                setShowPendingReferrals(false)
+                setShowActiveCareGoals(false)
+                setShowOpenFollowUpTasks(true)
+              }}
+            >
+              Open Follow-ups
             </button>
             <button
               className="add-patient-button"
