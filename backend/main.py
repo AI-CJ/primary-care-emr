@@ -10,6 +10,7 @@ from backend.care_goals import (
     complete_care_goal,
     create_care_goal,
     discontinue_care_goal,
+    list_active_care_goals,
     list_care_goals,
     list_goal_progress,
     record_goal_progress,
@@ -73,6 +74,7 @@ from backend.models import (
 )
 from backend.schemas import (
     AllergyCreate,
+    ActiveCareGoalRead,
     CareGoalComplete,
     CareGoalCreate,
     CareGoalDiscontinue,
@@ -227,6 +229,23 @@ def read_patient(patient_id: int):
             )
 
         return patient
+
+
+@app.get(
+    "/worklists/active-care-goals",
+    response_model=list[ActiveCareGoalRead],
+)
+def read_active_care_goals():
+    today = date.today()
+    with Session(engine) as session:
+        return [
+            ActiveCareGoalRead(
+                **CareGoalRead.model_validate(goal).model_dump(),
+                patient_name=f"{patient.preferred_name or patient.first_name} {patient.last_name}",
+                is_overdue=goal.target_date is not None and goal.target_date < today,
+            )
+            for goal, patient in list_active_care_goals(session)
+        ]
 
 
 @app.get(

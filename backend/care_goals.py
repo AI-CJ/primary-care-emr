@@ -24,6 +24,22 @@ def list_care_goals(session: Session, patient_id: int) -> list[CareGoal]:
     return list(session.scalars(query).all())
 
 
+def list_active_care_goals(session: Session) -> list[tuple[CareGoal, Patient]]:
+    """Active goals across the clinic, with undated goals at the end."""
+    query = (
+        select(CareGoal, Patient)
+        .join(Patient, CareGoal.patient_id == Patient.id)
+        .where(CareGoal.status == "active")
+        .order_by(
+            CareGoal.target_date.is_(None),
+            CareGoal.target_date,
+            CareGoal.created_at,
+            CareGoal.id,
+        )
+    )
+    return list(session.execute(query).all())
+
+
 def create_care_goal(
     session: Session, patient_id: int, goal_data: CareGoalCreate
 ) -> CareGoal:

@@ -753,6 +753,11 @@ class CareGoalRead(CareGoalCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class ActiveCareGoalRead(CareGoalRead):
+    patient_name: str
+    is_overdue: bool
+
+
 class CareGoalProgressCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
