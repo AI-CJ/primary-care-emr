@@ -830,6 +830,33 @@ class FollowUpTaskCancel(BaseModel):
         return value
 
 
+class FollowUpTaskReschedule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Required, including when explicitly clearing a deadline.
+    due_date: date | None
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Rescheduling reason cannot be blank")
+        return value
+
+
+class FollowUpDueDateChangeRead(BaseModel):
+    id: int
+    task_id: int
+    previous_due_date: date | None
+    new_due_date: date | None
+    reason: str
+    changed_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
 class FollowUpTaskRead(FollowUpTaskCreate):
     id: int
     patient_id: int

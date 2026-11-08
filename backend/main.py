@@ -21,6 +21,8 @@ from backend.follow_up_tasks import (
     create_follow_up_task,
     list_open_follow_up_tasks,
     list_follow_up_tasks,
+    list_follow_up_due_date_changes,
+    reschedule_follow_up_task,
 )
 from backend.encounters import (
     apply_encounter_update,
@@ -93,6 +95,8 @@ from backend.schemas import (
     FollowUpTaskCreate,
     OpenFollowUpTaskRead,
     FollowUpTaskRead,
+    FollowUpTaskReschedule,
+    FollowUpDueDateChangeRead,
     EncounterAllergyLinkCreate,
     EncounterAllergyRead,
     AllergyRead,
@@ -389,6 +393,27 @@ def cancel_patient_follow_up_task(task_id: int, cancellation: FollowUpTaskCancel
         session.commit()
         session.refresh(task)
         return task
+
+
+@app.post(
+    "/follow-up-tasks/{task_id}/reschedule",
+    response_model=FollowUpTaskRead,
+)
+def reschedule_patient_follow_up_task(task_id: int, change: FollowUpTaskReschedule):
+    with Session(engine) as session:
+        task = reschedule_follow_up_task(session, task_id, change)
+        session.commit()
+        session.refresh(task)
+        return task
+
+
+@app.get(
+    "/follow-up-tasks/{task_id}/due-date-changes",
+    response_model=list[FollowUpDueDateChangeRead],
+)
+def read_follow_up_due_date_changes(task_id: int):
+    with Session(engine) as session:
+        return list_follow_up_due_date_changes(session, task_id)
 
 
 @app.get(

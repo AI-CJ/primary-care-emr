@@ -391,6 +391,25 @@ class FollowUpTask(Base):
     cancellation_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
 
+class FollowUpDueDateChange(Base):
+    """An append-only record of a staff follow-up deadline change."""
+
+    __tablename__ = "follow_up_due_date_changes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("follow_up_tasks.id", ondelete="RESTRICT"),
+        index=True, nullable=False,
+    )
+    previous_due_date: Mapped[date | None] = mapped_column(nullable=True)
+    new_due_date: Mapped[date | None] = mapped_column(nullable=True)
+    reason: Mapped[str] = mapped_column(Text(), nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc), nullable=False,
+    )
+
+
 class Appointment(Base):
     """A clinic-local appointment for a synthetic patient."""
 

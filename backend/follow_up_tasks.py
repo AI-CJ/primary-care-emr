@@ -6,8 +6,13 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import CareGoal, FollowUpTask, Patient
-from backend.schemas import FollowUpTaskCancel, FollowUpTaskComplete, FollowUpTaskCreate
+from backend.models import CareGoal, FollowUpDueDateChange, FollowUpTask, Patient
+from backend.schemas import (
+    FollowUpTaskCancel,
+    FollowUpTaskComplete,
+    FollowUpTaskCreate,
+    FollowUpTaskReschedule,
+)
 
 
 def list_follow_up_tasks(session: Session, patient_id: int) -> list[FollowUpTask]:
@@ -100,3 +105,40 @@ def cancel_follow_up_task(
     task.cancellation_reason = cancellation.reason
     session.flush()
     return task
+
+
+def reschedule_follow_up_task(
+    session: Session, task_id: int, change: FollowUpTaskReschedule
+) -> FollowUpTask:
+    task = session.scalar(
+        select(FollowUpTask).where(FollowUpTask.id == task_id).with_for_update()
+    )
+    if task is None:
+        raise HTTPException(status_code=404, detail="Follow-up task not found")
+    if task.status != "open":
+        raise HTTPException(status_code=409, detail="Only open tasks can be rescheduled.")
+    if task.due_date == change.due_date:
+        raise HTTPException(status_code=409, detail="Due date has not changed.")
+
+    session.add(FollowUpDueDateChange(
+        task_id=task.id,
+        previous_due_date=task.due_date,
+        new_due_date=change.due_date,
+        reason=change.reason,
+    ))
+    task.due_date = change.due_date
+    session.flush()
+    return task
+
+
+def list_follow_up_due_date_changes(
+    session: Session, task_id: int
+) -> list[FollowUpDueDateChange]:
+    if session.get(FollowUpTask, task_id) is None:
+        raise HTTPException(status_code=404, detail="Follow-up task not found")
+    query = (
+        select(FollowUpDueDateChange)
+        .where(FollowUpDueDateChange.task_id == task_id)
+        .order_by(FollowUpDueDateChange.changed_at, FollowUpDueDateChange.id)
+    )
+    return list(session.scalars(query).all())
