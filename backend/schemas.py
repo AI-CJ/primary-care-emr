@@ -933,3 +933,18 @@ class ScheduleEntryRead(BaseModel):
     appointment: AppointmentRead
     patient: SchedulePatientRead
 
+
+
+class PatientTimelineEntry(BaseModel):
+    """A dated chart item with its current status, not an audit event."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal[
+        "visit", "vitals", "lab_order", "lab_result",
+        "referral", "care_goal", "follow_up",
+    ]
+    record_id: int = Field(gt=0)
+    occurred_on: date
+    title: str
+    status: str

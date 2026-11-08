@@ -1,11 +1,12 @@
 from datetime import date
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.patient_timeline import list_patient_timeline
 from backend.care_goals import (
     complete_care_goal,
     create_care_goal,
@@ -131,6 +132,7 @@ from backend.schemas import (
     MedicationRead,
     PatientCreate,
     PatientRead,
+    PatientTimelineEntry,
     ProblemCreate,
     ProblemRead,
     ScheduleEntryRead,
@@ -245,6 +247,15 @@ def read_patient(patient_id: int):
             )
 
         return patient
+
+
+@app.get(
+    "/patients/{patient_id}/timeline",
+    response_model=list[PatientTimelineEntry],
+)
+def read_patient_timeline(patient_id: int, limit: int = Query(default=50, ge=1, le=200)):
+    with Session(engine) as session:
+        return list_patient_timeline(session, patient_id, limit=limit)
 
 
 @app.get(
