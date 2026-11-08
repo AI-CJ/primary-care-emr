@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { CareGoal, FollowUpTask } from '../types'
+import FollowUpDueDateHistory from './FollowUpDueDateHistory'
 import './FollowUpTasks.css'
 
 type FollowUpTasksProps = {
@@ -413,6 +414,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
               {task.cancellation_reason && (
                 <p className="follow-up-task-details">Cancellation reason: {task.cancellation_reason}</p>
               )}
+              <FollowUpDueDateHistory taskId={task.id} taskTitle={task.title} refreshKey={reloadCount} />
               {task.status === 'open' && completingId !== task.id && cancellingId !== task.id && reschedulingId !== task.id && (
                 <button
                   className="secondary-action-button follow-up-task-complete-button"
