@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { FollowUpTask } from '../types'
+import type { CareGoal, FollowUpTask } from '../types'
 import './FollowUpTasks.css'
 
 type FollowUpTasksProps = {
@@ -9,6 +9,8 @@ type FollowUpTasksProps = {
 
 function FollowUpTasks({ patientId }: FollowUpTasksProps) {
   const [tasks, setTasks] = useState<FollowUpTask[]>([])
+  const [goals, setGoals] = useState<CareGoal[] | null>(null)
+  const [goalsError, setGoalsError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -17,6 +19,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
   const [title, setTitle] = useState('')
   const [details, setDetails] = useState('')
   const [dueDate, setDueDate] = useState('')
+  const [selectedGoalId, setSelectedGoalId] = useState('')
   const [completingId, setCompletingId] = useState<number | null>(null)
   const [completionNote, setCompletionNote] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -55,6 +58,36 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
     return () => controller.abort()
   }, [patientId, reloadCount])
 
+  useEffect(() => {
+    const controller = new AbortController()
+    setGoals(null)
+    setGoalsError(null)
+
+    async function loadGoals() {
+      try {
+        const response = await fetch(
+          API_BASE_URL + '/patients/' + patientId + '/care-goals',
+          { signal: controller.signal }
+        )
+        if (!response.ok) throw new Error(await getApiErrorMessage(response))
+
+        const records: CareGoal[] = await response.json()
+        if (!controller.signal.aborted) setGoals(records)
+      } catch (requestError) {
+        if (!controller.signal.aborted) {
+          setGoalsError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Care goals could not be loaded.'
+          )
+        }
+      }
+    }
+
+    void loadGoals()
+    return () => controller.abort()
+  }, [patientId, reloadCount, showAddForm])
+
   async function addTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const taskTitle = title.trim()
@@ -75,6 +108,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
             title: taskTitle,
             details: details.trim() || null,
             due_date: dueDate || null,
+            care_goal_id: selectedGoalId ? Number(selectedGoalId) : null,
           }),
         }
       )
@@ -83,6 +117,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
       setTitle('')
       setDetails('')
       setDueDate('')
+      setSelectedGoalId('')
       setShowAddForm(false)
       setReloadCount((count) => count + 1)
     } catch (requestError) {
@@ -146,6 +181,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
           disabled={isSaving}
           onClick={() => {
             setShowAddForm((show) => !show)
+            setSelectedGoalId('')
             setCompletingId(null)
             setCompletionNote('')
             setActionError(null)
@@ -185,6 +221,30 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
               onChange={(event) => setDueDate(event.target.value)}
             />
           </label>
+          <label className="form-field">
+            <span>Care goal (optional)</span>
+            <select
+              value={selectedGoalId}
+              disabled={isSaving || goals === null || goalsError !== null}
+              onChange={(event) => setSelectedGoalId(event.target.value)}
+            >
+              <option value="">No care goal</option>
+              {(goals ?? []).filter((goal) => goal.status === 'active').map((goal) => (
+                <option key={goal.id} value={goal.id}>{goal.title}</option>
+              ))}
+            </select>
+          </label>
+          {goals === null && !goalsError && (
+            <p role="status">Loading care goals...</p>
+          )}
+          {goalsError && (
+            <p className="form-error" role="status">
+              Could not load care goals: {goalsError} You can still save an unlinked task.
+            </p>
+          )}
+          {goals !== null && goals.every((goal) => goal.status !== 'active') && (
+            <p>No active care goals. Tasks can still be saved without a goal.</p>
+          )}
           <div className="follow-up-task-actions">
             <button className="save-patient-button" type="submit" disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Task'}
@@ -242,6 +302,17 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
                   </time></>
                 )}
               </p>
+              {task.care_goal_id !== null && (
+                <p className="follow-up-task-details">
+                  Care goal:{' '}
+                  {goals?.find((goal) => goal.id === task.care_goal_id)?.title
+                    ?? 'Goal #' + task.care_goal_id}
+                  {goals?.find((goal) => goal.id === task.care_goal_id)?.status === 'completed'
+                    && ' (completed)'}
+                  {goals?.find((goal) => goal.id === task.care_goal_id)?.status === 'discontinued'
+                    && ' (discontinued)'}
+                </p>
+              )}
               {task.details && <p className="follow-up-task-details">{task.details}</p>}
               {task.completion_note && (
                 <p className="follow-up-task-details">Outcome: {task.completion_note}</p>
