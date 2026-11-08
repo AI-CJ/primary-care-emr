@@ -303,3 +303,18 @@ export type FollowUpTask = {
   cancelled_at: string | null
   cancellation_reason: string | null
 }
+
+export type PatientTimelineEntry = {
+  kind:
+    | 'visit'
+    | 'vitals'
+    | 'lab_order'
+    | 'lab_result'
+    | 'referral'
+    | 'care_goal'
+    | 'follow_up'
+  record_id: number
+  occurred_on: string
+  title: string
+  status: string
+}

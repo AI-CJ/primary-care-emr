@@ -1524,3 +1524,60 @@
     width: 100%;
   }
 }
+
+
+/* Read-only patient activity timeline */
+
+.patient-timeline-card {
+  grid-column: 1 / -1;
+}
+
+.patient-timeline-help {
+  margin: 0 0 16px !important;
+  line-height: 1.5;
+}
+
+.patient-timeline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.patient-timeline-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.patient-timeline-row time {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.patient-timeline-detail {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.patient-timeline-kind,
+.patient-timeline-status {
+  color: var(--slate-blue);
+  font-size: 0.85rem;
+}
+
+.patient-timeline-status {
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+@media (max-width: 600px) {
+  .patient-timeline-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}

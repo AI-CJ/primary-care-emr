@@ -16,6 +16,7 @@ import EncounterList from './components/EncounterList'
 import FollowUpTasks from './components/FollowUpTasks'
 import OpenFollowUpTasksWorklist from './components/OpenFollowUpTasksWorklist'
 import MedicationList from './components/MedicationList'
+import PatientTimeline from './components/PatientTimeline'
 import PatientLabHistory from './components/PatientLabHistory'
 import PendingLabWorklist from './components/PendingLabWorklist'
 import PendingReferralWorklist from './components/PendingReferralWorklist'
@@ -348,6 +349,8 @@ function App() {
 
 
           <div className="overview-grid">
+            <PatientTimeline key={selectedPatient.id} patientId={selectedPatient.id} />
+
             <ProblemList patientId={selectedPatient.id} />
 
             <MedicationList patientId={selectedPatient.id} />
