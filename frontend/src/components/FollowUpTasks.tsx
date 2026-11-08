@@ -24,6 +24,9 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
   const [completionNote, setCompletionNote] = useState('')
   const [cancellingId, setCancellingId] = useState<number | null>(null)
   const [cancellationReason, setCancellationReason] = useState('')
+  const [reschedulingId, setReschedulingId] = useState<number | null>(null)
+  const [revisedDueDate, setRevisedDueDate] = useState('')
+  const [rescheduleReason, setRescheduleReason] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -203,6 +206,48 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
     }
   }
 
+  async function rescheduleTask(event: FormEvent<HTMLFormElement>, task: FollowUpTask) {
+    event.preventDefault()
+    const reason = rescheduleReason.trim()
+    const nextDueDate = revisedDueDate || null
+
+    if (!reason) {
+      setActionError('Enter a reason for changing the due date.')
+      return
+    }
+    if (nextDueDate === task.due_date) {
+      setActionError('Choose a different due date or clear the existing one.')
+      return
+    }
+
+    setIsSaving(true)
+    setActionError(null)
+    try {
+      const response = await fetch(
+        API_BASE_URL + '/follow-up-tasks/' + task.id + '/reschedule',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ due_date: nextDueDate, reason }),
+        }
+      )
+      if (!response.ok) throw new Error(await getApiErrorMessage(response))
+
+      setReschedulingId(null)
+      setRevisedDueDate('')
+      setRescheduleReason('')
+      setReloadCount((count) => count + 1)
+    } catch (requestError) {
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'The task due date could not be changed.'
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const orderedTasks = [
     ...tasks.filter((task) => task.status === 'open'),
     ...tasks.filter((task) => task.status === 'completed'),
@@ -224,6 +269,9 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
             setCompletionNote('')
             setCancellingId(null)
             setCancellationReason('')
+            setReschedulingId(null)
+            setRevisedDueDate('')
+            setRescheduleReason('')
             setActionError(null)
           }}
         >
@@ -365,7 +413,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
               {task.cancellation_reason && (
                 <p className="follow-up-task-details">Cancellation reason: {task.cancellation_reason}</p>
               )}
-              {task.status === 'open' && completingId !== task.id && cancellingId !== task.id && (
+              {task.status === 'open' && completingId !== task.id && cancellingId !== task.id && reschedulingId !== task.id && (
                 <button
                   className="secondary-action-button follow-up-task-complete-button"
                   type="button"
@@ -377,13 +425,16 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
                     setCompletionNote('')
                     setCancellingId(null)
                     setCancellationReason('')
+                    setReschedulingId(null)
+                    setRevisedDueDate('')
+                    setRescheduleReason('')
                     setActionError(null)
                   }}
                 >
                   Mark Complete
                 </button>
               )}
-              {task.status === 'open' && completingId !== task.id && cancellingId !== task.id && (
+              {task.status === 'open' && completingId !== task.id && cancellingId !== task.id && reschedulingId !== task.id && (
                 <button
                   className="secondary-action-button follow-up-task-complete-button"
                   type="button"
@@ -395,11 +446,84 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
                     setCompletionNote('')
                     setCancellingId(task.id)
                     setCancellationReason('')
+                    setReschedulingId(null)
+                    setRevisedDueDate('')
+                    setRescheduleReason('')
                     setActionError(null)
                   }}
                 >
                   Cancel Task
                 </button>
+              )}
+              {task.status === 'open' && completingId !== task.id && cancellingId !== task.id && reschedulingId !== task.id && (
+                <button
+                  className="secondary-action-button follow-up-task-complete-button"
+                  type="button"
+                  disabled={isSaving}
+                  aria-label={'Change due date for task: ' + task.title}
+                  onClick={() => {
+                    setShowAddForm(false)
+                    setCompletingId(null)
+                    setCompletionNote('')
+                    setCancellingId(null)
+                    setCancellationReason('')
+                    setReschedulingId(task.id)
+                    setRevisedDueDate(task.due_date ?? '')
+                    setRescheduleReason('')
+                    setActionError(null)
+                  }}
+                >
+                  Change Due Date
+                </button>
+              )}
+              {task.status === 'open' && reschedulingId === task.id && (
+                <form
+                  className="follow-up-task-form"
+                  onSubmit={(event) => void rescheduleTask(event, task)}
+                >
+                  <label className="form-field">
+                    <span>New due date (optional)</span>
+                    <input
+                      type="date"
+                      value={revisedDueDate}
+                      onChange={(event) => setRevisedDueDate(event.target.value)}
+                    />
+                  </label>
+                  <p>Leave the date blank to remove the existing deadline.</p>
+                  <label className="form-field">
+                    <span>Reason for change *</span>
+                    <textarea
+                      required
+                      maxLength={2000}
+                      rows={3}
+                      value={rescheduleReason}
+                      onChange={(event) => setRescheduleReason(event.target.value)}
+                      placeholder="Explain why the follow-up deadline is changing."
+                    />
+                  </label>
+                  <div className="follow-up-task-actions">
+                    <button
+                      className="save-patient-button"
+                      type="submit"
+                      disabled={isSaving || (revisedDueDate || null) === task.due_date}
+                    >
+                      {isSaving ? 'Saving...' : 'Save Due Date'}
+                    </button>
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => {
+                        setReschedulingId(null)
+                        setRevisedDueDate('')
+                        setRescheduleReason('')
+                        setActionError(null)
+                      }}
+                    >
+                      Keep Current Date
+                    </button>
+                  </div>
+                </form>
               )}
               {task.status === 'open' && cancellingId === task.id && (
                 <form
