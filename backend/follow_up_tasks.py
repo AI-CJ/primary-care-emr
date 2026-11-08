@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import CareGoal, FollowUpTask, Patient
-from backend.schemas import FollowUpTaskComplete, FollowUpTaskCreate
+from backend.schemas import FollowUpTaskCancel, FollowUpTaskComplete, FollowUpTaskCreate
 
 
 def list_follow_up_tasks(session: Session, patient_id: int) -> list[FollowUpTask]:
@@ -80,5 +80,23 @@ def complete_follow_up_task(
     task.status = "completed"
     task.completed_at = datetime.now(timezone.utc)
     task.completion_note = completion.completion_note
+    session.flush()
+    return task
+
+
+def cancel_follow_up_task(
+    session: Session, task_id: int, cancellation: FollowUpTaskCancel
+) -> FollowUpTask:
+    task = session.scalar(
+        select(FollowUpTask).where(FollowUpTask.id == task_id).with_for_update()
+    )
+    if task is None:
+        raise HTTPException(status_code=404, detail="Follow-up task not found")
+    if task.status != "open":
+        raise HTTPException(status_code=409, detail="Only open tasks can be cancelled.")
+
+    task.status = "cancelled"
+    task.cancelled_at = datetime.now(timezone.utc)
+    task.cancellation_reason = cancellation.reason
     session.flush()
     return task

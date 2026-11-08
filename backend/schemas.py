@@ -816,13 +816,29 @@ class FollowUpTaskComplete(BaseModel):
         return value
 
 
+class FollowUpTaskCancel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Cancellation reason cannot be blank")
+        return value
+
+
 class FollowUpTaskRead(FollowUpTaskCreate):
     id: int
     patient_id: int
-    status: Literal["open", "completed"]
+    status: Literal["open", "completed", "cancelled"]
     created_at: datetime
     completed_at: datetime | None
     completion_note: str | None
+    cancelled_at: datetime | None
+    cancellation_reason: str | None
 
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 

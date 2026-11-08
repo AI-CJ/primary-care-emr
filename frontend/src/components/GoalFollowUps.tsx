@@ -88,7 +88,7 @@ function GoalFollowUps({ patientId, goalId, goalTitle }: GoalFollowUpsProps) {
                   <div className="goal-follow-ups-row-header">
                     <strong>{task.title}</strong>
                     <span className="goal-follow-ups-status">
-                      {task.status === 'open' ? 'Open' : 'Completed'}
+                      {task.status === 'open' ? 'Open' : task.status === 'completed' ? 'Completed' : 'Cancelled'}
                     </span>
                   </div>
                   <p className="goal-follow-ups-meta">
@@ -103,10 +103,18 @@ function GoalFollowUps({ patientId, goalId, goalTitle }: GoalFollowUpsProps) {
                         {task.completed_at.slice(0, 10)}
                       </time></>
                     )}
+                    {task.cancelled_at && (
+                      <>{' · '}Cancelled <time dateTime={task.cancelled_at}>
+                        {task.cancelled_at.slice(0, 10)}
+                      </time></>
+                    )}
                   </p>
                   {task.details && <p className="goal-follow-ups-notes">{task.details}</p>}
                   {task.completion_note && (
                     <p className="goal-follow-ups-notes">Outcome: {task.completion_note}</p>
+                  )}
+                  {task.cancellation_reason && (
+                    <p className="goal-follow-ups-notes">Cancellation reason: {task.cancellation_reason}</p>
                   )}
                 </li>
               ))}

@@ -22,6 +22,8 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
   const [selectedGoalId, setSelectedGoalId] = useState('')
   const [completingId, setCompletingId] = useState<number | null>(null)
   const [completionNote, setCompletionNote] = useState('')
+  const [cancellingId, setCancellingId] = useState<number | null>(null)
+  const [cancellationReason, setCancellationReason] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -166,9 +168,45 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
     }
   }
 
+  async function cancelTask(event: FormEvent<HTMLFormElement>, taskId: number) {
+    event.preventDefault()
+    const reason = cancellationReason.trim()
+    if (!reason) {
+      setActionError('Enter a reason before cancelling this task.')
+      return
+    }
+
+    setIsSaving(true)
+    setActionError(null)
+    try {
+      const response = await fetch(
+        API_BASE_URL + '/follow-up-tasks/' + taskId + '/cancel',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+        }
+      )
+      if (!response.ok) throw new Error(await getApiErrorMessage(response))
+
+      setCancellingId(null)
+      setCancellationReason('')
+      setReloadCount((count) => count + 1)
+    } catch (requestError) {
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'The task could not be cancelled.'
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const orderedTasks = [
     ...tasks.filter((task) => task.status === 'open'),
     ...tasks.filter((task) => task.status === 'completed'),
+    ...tasks.filter((task) => task.status === 'cancelled'),
   ]
 
   return (
@@ -184,6 +222,8 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
             setSelectedGoalId('')
             setCompletingId(null)
             setCompletionNote('')
+            setCancellingId(null)
+            setCancellationReason('')
             setActionError(null)
           }}
         >
@@ -288,7 +328,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
               <div className="follow-up-task-header">
                 <strong>{task.title}</strong>
                 <span className="follow-up-task-status">
-                  {task.status === 'open' ? 'Open' : 'Completed'}
+                  {task.status === 'open' ? 'Open' : task.status === 'completed' ? 'Completed' : 'Cancelled'}
                 </span>
               </div>
               <p className="follow-up-task-meta">
@@ -299,6 +339,11 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
                 {task.completed_at && (
                   <>{' · '}Completed <time dateTime={task.completed_at}>
                     {task.completed_at.slice(0, 10)}
+                  </time></>
+                )}
+                {task.cancelled_at && (
+                  <>{' · '}Cancelled <time dateTime={task.cancelled_at}>
+                    {task.cancelled_at.slice(0, 10)}
                   </time></>
                 )}
               </p>
@@ -317,7 +362,10 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
               {task.completion_note && (
                 <p className="follow-up-task-details">Outcome: {task.completion_note}</p>
               )}
-              {task.status === 'open' && completingId !== task.id && (
+              {task.cancellation_reason && (
+                <p className="follow-up-task-details">Cancellation reason: {task.cancellation_reason}</p>
+              )}
+              {task.status === 'open' && completingId !== task.id && cancellingId !== task.id && (
                 <button
                   className="secondary-action-button follow-up-task-complete-button"
                   type="button"
@@ -327,11 +375,66 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
                     setShowAddForm(false)
                     setCompletingId(task.id)
                     setCompletionNote('')
+                    setCancellingId(null)
+                    setCancellationReason('')
                     setActionError(null)
                   }}
                 >
                   Mark Complete
                 </button>
+              )}
+              {task.status === 'open' && completingId !== task.id && cancellingId !== task.id && (
+                <button
+                  className="secondary-action-button follow-up-task-complete-button"
+                  type="button"
+                  disabled={isSaving}
+                  aria-label={'Cancel task: ' + task.title}
+                  onClick={() => {
+                    setShowAddForm(false)
+                    setCompletingId(null)
+                    setCompletionNote('')
+                    setCancellingId(task.id)
+                    setCancellationReason('')
+                    setActionError(null)
+                  }}
+                >
+                  Cancel Task
+                </button>
+              )}
+              {task.status === 'open' && cancellingId === task.id && (
+                <form
+                  className="follow-up-task-form"
+                  onSubmit={(event) => void cancelTask(event, task.id)}
+                >
+                  <label className="form-field">
+                    <span>Reason for cancellation *</span>
+                    <textarea
+                      required
+                      maxLength={2000}
+                      rows={3}
+                      value={cancellationReason}
+                      onChange={(event) => setCancellationReason(event.target.value)}
+                      placeholder="Explain why this follow-up is no longer needed."
+                    />
+                  </label>
+                  <div className="follow-up-task-actions">
+                    <button className="save-patient-button" type="submit" disabled={isSaving}>
+                      {isSaving ? 'Saving...' : 'Cancel Task'}
+                    </button>
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => {
+                        setCancellingId(null)
+                        setCancellationReason('')
+                        setActionError(null)
+                      }}
+                    >
+                      Keep Task
+                    </button>
+                  </div>
+                </form>
               )}
               {task.status === 'open' && completingId === task.id && (
                 <form

@@ -296,8 +296,10 @@ export type FollowUpTask = {
   title: string
   details: string | null
   due_date: string | null
-  status: 'open' | 'completed'
+  status: 'open' | 'completed' | 'cancelled'
   created_at: string
   completed_at: string | null
   completion_note: string | null
+  cancelled_at: string | null
+  cancellation_reason: string | null
 }

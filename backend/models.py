@@ -363,7 +363,7 @@ class CareGoalProgress(Base):
 
 
 class FollowUpTask(Base):
-    """A patient-specific staff follow-up item, retained after completion."""
+    """A patient-specific staff follow-up item, retained after closure."""
 
     __tablename__ = "follow_up_tasks"
 
@@ -385,6 +385,10 @@ class FollowUpTask(Base):
         DateTime(timezone=True), nullable=True
     )
     completion_note: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancellation_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
 
 class Appointment(Base):

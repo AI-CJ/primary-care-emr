@@ -16,6 +16,7 @@ from backend.care_goals import (
     record_goal_progress,
 )
 from backend.follow_up_tasks import (
+    cancel_follow_up_task,
     complete_follow_up_task,
     create_follow_up_task,
     list_open_follow_up_tasks,
@@ -87,6 +88,7 @@ from backend.schemas import (
     CareGoalProgressCreate,
     CareGoalProgressRead,
     CareGoalRead,
+    FollowUpTaskCancel,
     FollowUpTaskComplete,
     FollowUpTaskCreate,
     OpenFollowUpTaskRead,
@@ -372,6 +374,18 @@ def add_patient_follow_up_task(patient_id: int, task_data: FollowUpTaskCreate):
 def complete_patient_follow_up_task(task_id: int, completion: FollowUpTaskComplete):
     with Session(engine) as session:
         task = complete_follow_up_task(session, task_id, completion)
+        session.commit()
+        session.refresh(task)
+        return task
+
+
+@app.post(
+    "/follow-up-tasks/{task_id}/cancel",
+    response_model=FollowUpTaskRead,
+)
+def cancel_patient_follow_up_task(task_id: int, cancellation: FollowUpTaskCancel):
+    with Session(engine) as session:
+        task = cancel_follow_up_task(session, task_id, cancellation)
         session.commit()
         session.refresh(task)
         return task
