@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { CareGoal } from '../types'
 import CareGoalProgress from './CareGoalProgress'
+import GoalFollowUps from './GoalFollowUps'
 
 type CareGoalsProps = {
   patientId: number
@@ -389,6 +390,11 @@ function CareGoals({ patientId }: CareGoalsProps) {
                 goalId={goal.id}
                 goalTitle={goal.title}
                 isActive={goal.status === 'active'}
+              />
+              <GoalFollowUps
+                patientId={patientId}
+                goalId={goal.id}
+                goalTitle={goal.title}
               />
             </li>
           ))}
