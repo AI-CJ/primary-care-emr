@@ -3,6 +3,7 @@ import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Allergy, CareGoal, Medication, Patient, Problem } from '../types'
 import './PatientPortalPreview.css'
 import PortalAppointments from './PortalAppointments'
+import PortalVisits from './PortalVisits'
 import PortalVitals from './PortalVitals'
 import PortalLabResults from './PortalLabResults'
 import PortalReferrals from './PortalReferrals'
@@ -106,6 +107,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
         {!isLoading && overview && (
           <div className="portal-grid">
             <PortalAppointments key={patient.id} patientId={patient.id} />
+            <PortalVisits patientId={patient.id} />
             <PortalVitals key={patient.id} patientId={patient.id} />
             <PortalLabResults key={patient.id} patientId={patient.id} />
             <PortalReferrals patientId={patient.id} />
