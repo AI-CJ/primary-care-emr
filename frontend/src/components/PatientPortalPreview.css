@@ -1,0 +1,126 @@
+.portal-preview {
+  min-height: 100vh;
+  padding: 32px 24px;
+  background: var(--mist);
+}
+
+.portal-shell {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+}
+
+.portal-header {
+  padding: 32px;
+  color: white;
+  background: var(--gunmetal);
+  border-radius: 18px;
+}
+
+.portal-eyebrow {
+  margin: 0 0 8px;
+  color: var(--sea-glass);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.portal-header h1 {
+  margin: 0 0 10px;
+  font-size: clamp(2rem, 4vw, 2.7rem);
+}
+
+.portal-header p:last-child {
+  margin: 0;
+  color: #e0ebeb;
+  line-height: 1.5;
+}
+
+.portal-disclaimer {
+  margin: 20px 0;
+  padding: 14px 18px;
+  color: var(--text);
+  background: var(--pale-aqua);
+  border-left: 4px solid var(--deep-sea);
+  border-radius: 4px 10px 10px 4px;
+  line-height: 1.5;
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.portal-card {
+  min-width: 0;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.portal-card h2 {
+  margin: 0 0 12px;
+  color: var(--onyx);
+  font-size: 1.25rem;
+}
+
+.portal-card p,
+.portal-message {
+  line-height: 1.5;
+}
+
+.portal-help {
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.portal-records {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-records li {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.portal-records li:first-child {
+  border-top: 0;
+}
+
+.portal-records strong {
+  color: var(--onyx);
+}
+
+.portal-records span {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.portal-message {
+  padding: 16px;
+  margin-bottom: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+@media (max-width: 700px) {
+  .portal-preview {
+    padding: 20px 16px;
+  }
+
+  .portal-header {
+    padding: 24px 20px;
+  }
+
+  .portal-grid {
+    grid-template-columns: 1fr;
+  }
+}

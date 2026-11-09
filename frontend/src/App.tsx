@@ -17,6 +17,7 @@ import FollowUpTasks from './components/FollowUpTasks'
 import OpenFollowUpTasksWorklist from './components/OpenFollowUpTasksWorklist'
 import MedicationList from './components/MedicationList'
 import PatientTimeline from './components/PatientTimeline'
+import PatientPortalPreview from './components/PatientPortalPreview'
 import PatientLabHistory from './components/PatientLabHistory'
 import PendingLabWorklist from './components/PendingLabWorklist'
 import PendingReferralWorklist from './components/PendingReferralWorklist'
@@ -72,6 +73,9 @@ function App() {
     useState('')
 
   const [showSchedule, setShowSchedule] =
+    useState(false)
+
+  const [showPortalPreview, setShowPortalPreview] =
     useState(false)
 
   const [showPendingLabs, setShowPendingLabs] =
@@ -276,6 +280,15 @@ function App() {
   }
 
 
+  if (selectedPatient && showPortalPreview) {
+    return (
+      <PatientPortalPreview
+        patient={selectedPatient}
+        onBack={() => setShowPortalPreview(false)}
+      />
+    )
+  }
+
   if (selectedPatient) {
     return (
       <main className="chart-page">
@@ -343,6 +356,13 @@ function App() {
                 }
               >
                 Edit Patient
+              </button>
+              <button
+                className="secondary-action-button"
+                type="button"
+                onClick={() => setShowPortalPreview(true)}
+              >
+                Preview Patient Portal
               </button>
             </div>
           </header>
