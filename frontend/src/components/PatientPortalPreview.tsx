@@ -3,6 +3,7 @@ import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Allergy, CareGoal, Medication, Patient, Problem } from '../types'
 import './PatientPortalPreview.css'
 import PortalAppointments from './PortalAppointments'
+import PortalVitals from './PortalVitals'
 
 type PatientPortalPreviewProps = {
   patient: Patient
@@ -103,6 +104,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
         {!isLoading && overview && (
           <div className="portal-grid">
             <PortalAppointments key={patient.id} patientId={patient.id} />
+            <PortalVitals key={patient.id} patientId={patient.id} />
             <section className="portal-card" aria-labelledby="portal-conditions">
               <h2 id="portal-conditions">My health conditions</h2>
               {activeProblems.length === 0 ? (
