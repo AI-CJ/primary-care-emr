@@ -6,6 +6,7 @@ import PortalAppointments from './PortalAppointments'
 import PortalVitals from './PortalVitals'
 import PortalLabResults from './PortalLabResults'
 import PortalReferrals from './PortalReferrals'
+import PortalCareGoals from './PortalCareGoals'
 
 type PatientPortalPreviewProps = {
   patient: Patient
@@ -70,7 +71,6 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
   const activeProblems = overview?.problems.filter((item) => item.status === 'active') ?? []
   const activeMedications = overview?.medications.filter((item) => item.status === 'active') ?? []
   const activeAllergies = overview?.allergies.filter((item) => item.status === 'active') ?? []
-  const activeGoals = overview?.careGoals.filter((item) => item.status === 'active') ?? []
   const displayName = patient.preferred_name || patient.first_name
 
   return (
@@ -160,21 +160,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
               )}
             </section>
 
-            <section className="portal-card" aria-labelledby="portal-goals">
-              <h2 id="portal-goals">My care goals</h2>
-              {activeGoals.length === 0 ? (
-                <p>No active care goals are listed in your chart.</p>
-              ) : (
-                <ul className="portal-records">
-                  {activeGoals.map((goal) => (
-                    <li key={goal.id}>
-                      <strong>{goal.title}</strong>
-                      {goal.target_date && <span>Target date: {goal.target_date}</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            <PortalCareGoals goals={overview.careGoals} />
           </div>
         )}
       </div>

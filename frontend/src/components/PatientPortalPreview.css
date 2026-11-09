@@ -66,6 +66,16 @@
   font-size: 1.25rem;
 }
 
+.portal-goal-group + .portal-goal-group {
+  margin-top: 18px;
+}
+
+.portal-goal-group h3 {
+  margin: 0 0 8px;
+  color: var(--onyx);
+  font-size: 1rem;
+}
+
 .portal-card p,
 .portal-message {
   line-height: 1.5;
