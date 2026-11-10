@@ -30,6 +30,7 @@ from backend.encounters import (
     create_encounter,
     create_encounter_addendum,
     finalize_encounter,
+    list_portal_preview_visits,
 )
 from backend.encounter_problems import (
     link_encounter_problem,
@@ -115,6 +116,7 @@ from backend.schemas import (
     EncounterCreate,
     EncounterRead,
     EncounterUpdate,
+    PortalVisitSummary,
     LabOrderCancel,
     LabOrderCreate,
     LabOrderRead,
@@ -730,6 +732,15 @@ def read_patient_encounters(patient_id: int):
             .order_by(Encounter.visit_date.desc(), Encounter.id.desc())
         )
         return list(session.scalars(query).all())
+
+
+@app.get(
+    "/patients/{patient_id}/portal-preview/visits",
+    response_model=list[PortalVisitSummary],
+)
+def read_portal_preview_visits(patient_id: int):
+    with Session(engine) as session:
+        return list_portal_preview_visits(session, patient_id)
 
 
 @app.post(

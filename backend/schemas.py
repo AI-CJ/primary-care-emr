@@ -425,6 +425,14 @@ class EncounterRead(EncounterBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PortalVisitSummary(BaseModel):
+    id: int
+    visit_date: date
+    reason_for_visit: str
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class EncounterAddendumCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

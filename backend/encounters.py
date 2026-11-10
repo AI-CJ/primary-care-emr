@@ -7,7 +7,24 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import Appointment, Encounter, EncounterAddendum, EncounterVital, Patient
-from backend.schemas import EncounterAddendumCreate, EncounterCreate, EncounterUpdate
+from backend.schemas import EncounterAddendumCreate, EncounterCreate, EncounterUpdate, PortalVisitSummary
+
+
+def list_portal_preview_visits(session: Session, patient_id: int) -> list[PortalVisitSummary]:
+    """Return finalized visit headers without clinical note text."""
+    if session.get(Patient, patient_id) is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    rows = session.execute(
+        select(Encounter.id, Encounter.visit_date, Encounter.reason_for_visit)
+        .where(Encounter.patient_id == patient_id, Encounter.finalized_at.is_not(None))
+        .order_by(Encounter.visit_date.desc(), Encounter.id.desc())
+        .limit(5)
+    )
+    return [
+        PortalVisitSummary(id=visit_id, visit_date=visit_date, reason_for_visit=reason)
+        for visit_id, visit_date, reason in rows
+    ]
 
 
 def create_encounter(

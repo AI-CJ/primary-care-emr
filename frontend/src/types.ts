@@ -118,6 +118,11 @@ export type Encounter = {
   finalized_at: string | null
 }
 
+export type PortalVisitSummary = Pick<
+  Encounter,
+  'id' | 'visit_date' | 'reason_for_visit'
+>
+
 export type EncounterProblem = {
   id: number
   encounter_id: number

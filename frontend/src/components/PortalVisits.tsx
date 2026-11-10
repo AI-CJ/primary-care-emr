@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { Encounter } from '../types'
+import type { PortalVisitSummary } from '../types'
 
 type PortalVisitsProps = {
   patientId: number
 }
 
 function PortalVisits({ patientId }: PortalVisitsProps) {
-  const [visits, setVisits] = useState<Encounter[] | null>(null)
+  const [visits, setVisits] = useState<PortalVisitSummary[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
@@ -22,12 +22,12 @@ function PortalVisits({ patientId }: PortalVisitsProps) {
 
       try {
         const response = await fetch(
-          API_BASE_URL + '/patients/' + patientId + '/encounters',
+          API_BASE_URL + '/patients/' + patientId + '/portal-preview/visits',
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
 
-        const records: Encounter[] = await response.json()
+        const records: PortalVisitSummary[] = await response.json()
         if (!controller.signal.aborted) setVisits(records)
       } catch (requestError) {
         if (!controller.signal.aborted) {
@@ -46,11 +46,7 @@ function PortalVisits({ patientId }: PortalVisitsProps) {
     return () => controller.abort()
   }, [patientId, refreshCount])
 
-  const recentVisits = (visits ?? [])
-    .filter((visit) => visit.finalized_at !== null)
-    .sort((first, second) =>
-      second.visit_date.localeCompare(first.visit_date) || second.id - first.id)
-    .slice(0, 5)
+  const recentVisits = visits ?? []
 
   return (
     <section className="portal-card" aria-labelledby="portal-visits">
