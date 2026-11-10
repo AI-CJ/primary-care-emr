@@ -72,10 +72,23 @@ function PortalAppointments({ patientId }: PortalAppointmentsProps) {
       first.id - second.id
     )
 
+  const history = (appointments ?? [])
+    .filter((appointment) =>
+      appointment.status === 'completed' ||
+      appointment.status === 'cancelled' ||
+      appointment.status === 'no_show'
+    )
+    .sort((first, second) =>
+      second.scheduled_date.localeCompare(first.scheduled_date) ||
+      second.start_time.localeCompare(first.start_time) ||
+      second.id - first.id
+    )
+    .slice(0, 5)
+
   return (
     <section className="portal-card" aria-labelledby="portal-appointments">
       <h2 id="portal-appointments">My appointments</h2>
-      <p className="portal-help">Scheduled visits for today and later. Contact the clinic to make changes.</p>
+      <p className="portal-help">Upcoming visits and recent appointment history. Contact the clinic to make changes.</p>
 
       {isLoading && <p role="status">Loading appointments...</p>}
       {error && (
@@ -105,6 +118,26 @@ function PortalAppointments({ patientId }: PortalAppointmentsProps) {
             </li>
           ))}
         </ul>
+      )}
+      {!isLoading && !error && history.length > 0 && (
+        <details>
+          <summary>Recent appointment history ({history.length})</summary>
+          <ul className="portal-records">
+            {history.map((appointment) => (
+              <li key={appointment.id}>
+                <strong>{appointment.reason_for_visit}</strong>
+                <time dateTime={`${appointment.scheduled_date}T${appointment.start_time}`}>
+                  {appointment.scheduled_date} at {formatTime(appointment.start_time)}
+                </time>
+                <span>
+                  Recorded status: {appointment.status === 'no_show'
+                    ? 'No-show' : appointment.status === 'cancelled'
+                      ? 'Cancelled' : 'Completed'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </section>
   )
