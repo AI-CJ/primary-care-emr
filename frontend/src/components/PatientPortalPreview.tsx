@@ -70,6 +70,12 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
   }, [patient.id, reloadCount])
 
   const activeProblems = overview?.problems.filter((item) => item.status === 'active') ?? []
+  const resolvedProblems = overview?.problems
+    .filter((item) => item.status === 'resolved')
+    .sort((first, second) =>
+      (second.resolved_date ?? second.onset_date ?? '').localeCompare(
+        first.resolved_date ?? first.onset_date ?? '',
+      ) || second.id - first.id) ?? []
   const activeMedications = overview?.medications.filter((item) => item.status === 'active') ?? []
   const pastMedications = overview?.medications
     .filter((item) => item.status !== 'active')
@@ -130,6 +136,29 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
                     </li>
                   ))}
                 </ul>
+              )}
+              {resolvedProblems.length > 0 && (
+                <details>
+                  <summary>Past conditions ({resolvedProblems.length})</summary>
+                  <ul className="portal-records">
+                    {resolvedProblems.map((problem) => (
+                      <li key={problem.id}>
+                        <strong>{problem.name}</strong>
+                        <span>Status: Resolved</span>
+                        {problem.onset_date && (
+                          <span>Recorded onset: <time dateTime={problem.onset_date}>
+                            {problem.onset_date}
+                          </time></span>
+                        )}
+                        {problem.resolved_date && (
+                          <span>Recorded resolved date: <time dateTime={problem.resolved_date}>
+                            {problem.resolved_date}
+                          </time></span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </section>
 
