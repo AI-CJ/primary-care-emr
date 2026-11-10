@@ -71,6 +71,12 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
 
   const activeProblems = overview?.problems.filter((item) => item.status === 'active') ?? []
   const activeMedications = overview?.medications.filter((item) => item.status === 'active') ?? []
+  const pastMedications = overview?.medications
+    .filter((item) => item.status !== 'active')
+    .sort((first, second) =>
+      (second.end_date ?? second.start_date ?? '').localeCompare(
+        first.end_date ?? first.start_date ?? '',
+      ) || second.id - first.id) ?? []
   const activeAllergies = overview?.allergies.filter((item) => item.status === 'active') ?? []
   const displayName = patient.preferred_name || patient.first_name
 
@@ -129,9 +135,12 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
 
             <section className="portal-card" aria-labelledby="portal-medications">
               <h2 id="portal-medications">My medications</h2>
-              <p className="portal-help">Medications currently listed as active.</p>
+              <p className="portal-help">
+                Medications recorded in this fictional chart. Check with the clinic before changing
+                how you take any medication.
+              </p>
               {activeMedications.length === 0 ? (
-                <p>No active medications are listed in your chart.</p>
+                <p>No medications are currently marked as active in your chart.</p>
               ) : (
                 <ul className="portal-records">
                   {activeMedications.map((medication) => (
@@ -139,9 +148,33 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
                       <strong>{medication.name}{medication.strength ? ' · ' + medication.strength : ''}</strong>
                       {medication.dose && <span>Dose: {medication.dose}</span>}
                       {medication.frequency && <span>Frequency: {medication.frequency}</span>}
+                      {medication.instructions && <span>Instructions: {medication.instructions}</span>}
                     </li>
                   ))}
                 </ul>
+              )}
+              {pastMedications.length > 0 && (
+                <details>
+                  <summary>Past medications ({pastMedications.length})</summary>
+                  <ul className="portal-records">
+                    {pastMedications.map((medication) => (
+                      <li key={medication.id}>
+                        <strong>{medication.name}{medication.strength ? ' · ' + medication.strength : ''}</strong>
+                        <span>Status: {medication.status === 'completed' ? 'Completed' : 'Discontinued'}</span>
+                        {medication.start_date && (
+                          <span>Recorded start: <time dateTime={medication.start_date}>
+                            {medication.start_date}
+                          </time></span>
+                        )}
+                        {medication.end_date && (
+                          <span>Recorded end: <time dateTime={medication.end_date}>
+                            {medication.end_date}
+                          </time></span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </section>
 
