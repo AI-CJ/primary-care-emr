@@ -59,11 +59,18 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
       b.result.reported_at.localeCompare(a.result.reported_at) || b.id - a.id)
     .slice(0, 3)
 
+  const cancelledRequests = (orders ?? [])
+    .filter((order) => order.status === 'cancelled')
+    .sort((first, second) =>
+      (second.cancelled_at ?? second.ordered_at).localeCompare(
+        first.cancelled_at ?? first.ordered_at) || second.id - first.id)
+    .slice(0, 5)
+
   return (
     <section className="portal-card" aria-labelledby="portal-lab-results">
       <h2 id="portal-lab-results">My lab requests and results</h2>
       <p className="portal-help">
-        Recent lab requests without results and reported results in this fictional chart.
+        Recent lab requests, reported results, and cancelled requests in this fictional chart.
         A recorded request does not confirm that a test has been scheduled or collected.
         This preview does not have a patient-release process.
       </p>
@@ -81,8 +88,8 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
           </button>
         </div>
       )}
-      {!isLoading && !error && pendingRequests.length === 0 && recentResults.length === 0 && (
-        <p>No pending lab requests or results are recorded in your chart.</p>
+      {!isLoading && !error && pendingRequests.length === 0 && recentResults.length === 0 && cancelledRequests.length === 0 && (
+        <p>No lab requests or results are recorded in your chart.</p>
       )}
       {!isLoading && !error && pendingRequests.length > 0 && (
         <div className="portal-lab-group">
@@ -124,6 +131,36 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
             ))}
           </ul>
         </div>
+      )}
+      {!isLoading && !error && cancelledRequests.length > 0 && (
+        <details className="portal-lab-group">
+          <summary>Cancelled requests ({cancelledRequests.length})</summary>
+          <p className="portal-help">
+            These requests were marked cancelled in this chart. Contact the clinic if you
+            still need a test.
+          </p>
+          <ul className="portal-records">
+            {cancelledRequests.map((order) => (
+              <li key={order.id}>
+                <strong>{order.test_name}</strong>
+                <span>
+                  Requested <time dateTime={order.ordered_at}>
+                    {order.ordered_at.slice(0, 10)}
+                  </time>
+                </span>
+                {order.cancelled_at ? (
+                  <span>
+                    Recorded as cancelled on <time dateTime={order.cancelled_at}>
+                      {order.cancelled_at.slice(0, 10)}
+                    </time>
+                  </span>
+                ) : (
+                  <span>Marked cancelled in this chart.</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </section>
   )
