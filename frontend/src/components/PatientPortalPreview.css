@@ -76,6 +76,16 @@
   font-size: 1rem;
 }
 
+.portal-lab-group + .portal-lab-group {
+  margin-top: 18px;
+}
+
+.portal-lab-group h3 {
+  margin: 0 0 8px;
+  color: var(--onyx);
+  font-size: 1rem;
+}
+
 .portal-card p,
 .portal-message {
   line-height: 1.5;
