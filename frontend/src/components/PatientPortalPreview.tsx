@@ -84,6 +84,10 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
         first.end_date ?? first.start_date ?? '',
       ) || second.id - first.id) ?? []
   const activeAllergies = overview?.allergies.filter((item) => item.status === 'active') ?? []
+  const inactiveAllergies = overview?.allergies
+    .filter((item) => item.status === 'inactive')
+    .sort((first, second) =>
+      (second.onset_date ?? '').localeCompare(first.onset_date ?? '') || second.id - first.id) ?? []
   const displayName = patient.preferred_name || patient.first_name
 
   return (
@@ -221,6 +225,32 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
                     </li>
                   ))}
                 </ul>
+              )}
+              {inactiveAllergies.length > 0 && (
+                <details>
+                  <summary>Inactive allergy entries ({inactiveAllergies.length})</summary>
+                  <p className="portal-help">
+                    These entries remain in your chart history. An inactive entry does not confirm
+                    that an allergy has gone away.
+                  </p>
+                  <ul className="portal-records">
+                    {inactiveAllergies.map((allergy) => (
+                      <li key={allergy.id}>
+                        <strong>{allergy.allergen}</strong>
+                        <span>Status: Inactive in chart</span>
+                        <span>Recorded severity: {allergy.severity}</span>
+                        {allergy.reaction && <span>Recorded reaction: {allergy.reaction}</span>}
+                        {allergy.onset_date && (
+                          <span>
+                            Recorded onset: <time dateTime={allergy.onset_date}>
+                              {allergy.onset_date}
+                            </time>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </section>
 
