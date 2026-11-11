@@ -65,6 +65,7 @@ function EncounterList({ patientId }: EncounterListProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editing, setEditing] = useState<Encounter | null>(null)
   const [finalizingId, setFinalizingId] = useState<number | null>(null)
+  const [reviewedInstructionsId, setReviewedInstructionsId] = useState<number | null>(null)
   const [finalizeError, setFinalizeError] = useState<{
     encounterId: number
     message: string
@@ -74,6 +75,7 @@ function EncounterList({ patientId }: EncounterListProps) {
     setIsLoading(true)
     setError(null)
     setFinalizeError(null)
+    setReviewedInstructionsId(null)
     setEncounters([])
 
     try {
@@ -225,6 +227,22 @@ function EncounterList({ patientId }: EncounterListProps) {
                       ) : (
                         <p>No patient instructions entered for this visit.</p>
                       )}
+                      {encounter.patient_instructions && (
+                        <label className="encounter-release-confirmation">
+                          <input
+                            type="checkbox"
+                            checked={reviewedInstructionsId === encounter.id}
+                            disabled={finalizingId !== null}
+                            onChange={(event) => setReviewedInstructionsId(
+                              event.target.checked ? encounter.id : null
+                            )}
+                          />
+                          <span>
+                            I reviewed these instructions and confirmed they are appropriate
+                            for the patient portal preview.
+                          </span>
+                        </label>
+                      )}
                       {(!encounter.assessment || !encounter.plan) && (
                         <p>Complete the assessment and plan before finalizing this note.</p>
                       )}
@@ -236,7 +254,9 @@ function EncounterList({ patientId }: EncounterListProps) {
                           className="save-patient-button"
                           type="button"
                           disabled={
-                            finalizingId !== null || !encounter.assessment || !encounter.plan
+                            finalizingId !== null || !encounter.assessment || !encounter.plan ||
+                            (Boolean(encounter.patient_instructions) &&
+                              reviewedInstructionsId !== encounter.id)
                           }
                           onClick={() => void handleFinalize(encounter)}
                         >

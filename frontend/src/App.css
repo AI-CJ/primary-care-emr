@@ -685,6 +685,25 @@
   margin-top: 0;
 }
 
+.encounter-release-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.5;
+}
+
+.encounter-release-confirmation input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+}
+
+.encounter-release-confirmation input:focus-visible {
+  outline: 3px solid var(--coastal-blue);
+  outline-offset: 3px;
+}
+
 .encounter-problems,
 .encounter-vitals,
 .encounter-medications,
