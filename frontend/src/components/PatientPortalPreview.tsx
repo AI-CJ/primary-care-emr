@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { Allergy, CareGoal, Medication, Patient, Problem } from '../types'
+import type { Allergy, CareGoal, Patient, PortalMedicationSummary, Problem } from '../types'
 import './PatientPortalPreview.css'
 import PortalAppointments from './PortalAppointments'
 import PortalVisits from './PortalVisits'
@@ -16,7 +16,7 @@ type PatientPortalPreviewProps = {
 
 type PortalOverview = {
   problems: Problem[]
-  medications: Medication[]
+  medications: PortalMedicationSummary[]
   allergies: Allergy[]
   careGoals: CareGoal[]
 }
@@ -47,7 +47,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
       try {
         const [problems, medications, allergies, careGoals] = await Promise.all([
           loadRecords<Problem[]>('problems'),
-          loadRecords<Medication[]>('medications'),
+          loadRecords<PortalMedicationSummary[]>('portal-preview/medications'),
           loadRecords<Allergy[]>('allergies'),
           loadRecords<CareGoal[]>('care-goals'),
         ])

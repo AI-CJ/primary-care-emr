@@ -251,6 +251,20 @@ class MedicationRead(MedicationBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PortalMedicationSummary(BaseModel):
+    id: int
+    name: str
+    strength: str | None
+    dose: str | None
+    frequency: str | None
+    status: MedicationStatus
+    start_date: date | None
+    end_date: date | None
+    instructions: str | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class AllergyBase(BaseModel):
     allergen: str = Field(max_length=200)
     reaction: str | None = Field(default=None, max_length=300)

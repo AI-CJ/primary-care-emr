@@ -65,6 +65,19 @@ export type Medication = {
 
 export type MedicationInput = Omit<Medication, 'id' | 'patient_id'>
 
+export type PortalMedicationSummary = Pick<
+  Medication,
+  | 'id'
+  | 'name'
+  | 'strength'
+  | 'dose'
+  | 'frequency'
+  | 'status'
+  | 'start_date'
+  | 'end_date'
+  | 'instructions'
+>
+
 export type AllergySeverity =
   | 'mild'
   | 'moderate'

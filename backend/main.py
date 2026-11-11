@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import engine
 from backend.patient_timeline import list_patient_timeline
+from backend.portal_medications import list_portal_preview_medications
 from backend.care_goals import (
     complete_care_goal,
     create_care_goal,
@@ -136,6 +137,7 @@ from backend.schemas import (
     PendingReferralRead,
     MedicationCreate,
     MedicationRead,
+    PortalMedicationSummary,
     PatientCreate,
     PatientRead,
     PatientTimelineEntry,
@@ -533,6 +535,15 @@ def read_patient_medications(patient_id: int):
 
         medications = session.scalars(query).all()
         return list(medications)
+
+
+@app.get(
+    "/patients/{patient_id}/portal-preview/medications",
+    response_model=list[PortalMedicationSummary],
+)
+def read_portal_preview_medications(patient_id: int):
+    with Session(engine) as session:
+        return list_portal_preview_medications(session, patient_id)
 
 
 @app.post(
