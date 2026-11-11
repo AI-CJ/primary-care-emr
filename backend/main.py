@@ -67,6 +67,7 @@ from backend.referrals import (
     create_referral,
     list_referrals,
     list_patient_referrals,
+    list_portal_preview_referrals,
     list_pending_referrals,
 )
 from backend.scheduling import (
@@ -129,6 +130,7 @@ from backend.schemas import (
     ReferralCreate,
     ReferralRead,
     PatientReferralRead,
+    PortalReferralSummary,
     PendingReferralRead,
     MedicationCreate,
     MedicationRead,
@@ -1048,6 +1050,15 @@ def read_pending_referrals():
             )
             for referral, visit_date, patient in list_pending_referrals(session)
         ]
+
+
+@app.get(
+    "/patients/{patient_id}/portal-preview/referrals",
+    response_model=list[PortalReferralSummary],
+)
+def read_portal_preview_referrals(patient_id: int):
+    with Session(engine) as session:
+        return list_portal_preview_referrals(session, patient_id)
 
 
 @app.get(

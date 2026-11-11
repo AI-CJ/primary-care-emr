@@ -701,6 +701,17 @@ class PatientReferralRead(ReferralRead):
     visit_date: date
 
 
+class PortalReferralSummary(BaseModel):
+    id: int
+    specialty: str
+    priority: Literal["routine", "urgent"]
+    status: Literal["requested", "cancelled", "completed"]
+    visit_date: date
+    seen_on: date | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class PendingReferralRead(ReferralRead):
     patient_id: int
     patient_name: str

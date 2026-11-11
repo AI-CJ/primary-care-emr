@@ -7,7 +7,7 @@ from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, Patient, Referral
-from backend.schemas import ReferralCancel, ReferralComplete, ReferralCreate
+from backend.schemas import PortalReferralSummary, ReferralCancel, ReferralComplete, ReferralCreate
 
 
 def list_referrals(session: Session, encounter_id: int) -> list[Referral]:
@@ -40,6 +40,41 @@ def list_patient_referrals(
         )
     )
     return list(session.execute(query).all())
+
+
+
+def list_portal_preview_referrals(
+    session: Session, patient_id: int
+) -> list[PortalReferralSummary]:
+    """Show recent referral status without staff-only clinical details."""
+    if session.get(Patient, patient_id) is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    rows = session.execute(
+        select(
+            Referral.id,
+            Referral.specialty,
+            Referral.priority,
+            Referral.status,
+            Referral.seen_on,
+            Encounter.visit_date,
+        )
+        .join(Encounter, Referral.encounter_id == Encounter.id)
+        .where(Encounter.patient_id == patient_id, Encounter.finalized_at.is_not(None))
+        .order_by(Referral.requested_at.desc(), Referral.id.desc())
+        .limit(3)
+    )
+    return [
+        PortalReferralSummary(
+            id=referral_id,
+            specialty=specialty,
+            priority=priority,
+            status=status,
+            seen_on=seen_on,
+            visit_date=visit_date,
+        )
+        for referral_id, specialty, priority, status, seen_on, visit_date in rows
+    ]
 
 
 def list_pending_referrals(

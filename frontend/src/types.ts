@@ -202,6 +202,11 @@ export type PatientReferral = Referral & {
   visit_date: string
 }
 
+export type PortalReferralSummary = Pick<
+  PatientReferral,
+  'id' | 'specialty' | 'priority' | 'status' | 'visit_date' | 'seen_on'
+>
+
 export type LabOrderPriority = 'routine' | 'urgent'
 
 export type LabOrder = {
