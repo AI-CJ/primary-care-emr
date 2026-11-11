@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { PatientReferral } from '../types'
+import type { PortalReferralSummary } from '../types'
 
 type PortalReferralsProps = {
   patientId: number
 }
 
-const statusLabels: Record<PatientReferral['status'], string> = {
+const statusLabels: Record<PortalReferralSummary['status'], string> = {
   requested: 'Recorded for follow-up',
   completed: 'Specialist visit documented',
   cancelled: 'Cancelled',
 }
 
 function PortalReferrals({ patientId }: PortalReferralsProps) {
-  const [referrals, setReferrals] = useState<PatientReferral[] | null>(null)
+  const [referrals, setReferrals] = useState<PortalReferralSummary[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
@@ -28,12 +28,12 @@ function PortalReferrals({ patientId }: PortalReferralsProps) {
 
       try {
         const response = await fetch(
-          API_BASE_URL + '/patients/' + patientId + '/referrals',
+          API_BASE_URL + '/patients/' + patientId + '/portal-preview/referrals',
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
 
-        const records: PatientReferral[] = await response.json()
+        const records: PortalReferralSummary[] = await response.json()
         if (!controller.signal.aborted) setReferrals(records)
       } catch (requestError) {
         if (!controller.signal.aborted) {
@@ -52,17 +52,13 @@ function PortalReferrals({ patientId }: PortalReferralsProps) {
     return () => controller.abort()
   }, [patientId, refreshCount])
 
-  const recentReferrals = (referrals ?? [])
-    .slice()
-    .sort((first, second) =>
-      second.requested_at.localeCompare(first.requested_at) || second.id - first.id)
-    .slice(0, 3)
+  const recentReferrals = referrals ?? []
 
   return (
     <section className="portal-card" aria-labelledby="portal-referrals">
       <h2 id="portal-referrals">My referrals</h2>
       <p className="portal-help">
-        Recent specialist referrals recorded in this fictional chart.
+        Recent specialist referrals from finalized visits in this fictional chart.
         Requests are not sent to outside clinics by this preview.
       </p>
 
