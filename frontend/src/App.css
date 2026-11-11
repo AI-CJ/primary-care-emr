@@ -635,6 +635,56 @@
   line-height: 1.6;
 }
 
+
+.encounter-finalize-review {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--pale-aqua);
+}
+
+.encounter-finalize-review summary {
+  width: fit-content;
+  color: var(--slate-blue);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.encounter-finalize-review summary:focus-visible {
+  outline: 3px solid var(--coastal-blue);
+  outline-offset: 3px;
+}
+
+.encounter-finalize-content {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.encounter-finalize-content p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.encounter-finalize-content h3 {
+  margin: 0;
+  color: var(--onyx);
+  font-size: 0.95rem;
+}
+
+.encounter-finalize-content .encounter-release-text {
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.encounter-finalize-content .save-patient-button {
+  margin-top: 0;
+}
+
 .encounter-problems,
 .encounter-vitals,
 .encounter-medications,

@@ -65,7 +65,10 @@ function EncounterList({ patientId }: EncounterListProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editing, setEditing] = useState<Encounter | null>(null)
   const [finalizingId, setFinalizingId] = useState<number | null>(null)
-  const [finalizeError, setFinalizeError] = useState<string | null>(null)
+  const [finalizeError, setFinalizeError] = useState<{
+    encounterId: number
+    message: string
+  } | null>(null)
 
   const loadEncounters = useCallback(async () => {
     setIsLoading(true)
@@ -103,10 +106,6 @@ function EncounterList({ patientId }: EncounterListProps) {
   }
 
   async function handleFinalize(encounter: Encounter) {
-    if (!window.confirm('Finalize this visit note? It cannot be edited afterward.')) {
-      return
-    }
-
     setFinalizeError(null)
     setFinalizingId(encounter.id)
     try {
@@ -115,13 +114,13 @@ function EncounterList({ patientId }: EncounterListProps) {
         { method: 'POST' }
       )
       if (!response.ok) {
-        setFinalizeError(await getApiErrorMessage(response))
+        setFinalizeError({ encounterId: encounter.id, message: await getApiErrorMessage(response) })
         return
       }
       await loadEncounters()
     } catch (requestError) {
       console.error(requestError)
-      setFinalizeError('The visit note could not be finalized.')
+      setFinalizeError({ encounterId: encounter.id, message: 'The visit note could not be finalized.' })
     } finally {
       setFinalizingId(null)
     }
@@ -171,10 +170,6 @@ function EncounterList({ patientId }: EncounterListProps) {
         <p className="form-error" role="alert">{error}</p>
       )}
 
-      {!isAdding && !editing && finalizeError && (
-        <p className="form-error" role="alert">{finalizeError}</p>
-      )}
-
       {!isAdding && !editing && !isLoading && !error &&
         encounters.length === 0 && <p>No visit notes recorded yet.</p>}
 
@@ -199,33 +194,58 @@ function EncounterList({ patientId }: EncounterListProps) {
                     </p>
                   </div>
                   {encounter.finalized_at === null && (
-                    <div className="encounter-form-actions">
-                      <button
-                        className="secondary-action-button"
-                        type="button"
-                        aria-label={
-                          'Edit visit note from ' + encounter.visit_date +
-                          ': ' + encounter.reason_for_visit
-                        }
-                        disabled={finalizingId !== null}
-                        onClick={() => setEditing(encounter)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="secondary-action-button"
-                        type="button"
-                        aria-label={'Finalize visit note from ' + encounter.visit_date}
-                        disabled={finalizingId !== null}
-                        onClick={() => void handleFinalize(encounter)}
-                      >
-                        {finalizingId === encounter.id ? 'Finalizing...' : 'Finalize'}
-                      </button>
-                    </div>
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      aria-label={
+                        'Edit visit note from ' + encounter.visit_date +
+                        ': ' + encounter.reason_for_visit
+                      }
+                      disabled={finalizingId !== null}
+                      onClick={() => setEditing(encounter)}
+                    >
+                      Edit
+                    </button>
                   )}
                 </div>
 
                 <EncounterDetails encounter={encounter} />
+                {encounter.finalized_at === null && (
+                  <details className="encounter-finalize-review">
+                    <summary>Review and finalize</summary>
+                    <div className="encounter-finalize-content">
+                      <p>
+                        Finalizing locks this note. The visit date, reason, and any patient
+                        instructions below will appear in the patient portal preview.
+                        Check for information that should stay in the staff chart.
+                      </p>
+                      <h3>Patient instructions to release</h3>
+                      {encounter.patient_instructions ? (
+                        <p className="encounter-release-text">{encounter.patient_instructions}</p>
+                      ) : (
+                        <p>No patient instructions entered for this visit.</p>
+                      )}
+                      {(!encounter.assessment || !encounter.plan) && (
+                        <p>Complete the assessment and plan before finalizing this note.</p>
+                      )}
+                      {finalizeError?.encounterId === encounter.id && (
+                        <p className="form-error" role="alert">{finalizeError.message}</p>
+                      )}
+                      <div className="encounter-form-actions">
+                        <button
+                          className="save-patient-button"
+                          type="button"
+                          disabled={
+                            finalizingId !== null || !encounter.assessment || !encounter.plan
+                          }
+                          onClick={() => void handleFinalize(encounter)}
+                        >
+                          {finalizingId === encounter.id ? 'Finalizing...' : 'Confirm finalization'}
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+                )}
               </article>
             ))}
           </div>

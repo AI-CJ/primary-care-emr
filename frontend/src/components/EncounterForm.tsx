@@ -271,8 +271,8 @@ function EncounterForm({
         />
       </label>
       <p className="encounter-help">
-        Only this field is shown in the patient portal preview after the note is finalized.
-        Do not copy private clinical notes here.
+        After finalization, the visit date, reason, and these instructions appear in the
+        patient portal preview. Do not copy private clinical notes into patient instructions.
       </p>
 
       {error && <p className="form-error" role="alert">{error}</p>}
