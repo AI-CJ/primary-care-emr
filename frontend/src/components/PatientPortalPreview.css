@@ -118,6 +118,10 @@
   color: var(--onyx);
 }
 
+.portal-patient-instructions {
+  white-space: pre-line;
+}
+
 .portal-records span {
   color: var(--text-muted);
   line-height: 1.4;

@@ -16,14 +16,19 @@ def list_portal_preview_visits(session: Session, patient_id: int) -> list[Portal
         raise HTTPException(status_code=404, detail="Patient not found")
 
     rows = session.execute(
-        select(Encounter.id, Encounter.visit_date, Encounter.reason_for_visit)
+        select(Encounter.id, Encounter.visit_date, Encounter.reason_for_visit, Encounter.patient_instructions)
         .where(Encounter.patient_id == patient_id, Encounter.finalized_at.is_not(None))
         .order_by(Encounter.visit_date.desc(), Encounter.id.desc())
         .limit(5)
     )
     return [
-        PortalVisitSummary(id=visit_id, visit_date=visit_date, reason_for_visit=reason)
-        for visit_id, visit_date, reason in rows
+        PortalVisitSummary(
+            id=visit_id,
+            visit_date=visit_date,
+            reason_for_visit=reason,
+            patient_instructions=instructions,
+        )
+        for visit_id, visit_date, reason, instructions in rows
     ]
 
 

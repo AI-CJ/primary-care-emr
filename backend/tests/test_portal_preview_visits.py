@@ -43,6 +43,7 @@ class PortalPreviewVisitsTests(unittest.TestCase):
                     objective="Private synthetic exam",
                     assessment="Private synthetic assessment",
                     plan="Private synthetic plan",
+                    patient_instructions=("Bring fictional readings next time" if day == 7 else None),
                     finalized_at=finalized,
                 ))
             session.add_all([
@@ -50,10 +51,12 @@ class PortalPreviewVisitsTests(unittest.TestCase):
                     patient_id=patient.id, visit_date=date(2026, 11, 1),
                     reason_for_visit="Unfinalized visit",
                     subjective="Unfinished synthetic history",
+                    patient_instructions="Unreleased draft instructions",
                 ),
                 Encounter(
                     patient_id=other.id, visit_date=date(2026, 11, 9),
                     reason_for_visit="Another patient's visit",
+                    patient_instructions="Another patient's instructions",
                     finalized_at=finalized,
                 ),
             ])
@@ -78,9 +81,13 @@ class PortalPreviewVisitsTests(unittest.TestCase):
         for visit in visits:
             self.assertEqual(
                 set(visit.model_dump(mode="json")),
-                {"id", "visit_date", "reason_for_visit"},
+                {"id", "visit_date", "reason_for_visit", "patient_instructions"},
             )
+        self.assertEqual(visits[0].patient_instructions, "Bring fictional readings next time")
+        self.assertIsNone(visits[1].patient_instructions)
         self.assertNotIn("Private synthetic", repr(visits))
+        self.assertNotIn("Unreleased draft", repr(visits))
+        self.assertNotIn("Another patient", repr(visits))
 
     def test_same_day_visits_are_ordered_by_id(self):
         with Session(self.engine) as session:

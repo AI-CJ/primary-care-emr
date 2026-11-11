@@ -106,6 +106,7 @@ function EncounterForm({
       objective: optionalText(formData, 'objective'),
       assessment: optionalText(formData, 'assessment'),
       plan: optionalText(formData, 'plan'),
+      patient_instructions: optionalText(formData, 'patient_instructions'),
       ...(!encounter && appointmentId !== null
         ? { appointment_id: appointmentId }
         : {}),
@@ -259,6 +260,20 @@ function EncounterForm({
           defaultValue={encounter?.plan ?? ''}
         />
       </label>
+
+      <label className="form-field">
+        <span>Instructions for patient (optional)</span>
+        <textarea
+          name="patient_instructions"
+          rows={4}
+          maxLength={4000}
+          defaultValue={encounter?.patient_instructions ?? ''}
+        />
+      </label>
+      <p className="encounter-help">
+        Only this field is shown in the patient portal preview after the note is finalized.
+        Do not copy private clinical notes here.
+      </p>
 
       {error && <p className="form-error" role="alert">{error}</p>}
 

@@ -375,6 +375,7 @@ class EncounterBase(BaseModel):
     objective: str | None = Field(default=None, max_length=4000)
     assessment: str | None = Field(default=None, max_length=4000)
     plan: str | None = Field(default=None, max_length=4000)
+    patient_instructions: str | None = Field(default=None, max_length=4000)
 
     @field_validator("visit_date")
     @classmethod
@@ -391,7 +392,7 @@ class EncounterBase(BaseModel):
             raise ValueError("Reason for visit cannot be blank")
         return value
 
-    @field_validator("subjective", "objective", "assessment", "plan")
+    @field_validator("subjective", "objective", "assessment", "plan", "patient_instructions")
     @classmethod
     def clean_note_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -429,6 +430,7 @@ class PortalVisitSummary(BaseModel):
     id: int
     visit_date: date
     reason_for_visit: str
+    patient_instructions: str | None
 
     model_config = ConfigDict(extra="forbid")
 

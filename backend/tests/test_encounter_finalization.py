@@ -108,6 +108,43 @@ class EncounterFinalizationTests(unittest.TestCase):
             self.assertIsNone(updated.finalized_at)
             self.assertEqual(updated.reason_for_visit, "Updated follow-up")
 
+    def test_patient_instructions_are_trimmed_and_frozen_on_finalization(self):
+        with Session(self.engine) as session:
+            note = create_encounter(
+                session, self.patient_id,
+                EncounterCreate(
+                    visit_date=VISIT_DATE,
+                    reason_for_visit="Fictional follow-up",
+                    assessment="Synthetic assessment",
+                    plan="Synthetic plan",
+                    patient_instructions="  Keep a fictional reading log.  ",
+                ),
+            )
+            session.flush()
+            encounter_id = note.id
+            session.commit()
+
+        with Session(self.engine) as session:
+            finalize_encounter(session, encounter_id)
+            session.commit()
+            with self.assertRaises(HTTPException) as raised:
+                apply_encounter_update(
+                    session, encounter_id,
+                    EncounterUpdate(
+                        visit_date=VISIT_DATE,
+                        reason_for_visit="Fictional follow-up",
+                        assessment="Synthetic assessment",
+                        plan="Synthetic plan",
+                        patient_instructions="Replace original instructions",
+                    ),
+                )
+            self.assertEqual(raised.exception.status_code, 409)
+            session.rollback()
+
+        with Session(self.engine) as session:
+            note = session.get(Encounter, encounter_id)
+            self.assertEqual(note.patient_instructions, "Keep a fictional reading log.")
+
     def test_assessment_and_plan_required_for_finalization(self):
         for field in ("assessment", "plan"):
             with self.subTest(missing=field):

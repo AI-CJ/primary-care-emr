@@ -113,6 +113,7 @@ class Encounter(Base):
     objective: Mapped[str | None] = mapped_column(Text(), nullable=True)
     assessment: Mapped[str | None] = mapped_column(Text(), nullable=True)
     plan: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    patient_instructions: Mapped[str | None] = mapped_column(Text(), nullable=True)
     finalized_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

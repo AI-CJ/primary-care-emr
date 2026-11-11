@@ -115,12 +115,13 @@ export type Encounter = {
   objective: string | null
   assessment: string | null
   plan: string | null
+  patient_instructions: string | null
   finalized_at: string | null
 }
 
 export type PortalVisitSummary = Pick<
   Encounter,
-  'id' | 'visit_date' | 'reason_for_visit'
+  'id' | 'visit_date' | 'reason_for_visit' | 'patient_instructions'
 >
 
 export type EncounterProblem = {

@@ -15,13 +15,14 @@ type EncounterListProps = {
 }
 
 const noteSections: Array<{
-  key: 'subjective' | 'objective' | 'assessment' | 'plan'
+  key: 'subjective' | 'objective' | 'assessment' | 'plan' | 'patient_instructions'
   heading: string
 }> = [
   { key: 'subjective', heading: 'Subjective' },
   { key: 'objective', heading: 'Objective' },
   { key: 'assessment', heading: 'Assessment' },
   { key: 'plan', heading: 'Plan' },
+  { key: 'patient_instructions', heading: 'Patient instructions' },
 ]
 
 

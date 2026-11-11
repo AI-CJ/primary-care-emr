@@ -53,7 +53,7 @@ function PortalVisits({ patientId }: PortalVisitsProps) {
       <h2 id="portal-visits">My past visits</h2>
       <p className="portal-help">
         Recent visits with finalized notes in this fictional chart.
-        Draft notes and clinical details are not shown in this preview.
+        Only instructions written for patients are shown. Draft notes and private clinical details stay in the staff chart.
       </p>
 
       {isLoading && <p role="status">Loading visits...</p>}
@@ -80,6 +80,11 @@ function PortalVisits({ patientId }: PortalVisitsProps) {
               <span>
                 Visit on <time dateTime={visit.visit_date}>{visit.visit_date}</time>
               </span>
+              {visit.patient_instructions && (
+                <span className="portal-patient-instructions">
+                  <strong>Instructions:</strong> {visit.patient_instructions}
+                </span>
+              )}
             </li>
           ))}
         </ul>
