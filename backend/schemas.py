@@ -625,6 +625,25 @@ class PatientLabOrderRead(LabOrderRead):
 
 
 
+class PortalLabResultSummary(BaseModel):
+    collected_on: date
+    result_text: str
+    reported_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class PortalLabOrderSummary(BaseModel):
+    id: int
+    test_name: str
+    status: Literal["ordered", "resulted", "cancelled"]
+    ordered_at: datetime
+    cancelled_at: datetime | None
+    result: PortalLabResultSummary | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class PendingLabOrderRead(LabOrderRead):
     patient_id: int
     patient_name: str

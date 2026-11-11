@@ -57,6 +57,7 @@ from backend.lab_orders import (
     create_lab_order,
     list_lab_orders,
     list_patient_lab_orders,
+    list_portal_preview_lab_orders,
     list_pending_lab_orders,
     read_lab_result,
     record_lab_result,
@@ -124,6 +125,7 @@ from backend.schemas import (
     LabResultCreate,
     LabResultRead,
     PatientLabOrderRead,
+    PortalLabOrderSummary,
     PendingLabOrderRead,
     ReferralCancel,
     ReferralComplete,
@@ -961,6 +963,15 @@ def read_pending_lab_orders():
             )
             for order, visit_date, patient in list_pending_lab_orders(session)
         ]
+
+
+@app.get(
+    "/patients/{patient_id}/portal-preview/lab-orders",
+    response_model=list[PortalLabOrderSummary],
+)
+def read_portal_preview_lab_orders(patient_id: int):
+    with Session(engine) as session:
+        return list_portal_preview_lab_orders(session, patient_id)
 
 
 @app.get(

@@ -7,7 +7,10 @@ from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, LabOrder, LabResult, Patient
-from backend.schemas import LabOrderCancel, LabOrderCreate, LabResultCreate
+from backend.schemas import (
+    LabOrderCancel, LabOrderCreate, LabResultCreate,
+    PortalLabOrderSummary, PortalLabResultSummary,
+)
 
 
 def list_lab_orders(session: Session, encounter_id: int) -> list[LabOrder]:
@@ -43,6 +46,54 @@ def list_patient_lab_orders(
     )
     return list(session.execute(query).all())
 
+
+
+
+def list_portal_preview_lab_orders(
+    session: Session, patient_id: int
+) -> list[PortalLabOrderSummary]:
+    """Show lab requests from finalized visits without staff-only fields."""
+    if session.get(Patient, patient_id) is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    rows = session.execute(
+        select(
+            LabOrder.id,
+            LabOrder.test_name,
+            LabOrder.status,
+            LabOrder.ordered_at,
+            LabOrder.cancelled_at,
+            LabResult.collected_on,
+            LabResult.reported_at,
+            LabResult.result_text,
+        )
+        .join(Encounter, LabOrder.encounter_id == Encounter.id)
+        .outerjoin(LabResult, LabResult.lab_order_id == LabOrder.id)
+        .where(Encounter.patient_id == patient_id, Encounter.finalized_at.is_not(None))
+        .order_by(
+            Encounter.visit_date.desc(),
+            LabOrder.ordered_at.desc(),
+            LabOrder.id.desc(),
+        )
+    )
+    return [
+        PortalLabOrderSummary(
+            id=order_id,
+            test_name=test_name,
+            status=status,
+            ordered_at=ordered_at,
+            cancelled_at=cancelled_at,
+            result=PortalLabResultSummary(
+                collected_on=collected_on,
+                reported_at=reported_at,
+                result_text=result_text,
+            ) if reported_at is not None else None,
+        )
+        for (
+            order_id, test_name, status, ordered_at, cancelled_at,
+            collected_on, reported_at, result_text,
+        ) in rows
+    ]
 
 
 def list_pending_lab_orders(

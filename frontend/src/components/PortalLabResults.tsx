@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { LabResult, PatientLabOrder } from '../types'
+import type { PortalLabOrder, PortalLabResult } from '../types'
 
 type PortalLabResultsProps = {
   patientId: number
 }
 
 function PortalLabResults({ patientId }: PortalLabResultsProps) {
-  const [orders, setOrders] = useState<PatientLabOrder[] | null>(null)
+  const [orders, setOrders] = useState<PortalLabOrder[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
@@ -22,12 +22,12 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
 
       try {
         const response = await fetch(
-          API_BASE_URL + '/patients/' + patientId + '/lab-orders',
+          API_BASE_URL + '/patients/' + patientId + '/portal-preview/lab-orders',
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
 
-        const records: PatientLabOrder[] = await response.json()
+        const records: PortalLabOrder[] = await response.json()
         if (!controller.signal.aborted) setOrders(records)
       } catch (requestError) {
         if (!controller.signal.aborted) {
@@ -53,7 +53,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
     .slice(0, 5)
 
   const recentResults = (orders ?? [])
-    .filter((order): order is PatientLabOrder & { result: LabResult } =>
+    .filter((order): order is PortalLabOrder & { result: PortalLabResult } =>
       order.status === 'resulted' && order.result !== null)
     .sort((a, b) =>
       b.result.reported_at.localeCompare(a.result.reported_at) || b.id - a.id)
@@ -70,7 +70,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
     <section className="portal-card" aria-labelledby="portal-lab-results">
       <h2 id="portal-lab-results">My lab requests and results</h2>
       <p className="portal-help">
-        Recent lab requests, reported results, and cancelled requests in this fictional chart.
+        Recent lab requests, reported results, and cancelled requests from finalized visits in this fictional chart.
         A recorded request does not confirm that a test has been scheduled or collected.
         This preview does not have a patient-release process.
       </p>
@@ -89,7 +89,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
         </div>
       )}
       {!isLoading && !error && pendingRequests.length === 0 && recentResults.length === 0 && cancelledRequests.length === 0 && (
-        <p>No lab requests or results are recorded in your chart.</p>
+        <p>No lab requests or results from finalized visits are available in this preview.</p>
       )}
       {!isLoading && !error && pendingRequests.length > 0 && (
         <div className="portal-lab-group">

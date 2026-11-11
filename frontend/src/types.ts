@@ -236,6 +236,21 @@ export type PatientLabOrder = LabOrder & {
   result: LabResult | null
 }
 
+export type PortalLabResult = {
+  collected_on: string
+  result_text: string
+  reported_at: string
+}
+
+export type PortalLabOrder = {
+  id: number
+  test_name: string
+  status: 'ordered' | 'resulted' | 'cancelled'
+  ordered_at: string
+  cancelled_at: string | null
+  result: PortalLabResult | null
+}
+
 export type EncounterAddendum = {
   id: number
   encounter_id: number
