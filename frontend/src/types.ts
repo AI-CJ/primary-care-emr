@@ -44,6 +44,11 @@ export type Problem = {
 
 export type ProblemInput = Omit<Problem, 'id' | 'patient_id'>
 
+export type PortalProblemSummary = Pick<
+  Problem,
+  'id' | 'name' | 'status' | 'onset_date' | 'resolved_date'
+>
+
 export type MedicationStatus =
   | 'active'
   | 'completed'

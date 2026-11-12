@@ -189,6 +189,16 @@ class ProblemRead(ProblemBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PortalProblemSummary(BaseModel):
+    id: int
+    name: str
+    status: ProblemStatus
+    onset_date: date | None
+    resolved_date: date | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class MedicationBase(BaseModel):
     name: str = Field(max_length=200)
     strength: str | None = Field(default=None, max_length=100)
