@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { Vital } from '../types'
+import type { PortalVitalSummary } from '../types'
 
 type PortalVitalsProps = {
   patientId: number
 }
 
-function readings(vital: Vital): string[] {
+function readings(vital: PortalVitalSummary): string[] {
   const items: string[] = []
   if (vital.systolic_bp !== null && vital.diastolic_bp !== null) {
     items.push(`Blood pressure: ${vital.systolic_bp}/${vital.diastolic_bp} mmHg`)
@@ -27,7 +27,7 @@ function readings(vital: Vital): string[] {
 }
 
 function PortalVitals({ patientId }: PortalVitalsProps) {
-  const [vitals, setVitals] = useState<Vital[] | null>(null)
+  const [vitals, setVitals] = useState<PortalVitalSummary[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
@@ -42,12 +42,12 @@ function PortalVitals({ patientId }: PortalVitalsProps) {
 
       try {
         const response = await fetch(
-          API_BASE_URL + '/patients/' + patientId + '/vitals',
+          API_BASE_URL + '/patients/' + patientId + '/portal-preview/vitals',
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
 
-        const records: Vital[] = await response.json()
+        const records: PortalVitalSummary[] = await response.json()
         if (!controller.signal.aborted) setVitals(records)
       } catch (requestError) {
         if (!controller.signal.aborted) {
@@ -66,7 +66,7 @@ function PortalVitals({ patientId }: PortalVitalsProps) {
     return () => controller.abort()
   }, [patientId, refreshCount])
 
-  const recentVitals = (vitals ?? []).slice(0, 3)
+  const recentVitals = vitals ?? []
 
   return (
     <section className="portal-card" aria-labelledby="portal-vitals">

@@ -10,6 +10,7 @@ from backend.patient_timeline import list_patient_timeline
 from backend.portal_medications import list_portal_preview_medications
 from backend.portal_problems import list_portal_preview_problems
 from backend.portal_allergies import list_portal_preview_allergies
+from backend.portal_vitals import list_portal_preview_vitals
 from backend.care_goals import (
     complete_care_goal,
     create_care_goal,
@@ -142,6 +143,7 @@ from backend.schemas import (
     MedicationRead,
     PortalMedicationSummary,
     PortalProblemSummary,
+    PortalVitalSummary,
     PatientCreate,
     PatientRead,
     PatientTimelineEntry,
@@ -698,6 +700,15 @@ def update_allergy(
         session.commit()
         session.refresh(allergy)
         return allergy
+
+
+@app.get(
+    "/patients/{patient_id}/portal-preview/vitals",
+    response_model=list[PortalVitalSummary],
+)
+def read_portal_preview_vitals(patient_id: int):
+    with Session(engine) as session:
+        return list_portal_preview_vitals(session, patient_id)
 
 
 @app.get(

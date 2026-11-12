@@ -128,6 +128,8 @@ export type Vital = {
 
 export type VitalInput = Omit<Vital, 'id' | 'patient_id'>
 
+export type PortalVitalSummary = Omit<Vital, 'patient_id' | 'notes'>
+
 export type Encounter = {
   id: number
   patient_id: number

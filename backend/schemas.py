@@ -403,6 +403,21 @@ class VitalRead(VitalBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PortalVitalSummary(BaseModel):
+    id: int
+    recorded_on: date
+    systolic_bp: int | None
+    diastolic_bp: int | None
+    heart_rate: int | None
+    respiratory_rate: int | None
+    temperature_c: float | None
+    oxygen_saturation: int | None
+    height_cm: float | None
+    weight_kg: float | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class EncounterBase(BaseModel):
     visit_date: date
     reason_for_visit: str = Field(max_length=200)
