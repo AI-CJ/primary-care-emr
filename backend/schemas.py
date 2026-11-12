@@ -325,6 +325,17 @@ class AllergyRead(AllergyBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PortalAllergySummary(BaseModel):
+    id: int
+    allergen: str
+    reaction: str | None
+    severity: AllergySeverity
+    status: AllergyStatus
+    onset_date: date | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class VitalBase(BaseModel):
     recorded_on: date
     systolic_bp: int | None = Field(default=None, ge=1, le=400)

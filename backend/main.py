@@ -9,6 +9,7 @@ from backend.database import engine
 from backend.patient_timeline import list_patient_timeline
 from backend.portal_medications import list_portal_preview_medications
 from backend.portal_problems import list_portal_preview_problems
+from backend.portal_allergies import list_portal_preview_allergies
 from backend.care_goals import (
     complete_care_goal,
     create_care_goal,
@@ -106,6 +107,7 @@ from backend.schemas import (
     EncounterAllergyLinkCreate,
     EncounterAllergyRead,
     AllergyRead,
+    PortalAllergySummary,
     AppointmentCreate,
     AppointmentRead,
     AppointmentStatusChangeRead,
@@ -633,6 +635,15 @@ def read_patient_allergies(patient_id: int):
 
         allergies = session.scalars(query).all()
         return list(allergies)
+
+
+@app.get(
+    "/patients/{patient_id}/portal-preview/allergies",
+    response_model=list[PortalAllergySummary],
+)
+def read_portal_preview_allergies(patient_id: int):
+    with Session(engine) as session:
+        return list_portal_preview_allergies(session, patient_id)
 
 
 @app.post(
