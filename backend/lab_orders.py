@@ -115,6 +115,29 @@ def list_pending_lab_orders(
     return list(session.execute(query).all())
 
 
+def list_unreleased_lab_results(
+    session: Session,
+) -> list[tuple[LabOrder, datetime, date, Patient]]:
+    """Results from finalized visits that still need staff release."""
+    query = (
+        select(LabOrder, LabResult.reported_at, Encounter.visit_date, Patient)
+        .join(LabResult, LabResult.lab_order_id == LabOrder.id)
+        .join(Encounter, LabOrder.encounter_id == Encounter.id)
+        .join(Patient, Encounter.patient_id == Patient.id)
+        .where(
+            LabOrder.status == "resulted",
+            LabResult.released_at.is_(None),
+            Encounter.finalized_at.is_not(None),
+        )
+        .order_by(
+            case((LabOrder.priority == "urgent", 0), else_=1),
+            LabResult.reported_at,
+            LabOrder.id,
+        )
+    )
+    return list(session.execute(query).all())
+
+
 def create_lab_order(
     session: Session, encounter_id: int, order_data: LabOrderCreate
 ) -> LabOrder:

@@ -20,6 +20,7 @@ import PatientTimeline from './components/PatientTimeline'
 import PatientPortalPreview from './components/PatientPortalPreview'
 import PatientLabHistory from './components/PatientLabHistory'
 import PendingLabWorklist from './components/PendingLabWorklist'
+import UnreleasedLabResultsWorklist from './components/UnreleasedLabResultsWorklist'
 import PendingReferralWorklist from './components/PendingReferralWorklist'
 import PatientReferralHistory from './components/PatientReferralHistory'
 import PatientForm from './components/PatientForm'
@@ -79,6 +80,9 @@ function App() {
     useState(false)
 
   const [showPendingLabs, setShowPendingLabs] =
+    useState(false)
+
+  const [showUnreleasedLabResults, setShowUnreleasedLabResults] =
     useState(false)
 
   const [showPendingReferrals, setShowPendingReferrals] =
@@ -300,7 +304,7 @@ function App() {
               setSelectedPatient(null)
             }
           >
-            ← Back to {showOpenFollowUpTasks ? 'open follow-ups' : showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showPendingLabs ? 'pending labs' : showSchedule ? 'clinic schedule' : 'patient search'}
+            ← Back to {showOpenFollowUpTasks ? 'open follow-ups' : showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showUnreleasedLabResults ? 'results to release' : showPendingLabs ? 'pending labs' : showSchedule ? 'clinic schedule' : 'patient search'}
           </button>
 
 
@@ -451,6 +455,21 @@ function App() {
     )
   }
 
+  if (showUnreleasedLabResults) {
+    return (
+      <UnreleasedLabResultsWorklist
+        onBack={() => {
+          setError(null)
+          setShowUnreleasedLabResults(false)
+        }}
+        onOpenPatient={(patientId) => {
+          void openPatient(patientId)
+        }}
+        patientError={error}
+      />
+    )
+  }
+
   if (showPendingLabs) {
     return (
       <PendingLabWorklist
@@ -518,6 +537,21 @@ function App() {
               }}
             >
               Pending Labs
+            </button>
+            <button
+              className="secondary-action-button"
+              type="button"
+              onClick={() => {
+                setError(null)
+                setShowSchedule(false)
+                setShowPendingLabs(false)
+                setShowPendingReferrals(false)
+                setShowActiveCareGoals(false)
+                setShowOpenFollowUpTasks(false)
+                setShowUnreleasedLabResults(true)
+              }}
+            >
+              Results to Release
             </button>
             <button
               className="secondary-action-button"

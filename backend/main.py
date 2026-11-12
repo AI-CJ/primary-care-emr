@@ -65,6 +65,7 @@ from backend.lab_orders import (
     list_patient_lab_orders,
     list_portal_preview_lab_orders,
     list_pending_lab_orders,
+    list_unreleased_lab_results,
     read_lab_result,
     record_lab_result,
     release_lab_result,
@@ -137,6 +138,7 @@ from backend.schemas import (
     PatientLabOrderRead,
     PortalLabOrderSummary,
     PendingLabOrderRead,
+    UnreleasedLabResultRead,
     ReferralCancel,
     ReferralComplete,
     ReferralCreate,
@@ -1020,6 +1022,27 @@ def read_pending_lab_orders():
                 visit_date=visit_date,
             )
             for order, visit_date, patient in list_pending_lab_orders(session)
+        ]
+
+
+@app.get(
+    "/worklists/unreleased-lab-results",
+    response_model=list[UnreleasedLabResultRead],
+)
+def read_unreleased_lab_results():
+    with Session(engine) as session:
+        return [
+            UnreleasedLabResultRead(
+                order_id=order.id,
+                patient_id=patient.id,
+                patient_name=f"{patient.preferred_name or patient.first_name} {patient.last_name}",
+                test_name=order.test_name,
+                priority=order.priority,
+                visit_date=visit_date,
+                ordered_at=order.ordered_at,
+                reported_at=reported_at,
+            )
+            for order, reported_at, visit_date, patient in list_unreleased_lab_results(session)
         ]
 
 

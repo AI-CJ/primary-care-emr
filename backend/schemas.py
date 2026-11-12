@@ -695,6 +695,19 @@ class PortalLabOrderSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class UnreleasedLabResultRead(BaseModel):
+    order_id: int
+    patient_id: int
+    patient_name: str
+    test_name: str
+    priority: Literal["routine", "urgent"]
+    visit_date: date
+    ordered_at: datetime
+    reported_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class PendingLabOrderRead(LabOrderRead):
     patient_id: int
     patient_name: str
