@@ -305,6 +305,11 @@ export type Appointment = {
   status: AppointmentStatus
 }
 
+export type PortalAppointmentSummary = Pick<
+  Appointment,
+  'id' | 'scheduled_date' | 'start_time' | 'reason_for_visit' | 'status'
+>
+
 export type AppointmentInput = Omit<Appointment, 'id' | 'patient_id'>
 
 export type AppointmentStatusChange = {

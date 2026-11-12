@@ -12,6 +12,7 @@ from backend.portal_problems import list_portal_preview_problems
 from backend.portal_allergies import list_portal_preview_allergies
 from backend.portal_vitals import list_portal_preview_vitals
 from backend.portal_care_goals import list_portal_preview_care_goals
+from backend.portal_appointments import list_portal_preview_appointments
 from backend.care_goals import (
     complete_care_goal,
     create_care_goal,
@@ -113,6 +114,7 @@ from backend.schemas import (
     PortalAllergySummary,
     AppointmentCreate,
     AppointmentRead,
+    PortalAppointmentSummary,
     AppointmentStatusChangeRead,
     EncounterAddendumCreate,
     EncounterAddendumRead,
@@ -1202,6 +1204,15 @@ def read_daily_schedule(day: date):
             )
             for appointment, patient in list_daily_schedule(session, day)
         ]
+
+
+@app.get(
+    "/patients/{patient_id}/portal-preview/appointments",
+    response_model=list[PortalAppointmentSummary],
+)
+def read_portal_preview_appointments(patient_id: int):
+    with Session(engine) as session:
+        return list_portal_preview_appointments(session, patient_id)
 
 
 @app.get(
