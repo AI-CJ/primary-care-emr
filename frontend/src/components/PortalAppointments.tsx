@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { Appointment } from '../types'
+import type { PortalAppointmentSummary } from '../types'
 
 type PortalAppointmentsProps = {
   patientId: number
@@ -21,7 +21,7 @@ function formatTime(value: string): string {
 }
 
 function PortalAppointments({ patientId }: PortalAppointmentsProps) {
-  const [appointments, setAppointments] = useState<Appointment[] | null>(null)
+  const [appointments, setAppointments] = useState<PortalAppointmentSummary[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
@@ -36,12 +36,12 @@ function PortalAppointments({ patientId }: PortalAppointmentsProps) {
 
       try {
         const response = await fetch(
-          API_BASE_URL + '/patients/' + patientId + '/appointments',
+          API_BASE_URL + '/patients/' + patientId + '/portal-preview/appointments',
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
 
-        const records: Appointment[] = await response.json()
+        const records: PortalAppointmentSummary[] = await response.json()
         if (!controller.signal.aborted) setAppointments(records)
       } catch (requestError) {
         if (!controller.signal.aborted) {

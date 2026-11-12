@@ -1011,6 +1011,16 @@ class AppointmentRead(AppointmentBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PortalAppointmentSummary(BaseModel):
+    id: int
+    scheduled_date: date
+    start_time: time
+    reason_for_visit: str
+    status: AppointmentStatus
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class AppointmentStatusChangeRead(BaseModel):
     id: int
     appointment_id: int
