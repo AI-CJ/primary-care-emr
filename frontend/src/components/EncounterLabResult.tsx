@@ -5,10 +5,11 @@ import type { LabOrder, LabResult } from '../types'
 type EncounterLabResultProps = {
   order: LabOrder
   visitDate: string
+  canRelease: boolean
   onRecorded: (orderId: number) => void
 }
 
-function EncounterLabResult({ order, visitDate, onRecorded }: EncounterLabResultProps) {
+function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: EncounterLabResultProps) {
   const [result, setResult] = useState<LabResult | null>(null)
   const [isLoading, setIsLoading] = useState(order.status === 'resulted')
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -18,6 +19,8 @@ function EncounterLabResult({ order, visitDate, onRecorded }: EncounterLabResult
   const [collectedOn, setCollectedOn] = useState('')
   const [resultText, setResultText] = useState('')
   const [justRecorded, setJustRecorded] = useState(false)
+  const [isReleasing, setIsReleasing] = useState(false)
+  const [releaseMessage, setReleaseMessage] = useState<string | null>(null)
   const now = new Date()
   const latestCollectionDate = [
     now.getFullYear(),
@@ -92,6 +95,33 @@ function EncounterLabResult({ order, visitDate, onRecorded }: EncounterLabResult
     }
   }
 
+  async function handleRelease() {
+    if (!result || result.released_at || isReleasing || !canRelease) return
+    if (!window.confirm('Release this result to the patient portal preview? This cannot be undone.')) return
+
+    setIsReleasing(true)
+    setActionError(null)
+    setReleaseMessage(null)
+    try {
+      const response = await fetch(
+        API_BASE_URL + '/lab-orders/' + order.id + '/result/release',
+        { method: 'POST' }
+      )
+      if (!response.ok) {
+        setActionError(await getApiErrorMessage(response))
+        return
+      }
+      const saved: LabResult = await response.json()
+      setResult(saved)
+      setReleaseMessage('Lab result released to the portal preview.')
+    } catch (requestError) {
+      console.error(requestError)
+      setActionError('The lab result could not be released.')
+    } finally {
+      setIsReleasing(false)
+    }
+  }
+
   if (order.status === 'cancelled') return null
 
   return (
@@ -112,6 +142,25 @@ function EncounterLabResult({ order, visitDate, onRecorded }: EncounterLabResult
                 </time>
               </p>
               <p className="encounter-lab-reason">{result.result_text}</p>
+              <p className="encounter-meta">
+                {result.released_at ? (
+                  <>Released to portal preview <time dateTime={result.released_at}>
+                    {result.released_at.slice(0, 16).replace('T', ' ')}
+                  </time></>
+                ) : 'Not released to portal preview.'}
+              </p>
+              {!result.released_at && canRelease && (
+                <button
+                  type="button"
+                  className="secondary-action-button"
+                  disabled={isReleasing}
+                  onClick={() => void handleRelease()}
+                >
+                  {isReleasing ? 'Releasing...' : 'Release to Portal Preview'}
+                </button>
+              )}
+              {releaseMessage && <p role="status">{releaseMessage}</p>}
+              {actionError && <p className="form-error" role="alert">{actionError}</p>}
             </>
           )}
         </>

@@ -665,6 +665,7 @@ class LabResultRead(LabResultCreate):
     id: int
     lab_order_id: int
     reported_at: datetime
+    released_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 

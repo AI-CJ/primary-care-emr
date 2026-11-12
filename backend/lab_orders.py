@@ -66,6 +66,7 @@ def list_portal_preview_lab_orders(
             LabResult.collected_on,
             LabResult.reported_at,
             LabResult.result_text,
+            LabResult.released_at,
         )
         .join(Encounter, LabOrder.encounter_id == Encounter.id)
         .outerjoin(LabResult, LabResult.lab_order_id == LabOrder.id)
@@ -87,11 +88,11 @@ def list_portal_preview_lab_orders(
                 collected_on=collected_on,
                 reported_at=reported_at,
                 result_text=result_text,
-            ) if reported_at is not None else None,
+            ) if released_at is not None else None,
         )
         for (
             order_id, test_name, status, ordered_at, cancelled_at,
-            collected_on, reported_at, result_text,
+            collected_on, reported_at, result_text, released_at,
         ) in rows
     ]
 
@@ -168,6 +169,33 @@ def read_lab_result(session: Session, order_id: int) -> LabResult:
     )
     if result is None:
         raise HTTPException(status_code=404, detail="Lab result not found")
+    return result
+
+
+def release_lab_result(session: Session, order_id: int) -> LabResult:
+    # Use the same order lock as result recording.
+    order = session.scalar(
+        select(LabOrder).where(LabOrder.id == order_id).with_for_update()
+    )
+    if order is None:
+        raise HTTPException(status_code=404, detail="Lab request not found")
+
+    result = session.scalar(
+        select(LabResult).where(LabResult.lab_order_id == order_id)
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="Lab result not found")
+
+    encounter = session.get(Encounter, order.encounter_id)
+    if encounter.finalized_at is None:
+        raise HTTPException(
+            status_code=409, detail="Finalize the visit before releasing lab results."
+        )
+    if result.released_at is not None:
+        raise HTTPException(status_code=409, detail="Lab result already released.")
+
+    result.released_at = datetime.now(timezone.utc)
+    session.flush()
     return result
 
 

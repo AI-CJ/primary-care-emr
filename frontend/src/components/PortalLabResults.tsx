@@ -59,6 +59,12 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
       b.result.reported_at.localeCompare(a.result.reported_at) || b.id - a.id)
     .slice(0, 3)
 
+  const awaitingRelease = (orders ?? [])
+    .filter((order) => order.status === 'resulted' && order.result === null)
+    .sort((first, second) =>
+      second.ordered_at.localeCompare(first.ordered_at) || second.id - first.id)
+    .slice(0, 5)
+
   const cancelledRequests = (orders ?? [])
     .filter((order) => order.status === 'cancelled')
     .sort((first, second) =>
@@ -72,7 +78,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
       <p className="portal-help">
         Recent lab requests, reported results, and cancelled requests from finalized visits in this fictional chart.
         A recorded request does not confirm that a test has been scheduled or collected.
-        This preview does not have a patient-release process.
+        Result details appear only after a clinic staff member releases them to this preview.
       </p>
 
       {isLoading && <p role="status">Loading lab records...</p>}
@@ -88,7 +94,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
           </button>
         </div>
       )}
-      {!isLoading && !error && pendingRequests.length === 0 && recentResults.length === 0 && cancelledRequests.length === 0 && (
+      {!isLoading && !error && pendingRequests.length === 0 && recentResults.length === 0 && awaitingRelease.length === 0 && cancelledRequests.length === 0 && (
         <p>No lab requests or results from finalized visits are available in this preview.</p>
       )}
       {!isLoading && !error && pendingRequests.length > 0 && (
@@ -127,6 +133,20 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
                   </time>
                 </span>
                 <span>Result: {order.result.result_text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {!isLoading && !error && awaitingRelease.length > 0 && (
+        <div className="portal-lab-group">
+          <h3>Results awaiting release</h3>
+          <p className="portal-help">These results are recorded but are not yet available in this preview.</p>
+          <ul className="portal-records">
+            {awaitingRelease.map((order) => (
+              <li key={order.id}>
+                <strong>{order.test_name}</strong>
+                <span>Result not yet released by the clinic.</span>
               </li>
             ))}
           </ul>

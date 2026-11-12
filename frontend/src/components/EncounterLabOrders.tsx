@@ -169,6 +169,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
                   <EncounterLabResult
                     order={order}
                     visitDate={encounter.visit_date}
+                    canRelease={isFinalized}
                     onRecorded={(orderId) => setOrders((current) => current.map((entry) =>
                       entry.id === orderId ? { ...entry, status: 'resulted' } : entry
                     ))}
