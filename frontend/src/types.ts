@@ -106,6 +106,11 @@ export type Allergy = {
 
 export type AllergyInput = Omit<Allergy, 'id' | 'patient_id'>
 
+export type PortalAllergySummary = Pick<
+  Allergy,
+  'id' | 'allergen' | 'reaction' | 'severity' | 'status' | 'onset_date'
+>
+
 export type Vital = {
   id: number
   patient_id: number
