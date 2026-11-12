@@ -79,6 +79,7 @@ class PortalPreviewLabOrderTests(unittest.TestCase):
                 collected_on=date(2026, 10, 21),
                 result_text="Fictional result for preview",
                 reported_at=base + timedelta(days=2),
+                released_at=final_at,
             ))
             session.commit()
 

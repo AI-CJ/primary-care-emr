@@ -254,6 +254,7 @@ export type LabResult = {
   collected_on: string
   result_text: string
   reported_at: string
+  released_at: string | null
 }
 
 export type PatientLabOrder = LabOrder & {

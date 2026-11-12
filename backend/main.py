@@ -67,6 +67,7 @@ from backend.lab_orders import (
     list_pending_lab_orders,
     read_lab_result,
     record_lab_result,
+    release_lab_result,
 )
 from backend.referrals import (
     cancel_referral,
@@ -1098,6 +1099,18 @@ def read_order_result(order_id: int):
 def add_order_result(order_id: int, result_data: LabResultCreate):
     with Session(engine) as session:
         result = record_lab_result(session, order_id, result_data)
+        session.commit()
+        session.refresh(result)
+        return result
+
+
+@app.post(
+    "/lab-orders/{order_id}/result/release",
+    response_model=LabResultRead,
+)
+def release_order_result(order_id: int):
+    with Session(engine) as session:
+        result = release_lab_result(session, order_id)
         session.commit()
         session.refresh(result)
         return result
