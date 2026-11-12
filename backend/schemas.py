@@ -843,6 +843,18 @@ class CareGoalRead(CareGoalCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
+class PortalCareGoalSummary(BaseModel):
+    id: int
+    title: str
+    target_date: date | None
+    status: Literal["active", "completed", "discontinued"]
+    created_at: datetime
+    completed_at: datetime | None
+    discontinued_at: datetime | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class ActiveCareGoalRead(CareGoalRead):
     patient_name: str
     is_overdue: bool

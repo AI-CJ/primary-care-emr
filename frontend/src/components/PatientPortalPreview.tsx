@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { CareGoal, Patient, PortalAllergySummary, PortalMedicationSummary, PortalProblemSummary } from '../types'
+import type { Patient, PortalAllergySummary, PortalCareGoalSummary, PortalMedicationSummary, PortalProblemSummary } from '../types'
 import './PatientPortalPreview.css'
 import PortalAppointments from './PortalAppointments'
 import PortalVisits from './PortalVisits'
@@ -18,7 +18,7 @@ type PortalOverview = {
   problems: PortalProblemSummary[]
   medications: PortalMedicationSummary[]
   allergies: PortalAllergySummary[]
-  careGoals: CareGoal[]
+  careGoals: PortalCareGoalSummary[]
 }
 
 function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
@@ -49,7 +49,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
           loadRecords<PortalProblemSummary[]>('portal-preview/problems'),
           loadRecords<PortalMedicationSummary[]>('portal-preview/medications'),
           loadRecords<PortalAllergySummary[]>('portal-preview/allergies'),
-          loadRecords<CareGoal[]>('care-goals'),
+          loadRecords<PortalCareGoalSummary[]>('portal-preview/care-goals'),
         ])
         if (!controller.signal.aborted) {
           setOverview({ problems, medications, allergies, careGoals })

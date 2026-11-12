@@ -340,6 +340,17 @@ export type CareGoal = {
 }
 
 
+export type PortalCareGoalSummary = Pick<
+  CareGoal,
+  | 'id'
+  | 'title'
+  | 'target_date'
+  | 'status'
+  | 'created_at'
+  | 'completed_at'
+  | 'discontinued_at'
+>
+
 export type FollowUpTask = {
   id: number
   patient_id: number

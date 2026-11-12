@@ -11,6 +11,7 @@ from backend.portal_medications import list_portal_preview_medications
 from backend.portal_problems import list_portal_preview_problems
 from backend.portal_allergies import list_portal_preview_allergies
 from backend.portal_vitals import list_portal_preview_vitals
+from backend.portal_care_goals import list_portal_preview_care_goals
 from backend.care_goals import (
     complete_care_goal,
     create_care_goal,
@@ -98,6 +99,7 @@ from backend.schemas import (
     CareGoalProgressCreate,
     CareGoalProgressRead,
     CareGoalRead,
+    PortalCareGoalSummary,
     FollowUpTaskCancel,
     FollowUpTaskComplete,
     FollowUpTaskCreate,
@@ -287,6 +289,15 @@ def read_active_care_goals():
             )
             for goal, patient in list_active_care_goals(session)
         ]
+
+
+@app.get(
+    "/patients/{patient_id}/portal-preview/care-goals",
+    response_model=list[PortalCareGoalSummary],
+)
+def read_portal_preview_care_goals(patient_id: int):
+    with Session(engine) as session:
+        return list_portal_preview_care_goals(session, patient_id)
 
 
 @app.get(

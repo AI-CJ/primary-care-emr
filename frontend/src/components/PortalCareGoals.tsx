@@ -1,10 +1,10 @@
-import type { CareGoal } from '../types'
+import type { PortalCareGoalSummary } from '../types'
 
 type PortalCareGoalsProps = {
-  goals: CareGoal[]
+  goals: PortalCareGoalSummary[]
 }
 
-function closedOn(goal: CareGoal): string {
+function closedOn(goal: PortalCareGoalSummary): string {
   return goal.completed_at || goal.discontinued_at || goal.created_at
 }
 
