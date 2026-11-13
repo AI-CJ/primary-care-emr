@@ -109,6 +109,9 @@ function App() {
     setSelectedPatient,
   ] = useState<Patient | null>(null)
 
+  const [appointmentToReview, setAppointmentToReview] =
+    useState<number | null>(null)
+
   const [
     isAddingPatient,
     setIsAddingPatient,
@@ -167,6 +170,7 @@ function App() {
 
   async function openPatient(
     patientId: number,
+    appointmentId: number | null = null,
   ) {
     setError(null)
 
@@ -187,6 +191,7 @@ function App() {
         await response.json()
 
       setSelectedPatient(patient)
+      setAppointmentToReview(appointmentId)
     } catch (requestError) {
       console.error(requestError)
 
@@ -406,6 +411,7 @@ function App() {
             <AppointmentList
               key={selectedPatient.id}
               patientId={selectedPatient.id}
+              highlightAppointmentId={appointmentToReview}
             />
           </div>
         </section>
@@ -497,8 +503,8 @@ function App() {
           setError(null)
           setShowPastAppointments(false)
         }}
-        onOpenPatient={(patientId) => {
-          void openPatient(patientId)
+        onOpenPatient={(patientId, appointmentId) => {
+          void openPatient(patientId, appointmentId)
         }}
         patientError={error}
       />

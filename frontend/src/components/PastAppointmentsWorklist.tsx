@@ -5,7 +5,7 @@ import type { ScheduleEntry } from '../types'
 
 type PastAppointmentsWorklistProps = {
   onBack: () => void
-  onOpenPatient: (patientId: number) => void
+  onOpenPatient: (patientId: number, appointmentId: number) => void
   patientError: string | null
 }
 
@@ -123,12 +123,12 @@ function PastAppointmentsWorklist({
                       <button
                         className="schedule-patient-link"
                         type="button"
-                        onClick={() => onOpenPatient(patient.id)}
-                        aria-label={`Open chart for ${patient.preferred_name || patient.first_name} ${patient.last_name}`}
+                        onClick={() => onOpenPatient(patient.id, appointment.id)}
+                        aria-label={`Review appointment #${appointment.id} for ${patient.preferred_name || patient.first_name} ${patient.last_name}`}
                       >
                         {patient.preferred_name || patient.first_name} {patient.last_name}
                       </button>
-                      <span>Open patient chart</span>
+                      <span>Review this appointment in the patient chart</span>
                     </div>
                   </li>
                 ))}
