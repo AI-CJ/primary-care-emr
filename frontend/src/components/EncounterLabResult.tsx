@@ -20,6 +20,7 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
   const [resultText, setResultText] = useState('')
   const [justRecorded, setJustRecorded] = useState(false)
   const [isReleasing, setIsReleasing] = useState(false)
+  const [releaseReviewed, setReleaseReviewed] = useState(false)
   const [releaseMessage, setReleaseMessage] = useState<string | null>(null)
   const now = new Date()
   const latestCollectionDate = [
@@ -31,6 +32,7 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
   useEffect(() => {
     if (order.status !== 'resulted') return
 
+    setReleaseReviewed(false)
     const controller = new AbortController()
     async function loadResult() {
       setIsLoading(true)
@@ -96,7 +98,7 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
   }
 
   async function handleRelease() {
-    if (!result || result.released_at || isReleasing || !canRelease) return
+    if (!result || result.released_at || isReleasing || !canRelease || !releaseReviewed) return
     if (!window.confirm('Release this result to the patient portal preview? This cannot be undone.')) return
 
     setIsReleasing(true)
@@ -150,14 +152,28 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
                 ) : 'Not released to portal preview.'}
               </p>
               {!result.released_at && canRelease && (
-                <button
-                  type="button"
-                  className="secondary-action-button"
-                  disabled={isReleasing}
-                  onClick={() => void handleRelease()}
-                >
-                  {isReleasing ? 'Releasing...' : 'Release to Portal Preview'}
-                </button>
+                <>
+                  <label className="encounter-release-confirmation">
+                    <input
+                      type="checkbox"
+                      checked={releaseReviewed}
+                      disabled={isReleasing}
+                      onChange={(event) => setReleaseReviewed(event.target.checked)}
+                    />
+                    <span>
+                      I reviewed this result and confirmed it is appropriate to share in
+                      the patient portal preview.
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="secondary-action-button"
+                    disabled={!releaseReviewed || isReleasing}
+                    onClick={() => void handleRelease()}
+                  >
+                    {isReleasing ? 'Releasing...' : 'Release to Portal Preview'}
+                  </button>
+                </>
               )}
               {releaseMessage && <p role="status">{releaseMessage}</p>}
               {actionError && <p className="form-error" role="alert">{actionError}</p>}
