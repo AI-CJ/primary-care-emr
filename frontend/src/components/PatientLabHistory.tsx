@@ -122,6 +122,18 @@ function PatientLabHistory({ patientId }: PatientLabHistoryProps) {
                     </time>
                   </p>
                   <p className="patient-lab-details">{order.result.result_text}</p>
+                  <p className="encounter-meta">
+                    {order.result.released_at ? (
+                      <>
+                        Released to portal preview{' '}
+                        <time dateTime={order.result.released_at}>
+                          {new Date(order.result.released_at).toLocaleString()}
+                        </time>
+                      </>
+                    ) : (
+                      'Not released to portal preview.'
+                    )}
+                  </p>
                 </div>
               )}
               {order.status === 'resulted' && !order.result && (
