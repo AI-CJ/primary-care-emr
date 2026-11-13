@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { Appointment, AppointmentStatus } from '../types'
+import type { Appointment, AppointmentStatus, PatientAppointment } from '../types'
 import AppointmentForm from './AppointmentForm'
 import AppointmentStatusHistory from './AppointmentStatusHistory'
 
@@ -21,7 +21,7 @@ function AppointmentList({
   patientId,
   highlightAppointmentId = null,
 }: AppointmentListProps) {
-  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [appointments, setAppointments] = useState<PatientAppointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
@@ -55,7 +55,7 @@ function AppointmentList({
           return
         }
 
-        const records: Appointment[] = await response.json()
+        const records: PatientAppointment[] = await response.json()
         if (!controller.signal.aborted) setAppointments(records)
       } catch (requestError) {
         if (!controller.signal.aborted) {
@@ -208,6 +208,12 @@ function AppointmentList({
                       {statusLabels[appointment.status]}
                     </span>
                   </p>
+                  {appointment.visit_note_id !== null && (
+                    <p className="appointment-meta">
+                      Linked visit note #{appointment.visit_note_id}. Cancellation is unavailable
+                      once a visit note is recorded.
+                    </p>
+                  )}
                   <AppointmentStatusHistory
                     appointmentId={appointment.id}
                     refreshCount={refreshCount}
@@ -285,7 +291,8 @@ function AppointmentList({
                   )}
 
                   {(appointment.status === 'scheduled' ||
-                    appointment.status === 'checked_in') && (
+                    appointment.status === 'checked_in') &&
+                    appointment.visit_note_id === null && (
                     <button
                       className="secondary-action-button appointment-cancel-button"
                       type="button"

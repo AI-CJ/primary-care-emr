@@ -117,6 +117,7 @@ from backend.schemas import (
     PortalAllergySummary,
     AppointmentCreate,
     AppointmentRead,
+    PatientAppointmentRead,
     PortalAppointmentSummary,
     AppointmentStatusChangeRead,
     EncounterAddendumCreate,
@@ -1271,7 +1272,7 @@ def read_portal_preview_appointments(patient_id: int):
 
 @app.get(
     "/patients/{patient_id}/appointments",
-    response_model=list[AppointmentRead],
+    response_model=list[PatientAppointmentRead],
 )
 def read_patient_appointments(patient_id: int):
     with Session(engine) as session:
@@ -1288,7 +1289,21 @@ def read_patient_appointments(patient_id: int):
                 Appointment.id.desc(),
             )
         )
-        return list(session.scalars(query).all())
+        appointments = list(session.scalars(query).all())
+        linked_notes = dict(session.execute(
+            select(Encounter.appointment_id, Encounter.id)
+            .where(
+                Encounter.patient_id == patient_id,
+                Encounter.appointment_id.is_not(None),
+            )
+        ).all())
+        return [
+            PatientAppointmentRead(
+                **AppointmentRead.model_validate(appointment).model_dump(),
+                visit_note_id=linked_notes.get(appointment.id),
+            )
+            for appointment in appointments
+        ]
 
 
 @app.post(

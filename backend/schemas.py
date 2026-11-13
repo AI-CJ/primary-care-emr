@@ -1025,6 +1025,10 @@ class AppointmentRead(AppointmentBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PatientAppointmentRead(AppointmentRead):
+    visit_note_id: int | None
+
+
 class PortalAppointmentSummary(BaseModel):
     id: int
     scheduled_date: date

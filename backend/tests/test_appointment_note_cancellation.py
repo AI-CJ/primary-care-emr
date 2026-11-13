@@ -2,11 +2,13 @@
 
 import unittest
 from datetime import date, datetime, time, timezone
+from unittest.mock import patch
 
 from fastapi import HTTPException
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
+from backend.main import read_patient_appointments
 from backend.models import (
     Appointment, AppointmentStatusChange, Base, Encounter, Patient,
 )
@@ -130,6 +132,67 @@ class AppointmentNoteCancellationTests(unittest.TestCase):
                 session.get(Appointment, appointment_id).status, "cancelled"
             )
             self.assertIsNone(session.get(Encounter, note_id).appointment_id)
+
+
+    def test_patient_appointments_show_linked_notes_without_clinical_text(self):
+        draft_appointment = self.make_appointment()
+        finalized_appointment = self.make_appointment(status="completed")
+        unlinked_appointment = self.make_appointment(status="scheduled")
+        draft_id = self.add_note(draft_appointment)
+        finalized_id = self.add_note(finalized_appointment, finalized=True)
+        self.add_note()  # A standalone note is not tied to an appointment.
+
+        with patch("backend.main.engine", self.engine):
+            records = read_patient_appointments(self.patient_id)
+
+        by_id = {record.id: record for record in records}
+        self.assertEqual(len(by_id), 3)
+        self.assertEqual(by_id[draft_appointment].visit_note_id, draft_id)
+        self.assertEqual(by_id[finalized_appointment].visit_note_id, finalized_id)
+        self.assertIsNone(by_id[unlinked_appointment].visit_note_id)
+        self.assertEqual(by_id[draft_appointment].status, "checked_in")
+        self.assertNotIn("assessment", by_id[draft_appointment].model_dump())
+        self.assertNotIn("plan", by_id[draft_appointment].model_dump())
+
+    def test_appointment_list_does_not_include_other_patients(self):
+        with Session(self.engine) as session:
+            other_patient = Patient(
+                first_name="Morgan",
+                last_name="Example",
+                date_of_birth=date(1987, 4, 9),
+                sex_at_birth="unknown",
+            )
+            session.add(other_patient)
+            session.flush()
+            other_appointment = Appointment(
+                patient_id=other_patient.id,
+                scheduled_date=VISIT_DATE,
+                start_time=time(10),
+                duration_minutes=30,
+                reason_for_visit="Other fictional visit",
+                status="checked_in",
+            )
+            session.add(other_appointment)
+            session.flush()
+            session.add(Encounter(
+                patient_id=other_patient.id,
+                appointment_id=other_appointment.id,
+                visit_date=VISIT_DATE,
+                reason_for_visit="Other fictional visit",
+            ))
+            session.commit()
+
+        own_appointment = self.make_appointment()
+        with patch("backend.main.engine", self.engine):
+            records = read_patient_appointments(self.patient_id)
+        self.assertEqual([record.id for record in records], [own_appointment])
+        self.assertIsNone(records[0].visit_note_id)
+
+    def test_appointment_list_rejects_unknown_patient(self):
+        with patch("backend.main.engine", self.engine):
+            with self.assertRaises(HTTPException) as raised:
+                read_patient_appointments(987654)
+        self.assertEqual(raised.exception.status_code, 404)
 
 
 if __name__ == "__main__":
