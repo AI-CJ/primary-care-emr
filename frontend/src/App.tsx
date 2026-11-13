@@ -12,6 +12,7 @@ import AllergyList from './components/AllergyList'
 import AppointmentList from './components/AppointmentList'
 import CareGoals from './components/CareGoals'
 import ClinicSchedule, { localDate } from './components/ClinicSchedule'
+import PastAppointmentsWorklist from './components/PastAppointmentsWorklist'
 import EncounterList from './components/EncounterList'
 import FollowUpTasks from './components/FollowUpTasks'
 import OpenFollowUpTasksWorklist from './components/OpenFollowUpTasksWorklist'
@@ -74,6 +75,9 @@ function App() {
     useState('')
 
   const [showSchedule, setShowSchedule] =
+    useState(false)
+
+  const [showPastAppointments, setShowPastAppointments] =
     useState(false)
 
   const [showPortalPreview, setShowPortalPreview] =
@@ -304,7 +308,7 @@ function App() {
               setSelectedPatient(null)
             }
           >
-            ← Back to {showOpenFollowUpTasks ? 'open follow-ups' : showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showUnreleasedLabResults ? 'results to release' : showPendingLabs ? 'pending labs' : showSchedule ? 'clinic schedule' : 'patient search'}
+            ← Back to {showOpenFollowUpTasks ? 'open follow-ups' : showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showUnreleasedLabResults ? 'results to release' : showPendingLabs ? 'pending labs' : showPastAppointments ? 'past appointments' : showSchedule ? 'clinic schedule' : 'patient search'}
           </button>
 
 
@@ -485,6 +489,22 @@ function App() {
     )
   }
 
+
+  if (showPastAppointments) {
+    return (
+      <PastAppointmentsWorklist
+        onBack={() => {
+          setError(null)
+          setShowPastAppointments(false)
+        }}
+        onOpenPatient={(patientId) => {
+          void openPatient(patientId)
+        }}
+        patientError={error}
+      />
+    )
+  }
+
   if (showSchedule) {
     return (
       <ClinicSchedule
@@ -523,6 +543,16 @@ function App() {
               }}
             >
               Clinic Schedule
+            </button>
+            <button
+              className="secondary-action-button"
+              type="button"
+              onClick={() => {
+                setError(null)
+                setShowPastAppointments(true)
+              }}
+            >
+              Past Appointments
             </button>
             <button
               className="secondary-action-button"

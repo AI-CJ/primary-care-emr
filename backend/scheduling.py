@@ -259,6 +259,27 @@ def mark_appointment_no_show(
     return appointment
 
 
+
+def list_past_appointments(
+    session: Session, before: date
+) -> list[tuple[Appointment, Patient]]:
+    """Unresolved appointments from days before the selected clinic date."""
+    query = (
+        select(Appointment, Patient)
+        .join(Patient, Appointment.patient_id == Patient.id)
+        .where(
+            Appointment.scheduled_date < before,
+            Appointment.status.in_(("scheduled", "checked_in")),
+        )
+        .order_by(
+            Appointment.scheduled_date,
+            Appointment.start_time,
+            Appointment.id,
+        )
+    )
+    return list(session.execute(query).all())
+
+
 def list_daily_schedule(
     session: Session, day: date
 ) -> list[tuple[Appointment, Patient]]:

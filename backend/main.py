@@ -85,6 +85,7 @@ from backend.scheduling import (
     complete_appointment,
     ensure_appointment_slot_open,
     list_daily_schedule,
+    list_past_appointments,
     mark_appointment_no_show,
     record_appointment_status_change,
     reschedule_appointment,
@@ -1239,6 +1240,23 @@ def read_daily_schedule(day: date):
                 patient=SchedulePatientRead.model_validate(patient),
             )
             for appointment, patient in list_daily_schedule(session, day)
+        ]
+
+
+
+@app.get(
+    "/worklists/past-appointments",
+    response_model=list[ScheduleEntryRead],
+)
+def read_past_appointments(before: date):
+    """List earlier visits whose appointment status has not been resolved."""
+    with Session(engine) as session:
+        return [
+            ScheduleEntryRead(
+                appointment=AppointmentRead.model_validate(appointment),
+                patient=SchedulePatientRead.model_validate(patient),
+            )
+            for appointment, patient in list_past_appointments(session, before)
         ]
 
 
