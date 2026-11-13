@@ -925,6 +925,21 @@
   border-top: 0;
 }
 
+.appointment-row-review {
+  padding: 14px;
+  outline: 3px solid var(--coastal-blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+  background: var(--pale-aqua);
+}
+
+.appointment-review-note {
+  margin: 8px 0 0 !important;
+  color: var(--onyx) !important;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .appointment-actions {
   display: flex;
   align-items: center;

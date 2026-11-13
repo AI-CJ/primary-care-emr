@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Appointment, AppointmentStatus } from '../types'
 import AppointmentForm from './AppointmentForm'
@@ -6,6 +6,7 @@ import AppointmentStatusHistory from './AppointmentStatusHistory'
 
 type AppointmentListProps = {
   patientId: number
+  highlightAppointmentId?: number | null
 }
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -16,7 +17,10 @@ const statusLabels: Record<AppointmentStatus, string> = {
   no_show: 'No-show',
 }
 
-function AppointmentList({ patientId }: AppointmentListProps) {
+function AppointmentList({
+  patientId,
+  highlightAppointmentId = null,
+}: AppointmentListProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,6 +32,8 @@ function AppointmentList({ patientId }: AppointmentListProps) {
     action: 'check-in' | 'complete' | 'cancel' | 'no-show'
   } | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const reviewAppointmentRef = useRef<HTMLElement | null>(null)
+  const focusedReviewId = useRef<number | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -64,6 +70,19 @@ function AppointmentList({ patientId }: AppointmentListProps) {
     void loadAppointments()
     return () => controller.abort()
   }, [patientId, refreshCount])
+
+  useEffect(() => {
+    if (isLoading || error || highlightAppointmentId === null ||
+        focusedReviewId.current === highlightAppointmentId) return
+
+    if (!appointments.some((item) => item.id === highlightAppointmentId)) return
+
+    const row = reviewAppointmentRef.current
+    if (!row) return
+    row.focus({ preventScroll: true })
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    focusedReviewId.current = highlightAppointmentId
+  }, [appointments, error, highlightAppointmentId, isLoading])
 
   function finishEditing() {
     setIsAdding(false)
@@ -157,9 +176,22 @@ function AppointmentList({ patientId }: AppointmentListProps) {
         appointments.length > 0 && (
           <div className="appointment-list">
             {appointments.map((appointment) => (
-              <article className="appointment-row" key={appointment.id}>
+              <article
+                className={appointment.id === highlightAppointmentId
+                  ? 'appointment-row appointment-row-review'
+                  : 'appointment-row'}
+                key={appointment.id}
+                ref={appointment.id === highlightAppointmentId ? reviewAppointmentRef : undefined}
+                tabIndex={appointment.id === highlightAppointmentId ? -1 : undefined}
+              >
                 <div>
                   <strong>{appointment.reason_for_visit}</strong>
+                  {appointment.id === highlightAppointmentId && (
+                    <p className="appointment-review-note" role="status">
+                      Appointment #{appointment.id} selected from the past appointments worklist.
+                      Review the visit before changing its status.
+                    </p>
+                  )}
                   <p className="appointment-meta">
                     <time dateTime={appointment.scheduled_date}>
                       {appointment.scheduled_date}
