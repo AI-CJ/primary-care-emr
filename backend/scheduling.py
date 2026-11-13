@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import Appointment, AppointmentStatusChange, Patient
+from backend.models import Appointment, AppointmentStatusChange, Encounter, Patient
 from backend.schemas import AppointmentCreate
 
 
@@ -218,6 +218,17 @@ def cancel_appointment(session: Session, appointment_id: int) -> Appointment:
         raise HTTPException(
             status_code=409,
             detail="Only scheduled or checked-in appointments can be cancelled.",
+        )
+
+    linked_note_id = session.scalar(
+        select(Encounter.id)
+        .where(Encounter.appointment_id == appointment.id)
+        .limit(1)
+    )
+    if linked_note_id is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="An appointment with a linked visit note cannot be cancelled.",
         )
 
     previous_status = appointment.status
