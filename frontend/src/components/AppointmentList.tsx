@@ -190,7 +190,7 @@ function AppointmentList({
                   <strong>{appointment.reason_for_visit}</strong>
                   {appointment.id === highlightAppointmentId && (
                     <p className="appointment-review-note" role="status">
-                      Appointment #{appointment.id} selected from the past appointments worklist.
+                      Appointment #{appointment.id} selected from the schedule or past appointments worklist.
                       Review the visit before changing its status.
                     </p>
                   )}

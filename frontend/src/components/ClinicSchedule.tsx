@@ -6,7 +6,7 @@ type ClinicScheduleProps = {
   day: string
   onDayChange: (day: string) => void
   onBack: () => void
-  onOpenPatient: (patientId: number) => void
+  onOpenPatient: (patientId: number, appointmentId: number) => void
   patientError: string | null
 }
 
@@ -174,7 +174,7 @@ function ClinicSchedule({
                     <button
                       type="button"
                       className="schedule-patient-link"
-                      onClick={() => onOpenPatient(patient.id)}
+                      onClick={() => onOpenPatient(patient.id, appointment.id)}
                     >
                       {patient.preferred_name || patient.first_name} {patient.last_name}
                     </button>
