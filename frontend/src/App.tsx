@@ -533,8 +533,8 @@ function App() {
           setError(null)
           setShowSchedule(false)
         }}
-        onOpenPatient={(patientId) => {
-          void openPatient(patientId)
+        onOpenPatient={(patientId, appointmentId) => {
+          void openPatient(patientId, appointmentId)
         }}
         patientError={error}
       />
