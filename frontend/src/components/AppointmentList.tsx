@@ -3,6 +3,7 @@ import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Appointment, AppointmentStatus, PatientAppointment } from '../types'
 import AppointmentForm from './AppointmentForm'
 import AppointmentStatusHistory from './AppointmentStatusHistory'
+import { localDate } from './ClinicSchedule'
 
 type AppointmentListProps = {
   patientId: number
@@ -300,7 +301,8 @@ function AppointmentList({
                     </button>
                   )}
 
-                  {appointment.status === 'scheduled' && (
+                  {appointment.status === 'scheduled' &&
+                    appointment.scheduled_date < localDate() && (
                     <button
                       className="secondary-action-button"
                       type="button"
