@@ -162,6 +162,12 @@ def check_in_appointment(session: Session, appointment_id: int) -> Appointment:
             detail="Only scheduled appointments can be checked in.",
         )
 
+    if appointment.scheduled_date > date.today():
+        raise HTTPException(
+            status_code=409,
+            detail="Appointments cannot be checked in before their scheduled date.",
+        )
+
     ensure_appointment_status_transition(appointment.status, "checked_in")
     previous_status = appointment.status
     appointment.status = "checked_in"
