@@ -242,7 +242,7 @@ def mark_appointment_no_show(
     session: Session,
     appointment_id: int,
 ) -> Appointment:
-    """Mark one scheduled appointment as missed under the patient lock."""
+    """Mark one past scheduled appointment as missed under the patient lock."""
     appointment = session.get(Appointment, appointment_id)
     if appointment is None:
         raise HTTPException(status_code=404, detail="Appointment not found")
@@ -261,6 +261,12 @@ def mark_appointment_no_show(
         raise HTTPException(
             status_code=409,
             detail="Only scheduled appointments can be marked as no-show.",
+        )
+
+    if appointment.scheduled_date >= date.today():
+        raise HTTPException(
+            status_code=409,
+            detail="Only past appointments can be marked as no-show.",
         )
 
     previous_status = appointment.status

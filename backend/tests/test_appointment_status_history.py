@@ -1,7 +1,7 @@
 """Appointment status-history tests using fictional records only."""
 
 import unittest
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import create_engine, select
@@ -40,7 +40,7 @@ class AppointmentStatusHistoryTests(unittest.TestCase):
         with Session(self.engine) as session:
             appointment = Appointment(
                 patient_id=self.patient_id,
-                scheduled_date=date(2026, 11, 14),
+                scheduled_date=date.today() - timedelta(days=1),
                 start_time=time(10, 30),
                 duration_minutes=30,
                 reason_for_visit="Synthetic check-up",

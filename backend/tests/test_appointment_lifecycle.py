@@ -1,13 +1,13 @@
 """Appointment check-in and status transitions (synthetic data only)."""
 
 import unittest
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from backend.models import Appointment, Base, Patient
+from backend.models import Appointment, AppointmentStatusChange, Base, Patient
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -36,11 +36,11 @@ class AppointmentLifecycleTests(unittest.TestCase):
     def tearDown(self):
         self.engine.dispose()
 
-    def store_appointment(self, status="scheduled"):
+    def store_appointment(self, status="scheduled", scheduled_date=None):
         with Session(self.engine) as session:
             appointment = Appointment(
                 patient_id=self.patient_id,
-                scheduled_date=date(2026, 11, 12),
+                scheduled_date=scheduled_date or date.today() - timedelta(days=1),
                 start_time=time(9, 0),
                 duration_minutes=30,
                 reason_for_visit="Synthetic office visit",
@@ -226,6 +226,31 @@ class AppointmentLifecycleTests(unittest.TestCase):
             with self.assertRaises(HTTPException) as raised:
                 mark_appointment_no_show(session, appointment_id)
             self.assertEqual(raised.exception.status_code, 409)
+
+    def test_no_show_rejects_today_and_future_dates(self):
+        for scheduled_date in (date.today(), date.today() + timedelta(days=1)):
+            with self.subTest(scheduled_date=scheduled_date):
+                appointment_id = self.store_appointment(scheduled_date=scheduled_date)
+                with Session(self.engine) as session:
+                    with self.assertRaises(HTTPException) as raised:
+                        mark_appointment_no_show(session, appointment_id)
+                    self.assertEqual(raised.exception.status_code, 409)
+                    self.assertEqual(
+                        raised.exception.detail,
+                        "Only past appointments can be marked as no-show.",
+                    )
+                    self.assertEqual(
+                        session.get(Appointment, appointment_id).status,
+                        "scheduled",
+                    )
+                    self.assertEqual(
+                        session.scalars(
+                            select(AppointmentStatusChange).where(
+                                AppointmentStatusChange.appointment_id == appointment_id
+                            )
+                        ).all(),
+                        [],
+                    )
 
     def test_no_show_rejects_any_non_scheduled_appointment(self):
         for status in ("checked_in", "completed", "cancelled", "no_show"):
