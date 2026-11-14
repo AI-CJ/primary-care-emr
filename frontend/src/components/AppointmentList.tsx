@@ -8,6 +8,8 @@ type AppointmentListProps = {
   patientId: number
   highlightAppointmentId?: number | null
   onOpenVisitNote: (noteId: number) => void
+  onStartVisitNote: (appointmentId: number) => void
+  notesRefreshCount: number
 }
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -22,6 +24,8 @@ function AppointmentList({
   patientId,
   highlightAppointmentId = null,
   onOpenVisitNote,
+  onStartVisitNote,
+  notesRefreshCount,
 }: AppointmentListProps) {
   const [appointments, setAppointments] = useState<PatientAppointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -71,7 +75,7 @@ function AppointmentList({
 
     void loadAppointments()
     return () => controller.abort()
-  }, [patientId, refreshCount])
+  }, [patientId, refreshCount, notesRefreshCount])
 
   useEffect(() => {
     if (isLoading || error || highlightAppointmentId === null ||
@@ -238,6 +242,22 @@ function AppointmentList({
                       }}
                     >
                       Open Visit Note
+                    </button>
+                  )}
+                  {appointment.visit_note_id === null &&
+                    (appointment.status === 'checked_in' ||
+                      appointment.status === 'completed') && (
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      disabled={pendingAction !== null}
+                      aria-label={
+                        'Start visit note for appointment on ' +
+                        appointment.scheduled_date + ': ' + appointment.reason_for_visit
+                      }
+                      onClick={() => onStartVisitNote(appointment.id)}
+                    >
+                      Start Visit Note
                     </button>
                   )}
                   {appointment.status === 'scheduled' && (

@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { Appointment, Encounter, EncounterInput } from '../types'
+import type { Encounter, EncounterInput, PatientAppointment } from '../types'
 
 type EncounterFormProps = {
   patientId: number
   encounter?: Encounter
   linkedAppointmentIds: number[]
+  initialAppointmentId?: number | null
   onSaved: () => void
   onCancel: () => void
 }
@@ -14,6 +15,7 @@ function EncounterForm({
   patientId,
   encounter,
   linkedAppointmentIds,
+  initialAppointmentId = null,
   onSaved,
   onCancel,
 }: EncounterFormProps) {
@@ -23,8 +25,10 @@ function EncounterForm({
   const [reasonForVisit, setReasonForVisit] = useState(
     encounter?.reason_for_visit ?? ''
   )
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState('')
-  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(
+    initialAppointmentId === null ? '' : String(initialAppointmentId)
+  )
+  const [appointments, setAppointments] = useState<PatientAppointment[]>([])
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(!encounter)
   const [appointmentError, setAppointmentError] = useState<string | null>(null)
 
@@ -45,8 +49,23 @@ function EncounterForm({
           return
         }
 
-        const records: Appointment[] = await response.json()
-        if (!controller.signal.aborted) setAppointments(records)
+        const records: PatientAppointment[] = await response.json()
+        if (!controller.signal.aborted) {
+          setAppointments(records)
+          if (initialAppointmentId !== null) {
+            const appointment = records.find((item) =>
+              item.id === initialAppointmentId &&
+              (item.status === 'checked_in' || item.status === 'completed') &&
+              item.visit_note_id === null
+            )
+            if (appointment) {
+              setVisitDate(appointment.scheduled_date)
+              setReasonForVisit(appointment.reason_for_visit)
+            } else {
+              setError('This appointment can no longer be linked to a new visit note.')
+            }
+          }
+        }
       } catch (requestError) {
         if (!controller.signal.aborted) {
           console.error(requestError)
@@ -59,15 +78,17 @@ function EncounterForm({
 
     void loadAppointments()
     return () => controller.abort()
-  }, [patientId, encounter])
+  }, [patientId, encounter, initialAppointmentId])
 
   const availableAppointments = appointments.filter(
     (appointment) =>
       (appointment.status === 'checked_in' || appointment.status === 'completed') &&
+      appointment.visit_note_id === null &&
       !linkedAppointmentIds.includes(appointment.id)
   )
 
   function chooseAppointment(id: string) {
+    setError(null)
     setSelectedAppointmentId(id)
     const selected = availableAppointments.find(
       (appointment) => String(appointment.id) === id
@@ -164,6 +185,13 @@ function EncounterForm({
               disabled={isLoadingAppointments || appointmentError !== null}
             >
               <option value="">Standalone visit note</option>
+              {initialAppointmentId !== null &&
+                !availableAppointments.some((item) => item.id === initialAppointmentId) && (
+                <option value={initialAppointmentId}>
+                  Appointment #{initialAppointmentId} (
+                  {isLoadingAppointments ? 'loading' : 'unavailable'})
+                </option>
+              )}
               {availableAppointments.map((appointment) => (
                 <option key={appointment.id} value={appointment.id}>
                   {appointment.scheduled_date} at {appointment.start_time.slice(0, 5)}
@@ -178,7 +206,9 @@ function EncounterForm({
           )}
           {appointmentError && (
             <p className="form-error" role="alert">
-              {appointmentError} You can still save a standalone note.
+              {appointmentError} {initialAppointmentId === null
+                ? 'You can still save a standalone note.'
+                : 'Close this form and try again from the appointment list.'}
             </p>
           )}
           {!isLoadingAppointments && !appointmentError && (

@@ -13,6 +13,8 @@ import EncounterReferrals from './EncounterReferrals'
 type EncounterListProps = {
   patientId: number
   noteToReview?: { id: number; request: number } | null
+  noteToStart?: { appointmentId: number; request: number } | null
+  onNoteSaved?: () => void
 }
 
 const noteSections: Array<{
@@ -80,12 +82,21 @@ function EncounterDetails({
   )
 }
 
-function EncounterList({ patientId, noteToReview = null }: EncounterListProps) {
+function EncounterList({
+  patientId,
+  noteToReview = null,
+  noteToStart = null,
+  onNoteSaved,
+}: EncounterListProps) {
   const [encounters, setEncounters] = useState<Encounter[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const [editing, setEditing] = useState<Encounter | null>(null)
+  const [startingAppointmentId, setStartingAppointmentId] = useState<number | null>(null)
+  const [startNoteMessage, setStartNoteMessage] = useState<string | null>(null)
+  const handledStartRequest = useRef<number | null>(null)
+  const startHeadingRef = useRef<HTMLHeadingElement>(null)
   const [finalizingId, setFinalizingId] = useState<number | null>(null)
   const [reviewedInstructionsId, setReviewedInstructionsId] = useState<number | null>(null)
   const [finalizeError, setFinalizeError] = useState<{
@@ -123,9 +134,39 @@ function EncounterList({ patientId, noteToReview = null }: EncounterListProps) {
     void loadEncounters()
   }, [loadEncounters])
 
-  function finishEditing() {
+  useEffect(() => {
+    if (!noteToStart || handledStartRequest.current === noteToStart.request) return
+
+    handledStartRequest.current = noteToStart.request
+    if (isAdding || editing) {
+      setStartNoteMessage(
+        'Close the current note form before starting a note for appointment #' +
+        noteToStart.appointmentId + '.'
+      )
+      return
+    }
+
+    setStartNoteMessage(null)
+    setStartingAppointmentId(noteToStart.appointmentId)
+    setIsAdding(true)
+  }, [noteToStart, isAdding, editing])
+
+  useEffect(() => {
+    if (!isAdding || startingAppointmentId === null) return
+    startHeadingRef.current?.focus({ preventScroll: true })
+    startHeadingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [isAdding, startingAppointmentId])
+
+  function closeAddForm() {
     setIsAdding(false)
+    setStartingAppointmentId(null)
+    setStartNoteMessage(null)
+  }
+
+  function finishEditing() {
+    closeAddForm()
     setEditing(null)
+    onNoteSaved?.()
     void loadEncounters()
   }
 
@@ -162,20 +203,36 @@ function EncounterList({ patientId, noteToReview = null }: EncounterListProps) {
           <button
             className="secondary-action-button"
             type="button"
-            onClick={() => setIsAdding(true)}
+            onClick={() => {
+              setStartingAppointmentId(null)
+              setStartNoteMessage(null)
+              setIsAdding(true)
+            }}
           >
             + Add Visit Note
           </button>
         )}
       </div>
 
+      {startNoteMessage && (
+        <p className="form-error" role="status">{startNoteMessage}</p>
+      )}
+
       {isAdding && (
-        <EncounterForm
-          patientId={patientId}
-          linkedAppointmentIds={linkedAppointmentIds}
-          onSaved={finishEditing}
-          onCancel={() => setIsAdding(false)}
-        />
+        <div>
+          {startingAppointmentId !== null && (
+            <h3 ref={startHeadingRef} tabIndex={-1}>
+              Visit note for appointment #{startingAppointmentId}
+            </h3>
+          )}
+          <EncounterForm
+            patientId={patientId}
+            initialAppointmentId={startingAppointmentId}
+            linkedAppointmentIds={linkedAppointmentIds}
+            onSaved={finishEditing}
+            onCancel={closeAddForm}
+          />
+        </div>
       )}
 
       {editing && (

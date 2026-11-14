@@ -117,6 +117,12 @@ function App() {
     request: number
   } | null>(null)
 
+  const [noteToStart, setNoteToStart] = useState<{
+    appointmentId: number
+    request: number
+  } | null>(null)
+  const [notesRefreshCount, setNotesRefreshCount] = useState(0)
+
   const [
     isAddingPatient,
     setIsAddingPatient,
@@ -198,6 +204,7 @@ function App() {
       setSelectedPatient(patient)
       setAppointmentToReview(appointmentId)
       setNoteToReview(null)
+      setNoteToStart(null)
     } catch (requestError) {
       console.error(requestError)
 
@@ -413,18 +420,29 @@ function App() {
             />
 
             <EncounterList
+              key={selectedPatient.id}
               patientId={selectedPatient.id}
               noteToReview={noteToReview}
+              noteToStart={noteToStart}
+              onNoteSaved={() => setNotesRefreshCount((count) => count + 1)}
             />
 
             <AppointmentList
               key={selectedPatient.id}
               patientId={selectedPatient.id}
               highlightAppointmentId={appointmentToReview}
+              notesRefreshCount={notesRefreshCount}
               onOpenVisitNote={(id) => setNoteToReview((current) => ({
                 id,
                 request: (current?.request ?? 0) + 1,
               }))}
+              onStartVisitNote={(appointmentId) => {
+                setNoteToReview(null)
+                setNoteToStart((current) => ({
+                  appointmentId,
+                  request: (current?.request ?? 0) + 1,
+                }))
+              }}
             />
           </div>
         </section>
