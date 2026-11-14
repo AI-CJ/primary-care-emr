@@ -7,6 +7,7 @@ import AppointmentStatusHistory from './AppointmentStatusHistory'
 type AppointmentListProps = {
   patientId: number
   highlightAppointmentId?: number | null
+  onOpenVisitNote: (noteId: number) => void
 }
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -20,6 +21,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
 function AppointmentList({
   patientId,
   highlightAppointmentId = null,
+  onOpenVisitNote,
 }: AppointmentListProps) {
   const [appointments, setAppointments] = useState<PatientAppointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -221,6 +223,23 @@ function AppointmentList({
                 </div>
 
                 <div className="appointment-actions">
+                  {appointment.visit_note_id !== null && (
+                    <button
+                      className="secondary-action-button"
+                      type="button"
+                      aria-label={
+                        'Open visit note #' + appointment.visit_note_id +
+                        ' for ' + appointment.reason_for_visit
+                      }
+                      onClick={() => {
+                        if (appointment.visit_note_id !== null) {
+                          onOpenVisitNote(appointment.visit_note_id)
+                        }
+                      }}
+                    >
+                      Open Visit Note
+                    </button>
+                  )}
                   {appointment.status === 'scheduled' && (
                     <button
                       className="secondary-action-button"

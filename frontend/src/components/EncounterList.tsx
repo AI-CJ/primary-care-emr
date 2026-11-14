@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter } from '../types'
 import EncounterForm from './EncounterForm'
@@ -12,6 +12,7 @@ import EncounterReferrals from './EncounterReferrals'
 
 type EncounterListProps = {
   patientId: number
+  noteToReview?: { id: number; request: number } | null
 }
 
 const noteSections: Array<{
@@ -26,15 +27,36 @@ const noteSections: Array<{
 ]
 
 
-function EncounterDetails({ encounter }: { encounter: Encounter }) {
+function EncounterDetails({
+  encounter,
+  focusRequest,
+}: {
+  encounter: Encounter
+  focusRequest: number | null
+}) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const detailsRef = useRef<HTMLDetailsElement>(null)
+  const summaryRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (focusRequest === null) return
+
+    const details = detailsRef.current
+    const summary = summaryRef.current
+    if (!details || !summary) return
+
+    details.open = true
+    summary.focus({ preventScroll: true })
+    details.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [focusRequest])
 
   return (
     <details
+      ref={detailsRef}
       className="encounter-details"
       onToggle={(event) => setIsExpanded(event.currentTarget.open)}
     >
-      <summary>View note</summary>
+      <summary ref={summaryRef}>View note</summary>
       <div className="encounter-sections">
         {noteSections.map(({ key, heading }) =>
           encounter[key] && (
@@ -58,7 +80,7 @@ function EncounterDetails({ encounter }: { encounter: Encounter }) {
   )
 }
 
-function EncounterList({ patientId }: EncounterListProps) {
+function EncounterList({ patientId, noteToReview = null }: EncounterListProps) {
   const [encounters, setEncounters] = useState<Encounter[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -166,11 +188,24 @@ function EncounterList({ patientId }: EncounterListProps) {
         />
       )}
 
+      {noteToReview && (isAdding || editing) && (
+        <p role="status">
+          Close the current note form to open linked visit note #{noteToReview.id}.
+        </p>
+      )}
+
       {!isAdding && !editing && isLoading && <p>Loading visit notes...</p>}
 
       {!isAdding && !editing && error && (
         <p className="form-error" role="alert">{error}</p>
       )}
+
+      {!isLoading && !error && noteToReview &&
+        !encounters.some((encounter) => encounter.id === noteToReview.id) && (
+          <p className="form-error" role="alert">
+            Linked visit note #{noteToReview.id} could not be found in this chart.
+          </p>
+        )}
 
       {!isAdding && !editing && !isLoading && !error &&
         encounters.length === 0 && <p>No visit notes recorded yet.</p>}
@@ -179,7 +214,12 @@ function EncounterList({ patientId }: EncounterListProps) {
         encounters.length > 0 && (
           <div className="encounter-list">
             {encounters.map((encounter) => (
-              <article className="encounter-row" key={encounter.id}>
+              <article
+                className={encounter.id === noteToReview?.id
+                  ? 'encounter-row encounter-row-review'
+                  : 'encounter-row'}
+                key={encounter.id}
+              >
                 <div className="encounter-row-header">
                   <div>
                     <strong>{encounter.reason_for_visit}</strong>
@@ -211,7 +251,12 @@ function EncounterList({ patientId }: EncounterListProps) {
                   )}
                 </div>
 
-                <EncounterDetails encounter={encounter} />
+                <EncounterDetails
+                  encounter={encounter}
+                  focusRequest={
+                    encounter.id === noteToReview?.id ? noteToReview.request : null
+                  }
+                />
                 {encounter.finalized_at === null && (
                   <details className="encounter-finalize-review">
                     <summary>Review and finalize</summary>
