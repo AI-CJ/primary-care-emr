@@ -262,10 +262,21 @@ function AppointmentList({
                     </button>
                   )}
                   {appointment.status === 'scheduled' && (
+                    <>
+                    {appointment.scheduled_date > localDate() && (
+                      <p className="appointment-meta" id={`appointment-${appointment.id}-check-in-note`}>
+                        Check-in is available on the scheduled date.
+                      </p>
+                    )}
                     <button
                       className="secondary-action-button"
                       type="button"
-                      disabled={pendingAction !== null}
+                      disabled={pendingAction !== null || appointment.scheduled_date > localDate()}
+                      aria-describedby={
+                        appointment.scheduled_date > localDate()
+                          ? `appointment-${appointment.id}-check-in-note`
+                          : undefined
+                      }
                       aria-label={
                         'Check in appointment on ' + appointment.scheduled_date +
                         ' for ' + appointment.reason_for_visit
@@ -279,6 +290,7 @@ function AppointmentList({
                         ? 'Checking in...'
                         : 'Check In'}
                     </button>
+                    </>
                   )}
 
                   {appointment.status === 'checked_in' && (
