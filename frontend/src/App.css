@@ -589,6 +589,14 @@
   border-top: 0;
 }
 
+.encounter-row-review {
+  padding: 14px;
+  outline: 3px solid var(--coastal-blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+  background: var(--pale-aqua);
+}
+
 .encounter-row-header {
   display: flex;
   align-items: flex-start;
