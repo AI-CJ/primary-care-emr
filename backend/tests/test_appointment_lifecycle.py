@@ -2,12 +2,15 @@
 
 import unittest
 from datetime import date, time, timedelta
+from unittest.mock import patch
 
 from fastapi import HTTPException
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
+from backend.main import create_patient_appointment
 from backend.models import Appointment, AppointmentStatusChange, Base, Patient
+from backend.schemas import AppointmentCreate
 from backend.scheduling import (
     cancel_appointment,
     check_in_appointment,
@@ -343,6 +346,57 @@ class AppointmentLifecycleTests(unittest.TestCase):
                 mark_appointment_no_show(session, 999)
             self.assertEqual(raised.exception.status_code, 404)
 
+
+
+    def test_new_appointments_must_start_scheduled(self):
+        for status in ("checked_in", "completed", "cancelled", "no_show"):
+            with self.subTest(status=status):
+                with patch("backend.main.engine", self.engine):
+                    with self.assertRaises(HTTPException) as raised:
+                        create_patient_appointment(
+                            self.patient_id,
+                            AppointmentCreate(
+                                scheduled_date=date.today() + timedelta(days=1),
+                                start_time=time(9),
+                                duration_minutes=30,
+                                reason_for_visit="Synthetic consultation",
+                                status=status,
+                            ),
+                        )
+                self.assertEqual(raised.exception.status_code, 409)
+
+        with Session(self.engine) as session:
+            self.assertEqual(
+                list(session.scalars(select(Appointment))), []
+            )
+            self.assertEqual(
+                list(session.scalars(select(AppointmentStatusChange))), []
+            )
+
+    def test_new_scheduled_appointment_records_initial_status(self):
+        with patch("backend.main.engine", self.engine):
+            created = create_patient_appointment(
+                self.patient_id,
+                AppointmentCreate(
+                    scheduled_date=date.today() + timedelta(days=1),
+                    start_time=time(9),
+                    duration_minutes=30,
+                    reason_for_visit="Synthetic consultation",
+                ),
+            )
+
+        self.assertEqual(created.status, "scheduled")
+        with Session(self.engine) as session:
+            saved = session.get(Appointment, created.id)
+            self.assertEqual(saved.status, "scheduled")
+            history = list(session.scalars(
+                select(AppointmentStatusChange).where(
+                    AppointmentStatusChange.appointment_id == created.id
+                )
+            ))
+            self.assertEqual(len(history), 1)
+            self.assertIsNone(history[0].previous_status)
+            self.assertEqual(history[0].new_status, "scheduled")
 
 if __name__ == "__main__":
     unittest.main()

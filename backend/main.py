@@ -1349,6 +1349,12 @@ def create_patient_appointment(
         if patient is None:
             raise HTTPException(status_code=404, detail="Patient not found")
 
+        if appointment_data.status != "scheduled":
+            raise HTTPException(
+                status_code=409,
+                detail="New appointments must be scheduled. Use appointment actions to change status.",
+            )
+
         ensure_appointment_slot_open(session, patient_id, appointment_data)
 
         appointment = Appointment(
