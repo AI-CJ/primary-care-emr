@@ -2,11 +2,13 @@
 
 import unittest
 from datetime import date, time, timedelta
+from unittest.mock import patch
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from backend.models import Appointment, Base, Patient
+from backend.main import read_daily_schedule
+from backend.models import Appointment, Base, Encounter, Patient
 from backend.schemas import AppointmentRead, ScheduleEntryRead, SchedulePatientRead
 from backend.scheduling import list_daily_schedule
 
@@ -89,6 +91,42 @@ class DailyScheduleTests(unittest.TestCase):
             self.assertEqual(data["patient"]["date_of_birth"], "1989-06-05")
             self.assertEqual(data["appointment"]["patient_id"], self.first_id)
             self.assertNotIn("sex_at_birth", data["patient"])
+
+    def test_schedule_shows_linked_note_without_clinical_content(self):
+        with Session(self.engine) as session:
+            appointment = session.scalar(
+                select(Appointment).where(
+                    Appointment.patient_id == self.first_id,
+                    Appointment.start_time == time(8),
+                )
+            )
+            note = Encounter(
+                patient_id=self.first_id,
+                appointment_id=appointment.id,
+                visit_date=self.day,
+                reason_for_visit="Fictional office visit",
+                assessment="Private assessment",
+                plan="Private plan",
+            )
+            session.add(note)
+            session.flush()
+            appointment_id, note_id = appointment.id, note.id
+            session.commit()
+
+        with patch("backend.main.engine", self.engine):
+            entries = read_daily_schedule(self.day)
+
+        by_id = {entry.appointment.id: entry for entry in entries}
+        self.assertEqual(len(entries), 4)
+        self.assertEqual(by_id[appointment_id].appointment.visit_note_id, note_id)
+        self.assertTrue(all(
+            entry.appointment.visit_note_id is None
+            for entry in entries if entry.appointment.id != appointment_id
+        ))
+        data = by_id[appointment_id].model_dump(mode="json")
+        self.assertNotIn("assessment", data["appointment"])
+        self.assertNotIn("plan", data["appointment"])
+        self.assertNotIn("sex_at_birth", data["patient"])
 
     def test_no_appointments_returns_empty_list(self):
         with Session(self.engine) as session:
