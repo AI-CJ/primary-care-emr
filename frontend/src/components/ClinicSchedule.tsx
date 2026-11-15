@@ -55,6 +55,63 @@ function ClinicSchedule({
     day: string
     message: string
   } | null>(null)
+  const [pendingCheckInId, setPendingCheckInId] = useState<number | null>(null)
+  const [checkInError, setCheckInError] = useState<{
+    day: string
+    message: string
+  } | null>(null)
+  const [checkedIn, setCheckedIn] = useState<{
+    day: string
+    appointmentId: number
+    patientName: string
+  } | null>(null)
+
+  async function checkIn(entry: ScheduleEntry) {
+    const { appointment, patient } = entry
+    if (pendingCheckInId !== null || appointment.status !== 'scheduled' ||
+        appointment.scheduled_date !== localDate()) return
+
+    const patientName = `${patient.preferred_name || patient.first_name} ${patient.last_name}`
+    if (!window.confirm(
+      `Confirm ${patientName} has arrived for the ${formatTime(appointment.start_time)} appointment? ` +
+      'Check-in is recorded in the appointment status history.',
+    )) return
+
+    setPendingCheckInId(appointment.id)
+    setCheckInError(null)
+    setCheckedIn(null)
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/appointments/${appointment.id}/check-in`,
+        { method: 'POST' },
+      )
+      if (!response.ok) {
+        setCheckInError({
+          day: appointment.scheduled_date,
+          message: await getApiErrorMessage(response),
+        })
+        return
+      }
+
+      setResult((current) => current?.day === appointment.scheduled_date
+        ? {
+            ...current,
+            entries: current.entries.map((item) => item.appointment.id === appointment.id
+              ? { ...item, appointment: { ...item.appointment, status: 'checked_in' } }
+              : item),
+          }
+        : current)
+      setCheckedIn({ day: appointment.scheduled_date, appointmentId: appointment.id, patientName })
+    } catch {
+      setCheckInError({
+        day: appointment.scheduled_date,
+        message: 'The appointment could not be checked in. Try again.',
+      })
+    } finally {
+      setPendingCheckInId(null)
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -107,7 +164,7 @@ function ClinicSchedule({
         <header className="schedule-header">
           <div>
             <h1>Clinic Schedule</h1>
-            <p>Appointments for the selected day. Open a patient chart to make changes.</p>
+            <p>Review appointments and check in today's arrivals. Open a patient chart for other changes.</p>
           </div>
         </header>
 
@@ -147,6 +204,14 @@ function ClinicSchedule({
         </div>
 
         {patientError && <p className="form-error" role="alert">{patientError}</p>}
+        {checkInError?.day === day && (
+          <p className="form-error" role="alert">{checkInError.message}</p>
+        )}
+        {checkedIn?.day === day && (
+          <p className="empty-message" role="status">
+            {checkedIn.patientName} checked in for appointment #{checkedIn.appointmentId}.
+          </p>
+        )}
 
         {!entries && !error && (
           <p className="empty-message" role="status">Loading schedule...</p>
@@ -162,7 +227,9 @@ function ClinicSchedule({
               {entries.length} appointment{entries.length === 1 ? '' : 's'}
             </p>
             <ol className="clinic-schedule-list">
-              {entries.map(({ appointment, patient }) => (
+              {entries.map((entry) => {
+                const { appointment, patient } = entry
+                return (
                 <li className="clinic-schedule-row" key={appointment.id}>
                   <div className="schedule-time">
                     <time dateTime={`${appointment.scheduled_date}T${appointment.start_time}`}>
@@ -180,12 +247,32 @@ function ClinicSchedule({
                     </button>
                     <p>{appointment.reason_for_visit}</p>
                     <span className="schedule-dob">DOB {patient.date_of_birth}</span>
+                    {day === localDate() &&
+                      (appointment.status === 'scheduled' ||
+                        checkedIn?.appointmentId === appointment.id && checkedIn.day === day) && (
+                      <div className="appointment-actions">
+                        <button
+                          type="button"
+                          className="secondary-action-button"
+                          disabled={pendingCheckInId !== null || appointment.status !== 'scheduled'}
+                          aria-label={`Check in ${patient.preferred_name || patient.first_name} ${patient.last_name} for the ${formatTime(appointment.start_time)} appointment`}
+                          onClick={() => void checkIn(entry)}
+                        >
+                          {appointment.status === 'checked_in'
+                            ? 'Checked In'
+                            : pendingCheckInId === appointment.id
+                              ? 'Checking in...'
+                              : 'Check In'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <span className={`appointment-status appointment-status-${appointment.status}`}>
                     {statusLabels[appointment.status]}
                   </span>
                 </li>
-              ))}
+                )
+              })}
             </ol>
           </>
         )}
