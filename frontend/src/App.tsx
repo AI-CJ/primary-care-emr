@@ -547,6 +547,12 @@ function App() {
         onOpenPatient={(patientId, appointmentId) => {
           void openPatient(patientId, appointmentId)
         }}
+        onStartVisitNote={(patientId, appointmentId) => {
+          void openPatient(patientId, appointmentId, 'start')
+        }}
+        onOpenVisitNote={(patientId, appointmentId, noteId) => {
+          void openPatient(patientId, appointmentId, 'open', noteId)
+        }}
         patientError={error}
       />
     )

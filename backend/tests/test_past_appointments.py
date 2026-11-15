@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from backend.main import read_past_appointments
-from backend.models import Appointment, Base, Patient
+from backend.models import Appointment, Base, Encounter, Patient
 from backend.scheduling import list_past_appointments
 
 
@@ -87,6 +87,60 @@ class PastAppointmentsTests(unittest.TestCase):
         self.assertEqual(entries[0].patient.id, self.patient_ids[1])
         self.assertEqual(entries[0].patient.first_name, "Morgan")
         self.assertNotIn("sex_at_birth", entries[0].patient.model_dump())
+
+    def test_past_worklist_identifies_linked_visit_notes(self):
+        with Session(self.engine) as session:
+            past_visit = session.scalar(
+                select(Appointment).where(
+                    Appointment.patient_id == self.patient_ids[1],
+                    Appointment.status == "checked_in",
+                    Appointment.scheduled_date == date(2026, 11, 10),
+                )
+            )
+            future_visit = session.scalar(
+                select(Appointment).where(
+                    Appointment.patient_id == self.patient_ids[1],
+                    Appointment.scheduled_date == date(2026, 11, 14),
+                )
+            )
+            past_note = Encounter(
+                patient_id=self.patient_ids[1],
+                appointment_id=past_visit.id,
+                visit_date=past_visit.scheduled_date,
+                reason_for_visit="Fictional office visit",
+                assessment="Private assessment",
+                plan="Private plan",
+            )
+            future_note = Encounter(
+                patient_id=self.patient_ids[1],
+                appointment_id=future_visit.id,
+                visit_date=future_visit.scheduled_date,
+                reason_for_visit="Another fictional visit",
+                assessment="Private future assessment",
+                plan="Private future plan",
+            )
+            session.add_all([past_note, future_note])
+            session.flush()
+            past_appointment_id, past_note_id = past_visit.id, past_note.id
+            session.commit()
+
+        with patch("backend.main.engine", self.engine):
+            entries = read_past_appointments(self.cutoff)
+
+        self.assertEqual(len(entries), 3)
+        matching = next(
+            item for item in entries
+            if item.appointment.id == past_appointment_id
+        )
+        self.assertEqual(matching.appointment.visit_note_id, past_note_id)
+        self.assertTrue(all(
+            item.appointment.visit_note_id is None
+            for item in entries if item.appointment.id != past_appointment_id
+        ))
+        response = matching.model_dump(mode="json")
+        self.assertNotIn("assessment", response["appointment"])
+        self.assertNotIn("plan", response["appointment"])
+        self.assertNotIn("sex_at_birth", response["patient"])
 
     def test_cutoff_day_is_excluded(self):
         with Session(self.engine) as session:

@@ -1260,17 +1260,30 @@ def read_daily_schedule(day: date):
 
 @app.get(
     "/worklists/past-appointments",
-    response_model=list[ScheduleEntryRead],
+    response_model=list[DailyScheduleEntryRead],
 )
 def read_past_appointments(before: date):
     """List earlier visits whose appointment status has not been resolved."""
     with Session(engine) as session:
+        entries = list_past_appointments(session, before)
+        appointment_ids = [appointment.id for appointment, _ in entries]
+        linked_notes = dict(session.execute(
+            select(Encounter.appointment_id, Encounter.id)
+            .join(Appointment, Appointment.id == Encounter.appointment_id)
+            .where(
+                Appointment.id.in_(appointment_ids),
+                Encounter.patient_id == Appointment.patient_id,
+            )
+        ).all())
         return [
-            ScheduleEntryRead(
-                appointment=AppointmentRead.model_validate(appointment),
+            DailyScheduleEntryRead(
+                appointment=PatientAppointmentRead(
+                    **AppointmentRead.model_validate(appointment).model_dump(),
+                    visit_note_id=linked_notes.get(appointment.id),
+                ),
                 patient=SchedulePatientRead.model_validate(patient),
             )
-            for appointment, patient in list_past_appointments(session, before)
+            for appointment, patient in entries
         ]
 
 
