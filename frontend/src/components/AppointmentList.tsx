@@ -293,7 +293,14 @@ function AppointmentList({
                     </>
                   )}
 
-                  {appointment.status === 'checked_in' && (
+                  {appointment.status === 'checked_in' &&
+                    appointment.scheduled_date > localDate() && (
+                    <p className="appointment-meta">
+                      Completion is available on the scheduled date.
+                    </p>
+                  )}
+                  {appointment.status === 'checked_in' &&
+                    appointment.scheduled_date <= localDate() && (
                     <button
                       className="secondary-action-button"
                       type="button"

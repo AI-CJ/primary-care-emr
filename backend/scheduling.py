@@ -197,6 +197,12 @@ def complete_appointment(session: Session, appointment_id: int) -> Appointment:
             detail="Only checked-in appointments can be completed.",
         )
 
+    if appointment.scheduled_date > date.today():
+        raise HTTPException(
+            status_code=409,
+            detail="Appointments cannot be completed before their scheduled date.",
+        )
+
     ensure_appointment_status_transition(appointment.status, "completed")
     previous_status = appointment.status
     appointment.status = "completed"

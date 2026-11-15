@@ -177,6 +177,43 @@ class AppointmentLifecycleTests(unittest.TestCase):
                 complete_appointment(session, appointment_id)
             self.assertEqual(raised.exception.status_code, 409)
 
+    def test_completion_on_scheduled_date_is_allowed(self):
+        appointment_id = self.store_appointment(
+            status="checked_in", scheduled_date=date.today()
+        )
+        with Session(self.engine) as session:
+            complete_appointment(session, appointment_id)
+            session.commit()
+
+        with Session(self.engine) as session:
+            self.assertEqual(
+                session.get(Appointment, appointment_id).status, "completed"
+            )
+
+    def test_future_checked_in_appointment_cannot_be_completed(self):
+        appointment_id = self.store_appointment(
+            status="checked_in", scheduled_date=date.today() + timedelta(days=1)
+        )
+        with Session(self.engine) as session:
+            with self.assertRaises(HTTPException) as raised:
+                complete_appointment(session, appointment_id)
+            self.assertEqual(raised.exception.status_code, 409)
+            self.assertEqual(
+                raised.exception.detail,
+                "Appointments cannot be completed before their scheduled date.",
+            )
+            self.assertEqual(
+                session.get(Appointment, appointment_id).status, "checked_in"
+            )
+            self.assertEqual(
+                session.scalars(
+                    select(AppointmentStatusChange).where(
+                        AppointmentStatusChange.appointment_id == appointment_id
+                    )
+                ).all(),
+                [],
+            )
+
     def test_completion_rejects_appointments_not_checked_in(self):
         for status in ("scheduled", "cancelled", "completed"):
             with self.subTest(status=status):
