@@ -1,127 +1,30 @@
 # Primary Care EMR
 
-This is a full stack primary care electronic medical record project. It uses **synthetic patient data only**.
+[![Checks](https://github.com/AI-CJ/primary-care-emr/actions/workflows/checks.yml/badge.svg)](https://github.com/AI-CJ/primary-care-emr/actions/workflows/checks.yml)
 
-The project started as a small patient search exercise. It has grown into a working EMR with patient charts, appointments, visit notes, labs, referrals, care goals, staff worklists, and a read only patient portal preview.
+Primary Care EMR is a full stack portfolio project that models the day to day work of a small outpatient clinic.
 
-> **Portfolio and learning project only.** This application is not approved for real clinical use and must not be used with real patient information.
+It includes patient charts, scheduling, visit notes, labs, referrals, care goals, staff worklists, and a separate patient portal preview. All patient records in the project are fictional.
 
-## What the project can do
+> This project is for learning and portfolio use. It is not approved for real clinical use and must not be used with real patient information.
 
-### Patient registry and chart
+## At a glance
 
-- Search for patients by legal or preferred name
-- Create and edit synthetic patient records
-- Record preferred names and pronouns
-- Record sex assigned at birth
-- Open a patient chart
-- View a clinical activity timeline
+| Area | What works now |
+| --- | --- |
+| Patient chart | Demographics, problems, medications, allergies, vitals, care goals, follow up tasks, and a clinical timeline |
+| Scheduling | Appointments, rescheduling, conflict checks, check in, completion, cancellation, no show, and daily schedule views |
+| Visit notes | Appointment linked notes, clinical data links, finalization, addenda, and patient instructions |
+| Labs | Lab requests, results, cancellation, history, staff review, and release to the portal preview |
+| Referrals | New referrals, cancellation, completion, history, and a pending referral worklist |
+| Staff worklists | Daily schedule, past appointments, pending labs, unreleased results, pending referrals, active goals, and open follow ups |
+| Patient portal preview | Patient facing views for medications, problems, allergies, vitals, goals, appointments, visits, labs, and referrals |
 
-### Clinical history
+The staff side is the most complete part of the project. The portal is still read only and is being kept separate from the staff chart on purpose.
 
-- Record active and resolved problems
-- Record active, completed, and discontinued medications
-- Record allergies, reactions, severity, and status
-- Record vital signs over time
-- Create care goals and update their progress
-- Create follow up tasks for patients and care goals
+## How it fits together
 
-### Appointments and clinic workflow
-
-- Schedule appointments
-- Prevent overlapping appointments
-- Reschedule appointments
-- Check patients in
-- Mark appointments as completed, cancelled, or no show
-- Keep a history of appointment status changes
-- Block invalid status changes
-- View the daily clinic schedule
-- Review past appointments that still need staff action
-- Start or open visit notes from appointment screens
-
-### Visit notes
-
-- Create visit notes tied to appointments
-- Link problems, medications, allergies, and vitals to a visit
-- Keep appointment dates fixed when a visit note is linked
-- Finalize visit notes
-- Prevent silent edits to finalized notes
-- Add new addenda after a note is finalized
-- Add patient instructions before a visit note is finalized
-
-### Labs and referrals
-
-- Create lab requests during visits
-- Record lab results
-- Cancel pending lab requests
-- View lab history across visits
-- View staff worklists for pending labs and results waiting for release
-- Require staff review before a lab result is shown in the portal preview
-- Create specialist referrals
-- Cancel pending referrals
-- Complete referrals
-- View referral history across visits
-- View a staff worklist for pending referrals
-
-### Staff worklists
-
-The staff side currently includes worklists for:
-
-- today's clinic schedule
-- past appointments that need review
-- pending lab requests
-- lab results waiting for portal release
-- pending referrals
-- active care goals
-- open follow up tasks
-
-### Patient portal preview
-
-The patient portal preview is separate from the staff chart. It is read only right now.
-
-Patients can preview:
-
-- medications
-- problems
-- allergies
-- recent vitals
-- care goals
-- upcoming and recent appointments
-- finalized visit summaries
-- lab requests
-- released lab results
-- referral summaries
-
-The portal does not return the full staff record. It uses smaller response models that only include information meant for the patient view.
-
-## Technology
-
-### Frontend
-
-- React 19
-- TypeScript
-- Vite
-- CSS
-- ESLint
-
-### Backend
-
-- Python 3.12
-- FastAPI
-- Pydantic
-- SQLAlchemy
-- Alembic
-
-### Database and development tools
-
-- PostgreSQL 17
-- Docker Compose
-- psycopg
-- GitHub Actions
-
-## Architecture
-
-The project has a React frontend and a FastAPI backend.
+The browser talks to a FastAPI backend over HTTP. FastAPI validates requests with Pydantic, SQLAlchemy handles database access, and PostgreSQL stores the data.
 
 ```text
 React + TypeScript
@@ -135,60 +38,39 @@ FastAPI + Pydantic
 PostgreSQL
 ```
 
-Alembic handles database schema changes.
+Database changes are tracked with Alembic migrations. Larger backend workflows have their own modules instead of living in one large file.
 
-As the project has grown, larger parts of the backend have been split into separate modules. These include scheduling, visits, labs, referrals, care goals, follow up tasks, the patient timeline, and portal views.
+## Stack
 
-## Synthetic data rule
+| Layer | Tools |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, CSS |
+| Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy |
+| Database | PostgreSQL 17, psycopg |
+| Database changes | Alembic |
+| Local services | Docker Compose |
+| Checks | GitHub Actions, Python unit tests, ESLint, TypeScript build |
 
-**No real protected health information belongs in this project.**
+## Run it locally
 
-Do not use real:
+You will need Python 3.12, Node.js, npm, Docker, Docker Compose, and Git.
 
-- patient names
-- dates of birth
-- addresses
-- phone numbers
-- email addresses
-- medical histories
-- medications
-- lab results
-- insurance information
-- billing information
-- patient identifiers
-- screenshots or logs that contain real patient data
-
-All development data, test data, screenshots, and demo records must be fictional.
-
-This project models health care workflows, but it does not claim to be HIPAA compliant or ready for real clinical use.
-
-## Local development
-
-### What you need
-
-Install these first:
-
-- Python 3.12
-- Node.js
-- npm
-- Docker
-- Docker Compose
-- Git
-
-### 1. Clone the repository
+### Clone the project
 
 ```bash
 git clone https://github.com/AI-CJ/primary-care-emr.git
 cd primary-care-emr
 ```
 
-### 2. Create the local environment file
+### Set up PostgreSQL
+
+Create your local environment file from the example.
 
 ```bash
 cp .env.example .env
 ```
 
-The example settings are:
+The example uses:
 
 ```env
 POSTGRES_DB=emr
@@ -196,61 +78,32 @@ POSTGRES_USER=emr_user
 POSTGRES_PASSWORD=change_me
 ```
 
-Use a password made only for local development in your `.env` file.
+Use a password made only for local development. The real `.env` file is ignored by Git.
 
-The real `.env` file is ignored by Git.
-
-### 3. Start PostgreSQL
+Start PostgreSQL with Docker Compose.
 
 ```bash
 docker compose up -d
 ```
 
-### 4. Create the Python virtual environment
+### Set up the backend
 
 ```bash
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
 python -m pip install -r backend/requirements.txt
-```
-
-### 5. Apply database migrations
-
-```bash
 alembic upgrade head
-```
-
-### 6. Add the starter synthetic patients
-
-```bash
 python -m backend.seed
-```
-
-The seed script can be run more than once. It skips this step if patient data already exists.
-
-### 7. Start the backend
-
-From the repository root with the virtual environment active:
-
-```bash
 uvicorn backend.main:app --reload
 ```
 
-The API runs at:
+The API runs at `http://127.0.0.1:8000`.
 
-```text
-http://127.0.0.1:8000
-```
+FastAPI docs are available at `http://127.0.0.1:8000/docs`.
 
-FastAPI also provides API documentation at:
+### Set up the frontend
 
-```text
-http://127.0.0.1:8000/docs
-```
-
-### 8. Start the frontend
-
-Open another terminal:
+Open another terminal.
 
 ```bash
 cd frontend
@@ -258,95 +111,45 @@ npm ci
 npm run dev
 ```
 
-Vite will print the local frontend address. It is usually:
+Vite normally starts the frontend at `http://localhost:5173`.
 
-```text
-http://localhost:5173
-```
+## Tests
 
-## Tests and checks
-
-### Backend tests
-
-From the repository root with the virtual environment active:
+Run the backend tests from the repository root while the Python virtual environment is active.
 
 ```bash
 python -m unittest discover -s backend/tests -p 'test_*.py'
 ```
 
-The backend tests cover many of the main workflow rules. This includes appointments, visits, care goals, follow up tasks, labs, referrals, the patient timeline, and portal data limits.
-
-### Frontend checks
+Run the frontend checks from the `frontend` folder.
 
 ```bash
-cd frontend
 npm run lint
 npm run build
 ```
 
-### GitHub Actions
+GitHub Actions runs the backend test suite and frontend build on pushes to `main` and on pull requests.
 
-GitHub Actions runs two checks on pushes to `main` and on pull requests:
+The current tests cover appointment rules, visit note behavior, care goals, follow up tasks, labs, referrals, the patient timeline, and patient portal data limits.
 
-- backend tests
-- frontend production build
+## Data safety
 
-## Project rules
+This repository uses synthetic data only.
 
-These are some of the main rules I am using while building the project.
+Do not add real patient names, dates of birth, contact details, medical histories, medications, lab results, insurance information, billing information, identifiers, screenshots, or logs.
 
-- **Keep the chart useful over time.** Important information should still make sense across many visits.
-- **Do not silently erase clinical history.** Finalized notes use addenda instead of silent changes. Important status changes are also kept in history.
-- **Keep staff and patient views separate.** The portal should only show information meant for patients.
-- **Block invalid states.** The system should reject appointment changes, dates, and other values that do not make sense.
-- **Build complete workflows.** A feature should work through the database, API, and interface before I move on.
-- **Use synthetic data only.** Real patient data is outside the scope of this project.
+The project models health care workflows, but it does not claim to be HIPAA compliant or ready for a real clinic.
 
-## Current status
+## Project status
 
-The main staff EMR is close to complete for the portfolio V1.
+The main staff EMR is close to the planned portfolio V1. Recent work has focused on tightening appointment and visit workflows, limiting what the patient portal can see, and adding tests around clinical rules.
 
-The current system already includes most of the core clinical workflows. The remaining work is focused on finishing and cleaning up the release.
+The remaining work is mostly release work. That includes access and audit controls, final portal work, deployment, accessibility checks, mobile cleanup, visual polish, and documentation.
 
-This includes:
+Live e prescribing, real insurance claims, outside EHR connections, and real patient data are outside the scope of this project.
 
-- finishing the patient portal experience
-- adding basic access and audit controls
-- deciding which message, document, and billing features belong in V1
-- checking accessibility and mobile use
-- preparing deployment
-- improving the final visual design
-- finishing release documentation
+## Why I built it
 
-This project does **not** include live e prescribing, real insurance claim processing, outside EHR connections, or real patient data.
+I started this project because I wanted to learn how a larger software system is built from the ground up.
 
-## Repository structure
-
-```text
-primary-care-emr/
-├── backend/
-│   ├── migrations/        # Alembic database migrations
-│   ├── tests/             # Backend tests
-│   ├── main.py            # FastAPI routes
-│   ├── models.py          # SQLAlchemy database models
-│   ├── schemas.py         # Pydantic request and response models
-│   └── ...                # Workflow modules
-├── frontend/
-│   └── src/
-│       ├── components/    # React components
-│       ├── App.tsx
-│       ├── App.css
-│       └── types.ts
-├── .github/workflows/     # GitHub Actions checks
-├── compose.yaml           # Local PostgreSQL container
-├── alembic.ini
-└── README.md
-```
-
-## Why I am building this
-
-I am building this project to learn how a larger software system comes together.
-
-I wanted to go beyond small coding exercises and build something with real relationships between data, workflow rules, database changes, tests, and user screens.
-
-The goal is not just to make something that looks like an EMR. I want to understand how to plan, build, test, and improve a system like this from start to finish.
+Small coding exercises are useful, but they do not show what happens when data models, workflows, migrations, validation, tests, and user screens all depend on each other. This project gives me a place to work through those problems in one system and document what I learn along the way.
