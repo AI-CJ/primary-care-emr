@@ -230,47 +230,51 @@ function ClinicSchedule({
               {entries.map((entry) => {
                 const { appointment, patient } = entry
                 return (
-                <li className="clinic-schedule-row" key={appointment.id}>
-                  <div className="schedule-time">
-                    <time dateTime={`${appointment.scheduled_date}T${appointment.start_time}`}>
-                      {formatTime(appointment.start_time)}
-                    </time>
-                    <span>{appointment.duration_minutes} min</span>
-                  </div>
-                  <div className="schedule-entry-detail">
-                    <button
-                      type="button"
-                      className="schedule-patient-link"
-                      onClick={() => onOpenPatient(patient.id, appointment.id)}
-                    >
-                      {patient.preferred_name || patient.first_name} {patient.last_name}
-                    </button>
-                    <p>{appointment.reason_for_visit}</p>
-                    <span className="schedule-dob">DOB {patient.date_of_birth}</span>
-                    {day === localDate() &&
-                      (appointment.status === 'scheduled' ||
-                        checkedIn?.appointmentId === appointment.id && checkedIn.day === day) && (
-                      <div className="appointment-actions">
-                        <button
-                          type="button"
-                          className="secondary-action-button"
-                          disabled={pendingCheckInId !== null || appointment.status !== 'scheduled'}
-                          aria-label={`Check in ${patient.preferred_name || patient.first_name} ${patient.last_name} for the ${formatTime(appointment.start_time)} appointment`}
-                          onClick={() => void checkIn(entry)}
-                        >
-                          {appointment.status === 'checked_in'
-                            ? 'Checked In'
-                            : pendingCheckInId === appointment.id
-                              ? 'Checking in...'
-                              : 'Check In'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <span className={`appointment-status appointment-status-${appointment.status}`}>
-                    {statusLabels[appointment.status]}
-                  </span>
-                </li>
+                  <li className="clinic-schedule-row" key={appointment.id}>
+                    <div className="schedule-time">
+                      <time dateTime={`${appointment.scheduled_date}T${appointment.start_time}`}>
+                        {formatTime(appointment.start_time)}
+                      </time>
+                      <span>{appointment.duration_minutes} min</span>
+                    </div>
+                    <div className="schedule-entry-detail">
+                      <button
+                        type="button"
+                        className="schedule-patient-link"
+                        onClick={() => onOpenPatient(patient.id, appointment.id)}
+                      >
+                        {patient.preferred_name || patient.first_name} {patient.last_name}
+                      </button>
+                      <p>{appointment.reason_for_visit}</p>
+                      <span className="schedule-dob">DOB {patient.date_of_birth}</span>
+                      {day === localDate() &&
+                        (appointment.status === 'scheduled' ||
+                          (checkedIn?.appointmentId === appointment.id && checkedIn.day === day)) && (
+                        <div className="appointment-actions">
+                          <button
+                            type="button"
+                            className="secondary-action-button"
+                            disabled={pendingCheckInId !== null || appointment.status !== 'scheduled'}
+                            aria-label={
+                              appointment.status === 'checked_in'
+                                ? `${patient.preferred_name || patient.first_name} ${patient.last_name} checked in`
+                                : `Check in ${patient.preferred_name || patient.first_name} ${patient.last_name} for the ${formatTime(appointment.start_time)} appointment`
+                            }
+                            onClick={() => void checkIn(entry)}
+                          >
+                            {appointment.status === 'checked_in'
+                              ? 'Checked In'
+                              : pendingCheckInId === appointment.id
+                                ? 'Checking in...'
+                                : 'Check In'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <span className={`appointment-status appointment-status-${appointment.status}`}>
+                      {statusLabels[appointment.status]}
+                    </span>
+                  </li>
                 )
               })}
             </ol>
