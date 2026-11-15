@@ -60,6 +60,16 @@ function ClinicSchedule({
     message: string
   } | null>(null)
   const [pendingCheckInId, setPendingCheckInId] = useState<number | null>(null)
+  const [pendingCompleteId, setPendingCompleteId] = useState<number | null>(null)
+  const [completeError, setCompleteError] = useState<{
+    day: string
+    message: string
+  } | null>(null)
+  const [completed, setCompleted] = useState<{
+    day: string
+    appointmentId: number
+    patientName: string
+  } | null>(null)
   const [checkInError, setCheckInError] = useState<{
     day: string
     message: string
@@ -72,7 +82,8 @@ function ClinicSchedule({
 
   async function checkIn(entry: DailyScheduleEntry) {
     const { appointment, patient } = entry
-    if (pendingCheckInId !== null || appointment.status !== 'scheduled' ||
+    if (pendingCheckInId !== null || pendingCompleteId !== null ||
+        appointment.status !== 'scheduled' ||
         appointment.scheduled_date !== localDate()) return
 
     const patientName = `${patient.preferred_name || patient.first_name} ${patient.last_name}`
@@ -84,6 +95,8 @@ function ClinicSchedule({
     setPendingCheckInId(appointment.id)
     setCheckInError(null)
     setCheckedIn(null)
+    setCompleted(null)
+    setCompleteError(null)
 
     try {
       const response = await fetch(
@@ -114,6 +127,55 @@ function ClinicSchedule({
       })
     } finally {
       setPendingCheckInId(null)
+    }
+  }
+
+  async function completeVisit(entry: DailyScheduleEntry) {
+    const { appointment, patient } = entry
+    if (pendingCheckInId !== null || pendingCompleteId !== null ||
+        appointment.status !== 'checked_in') return
+
+    const patientName = `${patient.preferred_name || patient.first_name} ${patient.last_name}`
+    if (!window.confirm(
+      `Mark ${patientName}'s ${appointment.scheduled_date} appointment at ${formatTime(appointment.start_time)} complete? ` +
+      'This cannot be undone. Visit note finalization is a separate step.',
+    )) return
+
+    setPendingCompleteId(appointment.id)
+    setCompleteError(null)
+    setCheckInError(null)
+    setCheckedIn(null)
+    setCompleted(null)
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/appointments/${appointment.id}/complete`,
+        { method: 'POST' },
+      )
+      if (!response.ok) {
+        setCompleteError({
+          day: appointment.scheduled_date,
+          message: await getApiErrorMessage(response),
+        })
+        return
+      }
+
+      setResult((current) => current?.day === appointment.scheduled_date
+        ? {
+            ...current,
+            entries: current.entries.map((item) => item.appointment.id === appointment.id
+              ? { ...item, appointment: { ...item.appointment, status: 'completed' } }
+              : item),
+          }
+        : current)
+      setCompleted({ day: appointment.scheduled_date, appointmentId: appointment.id, patientName })
+    } catch {
+      setCompleteError({
+        day: appointment.scheduled_date,
+        message: 'The appointment could not be completed. Try again.',
+      })
+    } finally {
+      setPendingCompleteId(null)
     }
   }
 
@@ -168,7 +230,7 @@ function ClinicSchedule({
         <header className="schedule-header">
           <div>
             <h1>Clinic Schedule</h1>
-            <p>Review appointments, check in today's arrivals, and open visit notes.</p>
+            <p>Review appointments, check in arrivals, complete visits, and open visit notes.</p>
           </div>
         </header>
 
@@ -210,6 +272,14 @@ function ClinicSchedule({
         {patientError && <p className="form-error" role="alert">{patientError}</p>}
         {checkInError?.day === day && (
           <p className="form-error" role="alert">{checkInError.message}</p>
+        )}
+        {completeError?.day === day && (
+          <p className="form-error" role="alert">{completeError.message}</p>
+        )}
+        {completed?.day === day && (
+          <p className="empty-message" role="status">
+            {completed.patientName} completed appointment #{completed.appointmentId}.
+          </p>
         )}
         {checkedIn?.day === day && (
           <p className="empty-message" role="status">
@@ -253,12 +323,14 @@ function ClinicSchedule({
                       <span className="schedule-dob">DOB {patient.date_of_birth}</span>
                       {day === localDate() &&
                         (appointment.status === 'scheduled' ||
-                          (checkedIn?.appointmentId === appointment.id && checkedIn.day === day)) && (
+                          (appointment.status === 'checked_in' &&
+                            checkedIn?.appointmentId === appointment.id && checkedIn.day === day)) && (
                         <div className="appointment-actions">
                           <button
                             type="button"
                             className="secondary-action-button"
-                            disabled={pendingCheckInId !== null || appointment.status !== 'scheduled'}
+                            disabled={pendingCheckInId !== null || pendingCompleteId !== null ||
+                              appointment.status !== 'scheduled'}
                             aria-label={
                               appointment.status === 'checked_in'
                                 ? `${patient.preferred_name || patient.first_name} ${patient.last_name} checked in`
@@ -282,6 +354,7 @@ function ClinicSchedule({
                               type="button"
                               className="secondary-action-button"
                               aria-label={`Start visit note for ${patient.preferred_name || patient.first_name} ${patient.last_name}, ${appointment.scheduled_date} at ${formatTime(appointment.start_time)}`}
+                              disabled={pendingCompleteId !== null}
                               onClick={() => onStartVisitNote(patient.id, appointment.id)}
                             >
                               Start Visit Note
@@ -291,6 +364,7 @@ function ClinicSchedule({
                               type="button"
                               className="secondary-action-button"
                               aria-label={`Open visit note #${appointment.visit_note_id} for ${patient.preferred_name || patient.first_name} ${patient.last_name}`}
+                              disabled={pendingCompleteId !== null}
                               onClick={() => {
                                 if (appointment.visit_note_id !== null) {
                                   onOpenVisitNote(patient.id, appointment.id, appointment.visit_note_id)
@@ -298,6 +372,17 @@ function ClinicSchedule({
                               }}
                             >
                               Open Visit Note
+                            </button>
+                          )}
+                          {appointment.status === 'checked_in' && (
+                            <button
+                              type="button"
+                              className="secondary-action-button"
+                              disabled={pendingCheckInId !== null || pendingCompleteId !== null}
+                              aria-label={`Complete appointment for ${patient.preferred_name || patient.first_name} ${patient.last_name}, ${appointment.scheduled_date} at ${formatTime(appointment.start_time)}`}
+                              onClick={() => void completeVisit(entry)}
+                            >
+                              {pendingCompleteId === appointment.id ? 'Completing...' : 'Complete Appointment'}
                             </button>
                           )}
                         </div>
