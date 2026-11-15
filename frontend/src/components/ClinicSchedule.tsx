@@ -133,7 +133,8 @@ function ClinicSchedule({
   async function completeVisit(entry: DailyScheduleEntry) {
     const { appointment, patient } = entry
     if (pendingCheckInId !== null || pendingCompleteId !== null ||
-        appointment.status !== 'checked_in') return
+        appointment.status !== 'checked_in' ||
+        appointment.scheduled_date > localDate()) return
 
     const patientName = `${patient.preferred_name || patient.first_name} ${patient.last_name}`
     if (!window.confirm(
@@ -374,7 +375,8 @@ function ClinicSchedule({
                               Open Visit Note
                             </button>
                           )}
-                          {appointment.status === 'checked_in' && (
+                          {appointment.status === 'checked_in' &&
+                            appointment.scheduled_date <= localDate() && (
                             <button
                               type="button"
                               className="secondary-action-button"
