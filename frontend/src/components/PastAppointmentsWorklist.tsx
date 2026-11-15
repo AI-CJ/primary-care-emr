@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
 import { localDate } from './ClinicSchedule'
-import type { ScheduleEntry } from '../types'
+import type { DailyScheduleEntry } from '../types'
 
 type PastAppointmentsWorklistProps = {
   onBack: () => void
   onOpenPatient: (patientId: number, appointmentId: number) => void
+  onStartVisitNote: (patientId: number, appointmentId: number) => void
+  onOpenVisitNote: (patientId: number, appointmentId: number, noteId: number) => void
   patientError: string | null
 }
 
@@ -18,9 +20,11 @@ function formatTime(value: string): string {
 function PastAppointmentsWorklist({
   onBack,
   onOpenPatient,
+  onStartVisitNote,
+  onOpenVisitNote,
   patientError,
 }: PastAppointmentsWorklistProps) {
-  const [appointments, setAppointments] = useState<ScheduleEntry[] | null>(null)
+  const [appointments, setAppointments] = useState<DailyScheduleEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
   const [pendingNoShowId, setPendingNoShowId] = useState<number | null>(null)
@@ -42,7 +46,7 @@ function PastAppointmentsWorklist({
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
 
-        const records: ScheduleEntry[] = await response.json()
+        const records: DailyScheduleEntry[] = await response.json()
         if (!controller.signal.aborted) setAppointments(records)
       } catch (requestError) {
         if (!controller.signal.aborted) {
@@ -60,8 +64,8 @@ function PastAppointmentsWorklist({
   }, [refreshCount])
 
   async function markNoShow(
-    appointment: ScheduleEntry['appointment'],
-    patient: ScheduleEntry['patient'],
+    appointment: DailyScheduleEntry['appointment'],
+    patient: DailyScheduleEntry['patient'],
   ) {
     if (appointment.status !== 'scheduled' || pendingNoShowId !== null ||
         pendingCompleteId !== null) return
@@ -96,8 +100,8 @@ function PastAppointmentsWorklist({
   }
 
   async function completeVisit(
-    appointment: ScheduleEntry['appointment'],
-    patient: ScheduleEntry['patient'],
+    appointment: DailyScheduleEntry['appointment'],
+    patient: DailyScheduleEntry['patient'],
   ) {
     if (appointment.status !== 'checked_in' || appointment.scheduled_date >= localDate() ||
         pendingNoShowId !== null || pendingCompleteId !== null) return
@@ -216,6 +220,23 @@ function PastAppointmentsWorklist({
                         {patient.preferred_name || patient.first_name} {patient.last_name}
                       </button>
                       <span>Review this appointment in the patient chart</span>
+                      {appointment.status === 'checked_in' && (
+                        <button
+                          className="secondary-action-button"
+                          type="button"
+                          disabled={pendingNoShowId !== null || pendingCompleteId !== null}
+                          aria-label={`${appointment.visit_note_id === null ? 'Start visit note for' : 'Open visit note for'} ${patient.preferred_name || patient.first_name} ${patient.last_name}, appointment #${appointment.id}`}
+                          onClick={() => {
+                            if (appointment.visit_note_id === null) {
+                              onStartVisitNote(patient.id, appointment.id)
+                            } else {
+                              onOpenVisitNote(patient.id, appointment.id, appointment.visit_note_id)
+                            }
+                          }}
+                        >
+                          {appointment.visit_note_id === null ? 'Start Visit Note' : 'Open Visit Note'}
+                        </button>
+                      )}
                       {appointment.status === 'scheduled' && (
                         <button
                           className="secondary-action-button"
