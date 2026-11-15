@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL, getApiErrorMessage } from '../api'
-import type { AppointmentStatus, ScheduleEntry } from '../types'
+import type { AppointmentStatus, DailyScheduleEntry } from '../types'
 
 type ClinicScheduleProps = {
   day: string
   onDayChange: (day: string) => void
   onBack: () => void
   onOpenPatient: (patientId: number, appointmentId: number) => void
+  onStartVisitNote: (patientId: number, appointmentId: number) => void
+  onOpenVisitNote: (patientId: number, appointmentId: number, noteId: number) => void
   patientError: string | null
 }
 
@@ -45,11 +47,13 @@ function ClinicSchedule({
   onDayChange,
   onBack,
   onOpenPatient,
+  onStartVisitNote,
+  onOpenVisitNote,
   patientError,
 }: ClinicScheduleProps) {
   const [result, setResult] = useState<{
     day: string
-    entries: ScheduleEntry[]
+    entries: DailyScheduleEntry[]
   } | null>(null)
   const [failure, setFailure] = useState<{
     day: string
@@ -66,7 +70,7 @@ function ClinicSchedule({
     patientName: string
   } | null>(null)
 
-  async function checkIn(entry: ScheduleEntry) {
+  async function checkIn(entry: DailyScheduleEntry) {
     const { appointment, patient } = entry
     if (pendingCheckInId !== null || appointment.status !== 'scheduled' ||
         appointment.scheduled_date !== localDate()) return
@@ -127,7 +131,7 @@ function ClinicSchedule({
           throw new Error(await getApiErrorMessage(response))
         }
 
-        const entries: ScheduleEntry[] = await response.json()
+        const entries: DailyScheduleEntry[] = await response.json()
         if (!controller.signal.aborted) {
           setResult({ day, entries })
           setFailure(null)
@@ -164,7 +168,7 @@ function ClinicSchedule({
         <header className="schedule-header">
           <div>
             <h1>Clinic Schedule</h1>
-            <p>Review appointments and check in today's arrivals. Open a patient chart for other changes.</p>
+            <p>Review appointments, check in today's arrivals, and open visit notes.</p>
           </div>
         </header>
 
@@ -268,6 +272,34 @@ function ClinicSchedule({
                                 ? 'Checking in...'
                                 : 'Check In'}
                           </button>
+                        </div>
+                      )}
+                      {(appointment.status === 'checked_in' ||
+                        appointment.status === 'completed') && (
+                        <div className="appointment-actions">
+                          {appointment.visit_note_id === null ? (
+                            <button
+                              type="button"
+                              className="secondary-action-button"
+                              aria-label={`Start visit note for ${patient.preferred_name || patient.first_name} ${patient.last_name}, ${appointment.scheduled_date} at ${formatTime(appointment.start_time)}`}
+                              onClick={() => onStartVisitNote(patient.id, appointment.id)}
+                            >
+                              Start Visit Note
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="secondary-action-button"
+                              aria-label={`Open visit note #${appointment.visit_note_id} for ${patient.preferred_name || patient.first_name} ${patient.last_name}`}
+                              onClick={() => {
+                                if (appointment.visit_note_id !== null) {
+                                  onOpenVisitNote(patient.id, appointment.id, appointment.visit_note_id)
+                                }
+                              }}
+                            >
+                              Open Visit Note
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

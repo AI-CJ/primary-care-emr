@@ -1064,6 +1064,10 @@ class ScheduleEntryRead(BaseModel):
     patient: SchedulePatientRead
 
 
+class DailyScheduleEntryRead(ScheduleEntryRead):
+    appointment: PatientAppointmentRead
+
+
 
 class PatientTimelineEntry(BaseModel):
     """A dated chart item with its current status, not an audit event."""

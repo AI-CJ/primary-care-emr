@@ -159,6 +159,7 @@ from backend.schemas import (
     ProblemCreate,
     ProblemRead,
     ScheduleEntryRead,
+    DailyScheduleEntryRead,
     SchedulePatientRead,
     VitalCreate,
     VitalRead,
@@ -1230,17 +1231,29 @@ def complete_referral_request(referral_id: int, follow_up: ReferralComplete):
 
 @app.get(
     "/schedule",
-    response_model=list[ScheduleEntryRead],
+    response_model=list[DailyScheduleEntryRead],
 )
 def read_daily_schedule(day: date):
     """Read all appointments for a clinic-local day."""
     with Session(engine) as session:
+        entries = list_daily_schedule(session, day)
+        linked_notes = dict(session.execute(
+            select(Encounter.appointment_id, Encounter.id)
+            .join(Appointment, Appointment.id == Encounter.appointment_id)
+            .where(
+                Appointment.scheduled_date == day,
+                Encounter.patient_id == Appointment.patient_id,
+            )
+        ).all())
         return [
-            ScheduleEntryRead(
-                appointment=AppointmentRead.model_validate(appointment),
+            DailyScheduleEntryRead(
+                appointment=PatientAppointmentRead(
+                    **AppointmentRead.model_validate(appointment).model_dump(),
+                    visit_note_id=linked_notes.get(appointment.id),
+                ),
                 patient=SchedulePatientRead.model_validate(patient),
             )
-            for appointment, patient in list_daily_schedule(session, day)
+            for appointment, patient in entries
         ]
 
 

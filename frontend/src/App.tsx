@@ -182,6 +182,8 @@ function App() {
   async function openPatient(
     patientId: number,
     appointmentId: number | null = null,
+    noteAction?: 'start' | 'open',
+    noteId?: number,
   ) {
     setError(null)
 
@@ -203,8 +205,16 @@ function App() {
 
       setSelectedPatient(patient)
       setAppointmentToReview(appointmentId)
-      setNoteToReview(null)
-      setNoteToStart(null)
+      setNoteToReview(
+        noteAction === 'open' && noteId !== undefined
+          ? { id: noteId, request: 1 }
+          : null
+      )
+      setNoteToStart(
+        noteAction === 'start' && appointmentId !== null
+          ? { appointmentId, request: 1 }
+          : null
+      )
     } catch (requestError) {
       console.error(requestError)
 
@@ -553,6 +563,12 @@ function App() {
         }}
         onOpenPatient={(patientId, appointmentId) => {
           void openPatient(patientId, appointmentId)
+        }}
+        onStartVisitNote={(patientId, appointmentId) => {
+          void openPatient(patientId, appointmentId, 'start')
+        }}
+        onOpenVisitNote={(patientId, appointmentId, noteId) => {
+          void openPatient(patientId, appointmentId, 'open', noteId)
         }}
         patientError={error}
       />

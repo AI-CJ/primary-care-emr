@@ -336,6 +336,11 @@ export type ScheduleEntry = {
   patient: SchedulePatient
 }
 
+export type DailyScheduleEntry = {
+  appointment: PatientAppointment
+  patient: SchedulePatient
+}
+
 export type CareGoal = {
   id: number
   patient_id: number
