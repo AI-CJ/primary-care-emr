@@ -24,7 +24,9 @@ function PastAppointmentsWorklist({
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
   const [pendingNoShowId, setPendingNoShowId] = useState<number | null>(null)
+  const [pendingCompleteId, setPendingCompleteId] = useState<number | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
+  const [completionMessage, setCompletionMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -61,6 +63,9 @@ function PastAppointmentsWorklist({
     appointment: ScheduleEntry['appointment'],
     patient: ScheduleEntry['patient'],
   ) {
+    if (appointment.status !== 'scheduled' || pendingNoShowId !== null ||
+        pendingCompleteId !== null) return
+
     const patientName = `${patient.preferred_name || patient.first_name} ${patient.last_name}`
     const confirmed = window.confirm(
       `Mark the appointment for ${patientName} on ${appointment.scheduled_date} ` +
@@ -71,6 +76,7 @@ function PastAppointmentsWorklist({
 
     setPendingNoShowId(appointment.id)
     setStatusError(null)
+    setCompletionMessage(null)
     try {
       const response = await fetch(
         `${API_BASE_URL}/appointments/${appointment.id}/no-show`,
@@ -89,6 +95,46 @@ function PastAppointmentsWorklist({
     }
   }
 
+  async function completeVisit(
+    appointment: ScheduleEntry['appointment'],
+    patient: ScheduleEntry['patient'],
+  ) {
+    if (appointment.status !== 'checked_in' || appointment.scheduled_date >= localDate() ||
+        pendingNoShowId !== null || pendingCompleteId !== null) return
+
+    const patientName = `${patient.preferred_name || patient.first_name} ${patient.last_name}`
+    const confirmed = window.confirm(
+      `Mark the appointment for ${patientName} on ${appointment.scheduled_date} ` +
+      `at ${formatTime(appointment.start_time)} complete?\n\n` +
+      'Confirm the visit occurred. This change cannot be undone, and visit note ' +
+      'finalization is a separate step.',
+    )
+    if (!confirmed) return
+
+    setPendingCompleteId(appointment.id)
+    setStatusError(null)
+    setCompletionMessage(null)
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/appointments/${appointment.id}/complete`,
+        { method: 'POST' },
+      )
+      if (!response.ok) {
+        setStatusError(await getApiErrorMessage(response))
+        return
+      }
+
+      setCompletionMessage(
+        `${patientName}'s appointment on ${appointment.scheduled_date} was marked complete.`,
+      )
+      setRefreshCount((count) => count + 1)
+    } catch {
+      setStatusError('The appointment could not be completed. Try again.')
+    } finally {
+      setPendingCompleteId(null)
+    }
+  }
+
   return (
     <main className="search-page">
       <section className="search-panel schedule-panel" aria-labelledby="past-appointments-heading">
@@ -100,15 +146,18 @@ function PastAppointmentsWorklist({
             <h1 id="past-appointments-heading">Past Appointments to Review</h1>
             <p className="pending-lab-intro">
               Appointments from previous days still marked scheduled or checked in.
-              Review the patient chart before changing a status. Scheduled appointments
-              can be marked no-show here after confirming the patient did not attend.
+              Review the patient chart before changing a status. Mark scheduled visits
+              no-show only after confirming the patient did not attend, or complete checked-in
+              visits after confirming they occurred. Completing an appointment does not
+              finalize its visit note.
             </p>
           </div>
           <button
             className="secondary-action-button"
             type="button"
             onClick={() => setRefreshCount((count) => count + 1)}
-            disabled={(appointments === null && error === null) || pendingNoShowId !== null}
+            disabled={(appointments === null && error === null) ||
+              pendingNoShowId !== null || pendingCompleteId !== null}
           >
             Refresh
           </button>
@@ -116,6 +165,7 @@ function PastAppointmentsWorklist({
 
         {patientError && <p className="form-error" role="alert">{patientError}</p>}
         {statusError && <p className="form-error" role="alert">{statusError}</p>}
+        {completionMessage && <p className="empty-message" role="status">{completionMessage}</p>}
         {!appointments && !error && (
           <p className="empty-message" role="status">Loading past appointments...</p>
         )}
@@ -170,11 +220,22 @@ function PastAppointmentsWorklist({
                         <button
                           className="secondary-action-button"
                           type="button"
-                          disabled={pendingNoShowId !== null}
+                          disabled={pendingNoShowId !== null || pendingCompleteId !== null}
                           aria-label={`Mark appointment #${appointment.id} for ${patient.preferred_name || patient.first_name} ${patient.last_name} as no-show`}
                           onClick={() => void markNoShow(appointment, patient)}
                         >
                           {pendingNoShowId === appointment.id ? 'Recording no-show...' : 'Mark No-show'}
+                        </button>
+                      )}
+                      {appointment.status === 'checked_in' && (
+                        <button
+                          className="secondary-action-button"
+                          type="button"
+                          disabled={pendingNoShowId !== null || pendingCompleteId !== null}
+                          aria-label={`Complete appointment #${appointment.id} for ${patient.preferred_name || patient.first_name} ${patient.last_name}`}
+                          onClick={() => void completeVisit(appointment, patient)}
+                        >
+                          {pendingCompleteId === appointment.id ? 'Completing...' : 'Complete Appointment'}
                         </button>
                       )}
                     </div>
@@ -185,7 +246,7 @@ function PastAppointmentsWorklist({
           </>
         )}
         <p className="pending-lab-disclaimer">
-          Synthetic-data demonstration. No-show updates require staff confirmation and are recorded in appointment status history.
+          Synthetic-data demonstration. Appointment status changes require staff confirmation and are recorded in status history.
         </p>
       </section>
     </main>
