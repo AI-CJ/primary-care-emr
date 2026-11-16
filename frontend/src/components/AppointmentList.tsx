@@ -103,6 +103,17 @@ function AppointmentList({
   ) {
     if (pendingAction !== null) return
 
+    if (action === 'check-in') {
+      const confirmed = window.confirm(
+        'Confirm the patient has arrived for the appointment on ' +
+          appointment.scheduled_date + ' at ' +
+          appointment.start_time.slice(0, 5) + ' for ' +
+          appointment.reason_for_visit + '? Check-in will be recorded in ' +
+          'the appointment status history.'
+      )
+      if (!confirmed) return
+    }
+
     if (action === 'complete') {
       const confirmed = window.confirm(
         'Mark the appointment on ' + appointment.scheduled_date +
