@@ -101,6 +101,19 @@ function AppointmentList({
     appointment: Appointment,
     action: 'check-in' | 'complete' | 'cancel' | 'no-show'
   ) {
+    if (pendingAction !== null) return
+
+    if (action === 'complete') {
+      const confirmed = window.confirm(
+        'Mark the appointment on ' + appointment.scheduled_date +
+          ' at ' + appointment.start_time.slice(0, 5) +
+          ' for ' + appointment.reason_for_visit +
+          ' complete? Confirm the visit occurred. This cannot be undone. ' +
+          'Visit note finalization is a separate step.'
+      )
+      if (!confirmed) return
+    }
+
     setPendingAction({ id: appointment.id, action })
     setActionError(null)
 
