@@ -1082,3 +1082,26 @@ class PatientTimelineEntry(BaseModel):
     occurred_on: date
     title: str
     status: str
+
+
+class AuthLoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1, max_length=1024)
+
+
+class AuthLoginResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_at: datetime
+
+
+class AuthAccountRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    account_type: Literal["staff", "patient"]
+    staff_role: Literal["admin", "clinician", "front_desk"] | None
+    patient_id: int | None

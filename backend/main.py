@@ -1,11 +1,16 @@
 from datetime import date
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.account_auth import authenticate_user
+from backend.session_auth import create_session, get_session_account, revoke_session
+from backend.models import UserAccount
+from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse
 from backend.patient_timeline import list_patient_timeline
 from backend.portal_medications import list_portal_preview_medications
 from backend.portal_problems import list_portal_preview_problems
@@ -179,6 +184,58 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def _unauthorized() -> HTTPException:
+    return HTTPException(
+        status_code=401,
+        detail="Invalid or missing credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def _bearer_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+) -> str:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise _unauthorized()
+    return credentials.credentials
+
+
+def _current_account(token: str = Depends(_bearer_token)) -> UserAccount:
+    with Session(engine) as session:
+        account = get_session_account(session, token)
+        if account is None:
+            raise _unauthorized()
+        return account
+
+
+@app.post("/auth/login", response_model=AuthLoginResponse)
+def login(credentials: AuthLoginRequest):
+    with Session(engine) as session:
+        account = authenticate_user(session, credentials.username, credentials.password)
+        if account is None:
+            raise _unauthorized()
+        token, record = create_session(session, account)
+        session.commit()
+        return AuthLoginResponse(access_token=token, expires_at=record.expires_at)
+
+
+@app.get("/auth/me", response_model=AuthAccountRead)
+def read_current_account(account: UserAccount = Depends(_current_account)):
+    return account
+
+
+@app.post("/auth/logout", status_code=204)
+def logout(token: str = Depends(_bearer_token)):
+    with Session(engine) as session:
+        if get_session_account(session, token) is None:
+            raise _unauthorized()
+        revoke_session(session, token)
+        session.commit()
 
 
 @app.get("/")
