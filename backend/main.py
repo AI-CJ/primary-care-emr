@@ -1,6 +1,7 @@
 from datetime import date
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import or_, select
@@ -211,6 +212,45 @@ def _current_account(token: str = Depends(_bearer_token)) -> UserAccount:
         if account is None:
             raise _unauthorized()
         return account
+
+
+# Clinical routes are staff-only until patient-scoped portal access is implemented.
+# Keeping the check at the HTTP boundary also covers newly added routes.
+_PUBLIC_PATHS = {"/", "/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"}
+_AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
+
+
+@app.middleware("http")
+async def require_clinical_access(request: Request, call_next):
+    if (
+        request.method == "OPTIONS"
+        or request.url.path in _PUBLIC_PATHS
+        or request.url.path in _AUTH_PATHS
+    ):
+        return await call_next(request)
+
+    scheme, separator, token = request.headers.get("Authorization", "").partition(" ")
+    if scheme.lower() != "bearer" or not separator or not token:
+        return JSONResponse(
+            {"detail": "Invalid or missing credentials"},
+            status_code=401,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    with Session(engine) as session:
+        account = get_session_account(session, token)
+        if account is None:
+            return JSONResponse(
+                {"detail": "Invalid or missing credentials"},
+                status_code=401,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if account.account_type != "staff" or account.staff_role not in {"admin", "clinician"}:
+            return JSONResponse({"detail": "Access denied"}, status_code=403)
+
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.post("/auth/login", response_model=AuthLoginResponse)

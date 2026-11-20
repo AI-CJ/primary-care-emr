@@ -40,6 +40,11 @@ class AuthRoutesTests(unittest.TestCase):
                 password="Synthetic patient password!",
                 account_type="patient", patient_id=patient.id,
             )
+            create_user_account(
+                session, username="sample.frontdesk",
+                password="Synthetic desk password!",
+                account_type="staff", staff_role="front_desk",
+            )
             session.commit()
 
     def tearDown(self):
@@ -101,6 +106,56 @@ class AuthRoutesTests(unittest.TestCase):
             self.assertEqual(client.get("/auth/me", headers={
                 "Authorization": "Bearer invalid",
             }).status_code, 401)
+
+    def test_clinical_routes_require_active_staff_session(self):
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            routes = (
+                f"/patients/{self.patient_id}",
+                "/patients",
+                "/worklists/active-care-goals",
+                f"/patients/{self.patient_id}/portal-preview/problems",
+            )
+            for route in routes:
+                with self.subTest(route=route):
+                    no_token = client.get(route)
+                    self.assertEqual(no_token.status_code, 401)
+                    self.assertEqual(no_token.headers["www-authenticate"], "Bearer")
+
+            patient_token = client.post("/auth/login", json={
+                "username": "sample.patient", "password": "Synthetic patient password!",
+            }).json()["access_token"]
+            desk_token = client.post("/auth/login", json={
+                "username": "sample.frontdesk", "password": "Synthetic desk password!",
+            }).json()["access_token"]
+            staff_token = client.post("/auth/login", json={
+                "username": "sample.staff", "password": "Synthetic staff password!",
+            }).json()["access_token"]
+
+            for token in (patient_token, desk_token):
+                for route in routes:
+                    with self.subTest(role=token[:8], route=route):
+                        self.assertEqual(client.get(route, headers={
+                            "Authorization": f"Bearer {token}",
+                        }).status_code, 403)
+
+            staff_header = {"Authorization": f"Bearer {staff_token}"}
+            for route in routes:
+                with self.subTest(staff_route=route):
+                    self.assertEqual(client.get(route, headers=staff_header).status_code, 200)
+
+            self.assertEqual(
+                client.post("/auth/logout", headers=staff_header).status_code, 204
+            )
+            self.assertEqual(client.get("/patients", headers=staff_header).status_code, 401)
+
+    def test_cors_preflight_remains_accessible(self):
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            response = client.options("/patients", headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "GET",
+            })
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
 
     def test_expired_token_and_disabled_account(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:
