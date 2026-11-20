@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { FollowUpTask } from '../types'
 
 type OpenFollowUpTask = FollowUpTask & {
@@ -29,7 +29,7 @@ function OpenFollowUpTasksWorklist({
 
     async function loadTasks() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/worklists/open-follow-up-tasks',
           { signal: controller.signal },
         )

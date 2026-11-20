@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, LabOrder, LabOrderInput, LabOrderPriority } from '../types'
 import EncounterLabResult from './EncounterLabResult'
 
@@ -30,7 +30,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
       setLoadError(null)
       setOrders([])
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/encounters/' + encounter.id + '/lab-orders',
           { signal: controller.signal }
         )
@@ -70,7 +70,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
     setActionError(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/lab-orders',
         {
           method: 'POST',
@@ -106,7 +106,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
     setActionError(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/lab-orders/' + order.id + '/cancel',
         {
           method: 'POST',

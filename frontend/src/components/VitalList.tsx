@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Vital } from '../types'
 import VitalForm from './VitalForm'
 
@@ -45,7 +45,7 @@ function VitalList({ patientId }: VitalListProps) {
     setError(null)
     setVitals([])
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/patients/' + patientId + '/vitals'
       )
       if (!response.ok) {

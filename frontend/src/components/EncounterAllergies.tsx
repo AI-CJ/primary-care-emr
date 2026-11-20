@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Allergy, AllergySeverity, AllergyStatus, Encounter, EncounterAllergy } from '../types'
 
 const statusLabels: Record<AllergyStatus, string> = {
@@ -39,7 +39,7 @@ function EncounterAllergies({ encounter }: EncounterAllergiesProps) {
       setLinks([])
       setAllergies([])
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/encounters/' + encounter.id + '/allergies',
           { signal: controller.signal }
         )
@@ -51,7 +51,7 @@ function EncounterAllergies({ encounter }: EncounterAllergiesProps) {
           return
         }
 
-        const chartResponse = await fetch(
+        const chartResponse = await apiFetch(
           API_BASE_URL + '/patients/' + encounter.patient_id + '/allergies',
           { signal: controller.signal }
         )
@@ -92,7 +92,7 @@ function EncounterAllergies({ encounter }: EncounterAllergiesProps) {
     setActionError(null)
     setPending('add')
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/allergies',
         {
           method: 'POST',
@@ -120,7 +120,7 @@ function EncounterAllergies({ encounter }: EncounterAllergiesProps) {
     setActionError(null)
     setPending(allergyId)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/allergies/' + allergyId,
         { method: 'DELETE' }
       )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PortalLabOrder, PortalLabResult } from '../types'
 
 type PortalLabResultsProps = {
@@ -21,7 +21,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
       setOrders(null)
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/portal-preview/lab-orders',
           { signal: controller.signal },
         )

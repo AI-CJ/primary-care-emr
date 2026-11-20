@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type {
   Medication,
   MedicationInput,
@@ -55,7 +55,7 @@ function MedicationForm({
       : API_BASE_URL + '/patients/' + patientId + '/medications'
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: medication ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',

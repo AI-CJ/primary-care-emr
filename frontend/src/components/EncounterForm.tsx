@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, EncounterInput, PatientAppointment } from '../types'
 
 type EncounterFormProps = {
@@ -39,7 +39,7 @@ function EncounterForm({
 
     async function loadAppointments() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/appointments',
           { signal: controller.signal }
         )
@@ -149,7 +149,7 @@ function EncounterForm({
       : API_BASE_URL + '/patients/' + patientId + '/encounters'
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: encounter ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(encounterData),

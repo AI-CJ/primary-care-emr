@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Vital, VitalInput } from '../types'
 
 type VitalFormProps = {
@@ -85,7 +85,7 @@ function VitalForm({ patientId, vital, onSaved, onCancel }: VitalFormProps) {
       : API_BASE_URL + '/patients/' + patientId + '/vitals'
     setIsSaving(true)
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: vital ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(vitalData),

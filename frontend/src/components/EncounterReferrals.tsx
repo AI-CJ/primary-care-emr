@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, Referral, ReferralInput, ReferralPriority } from '../types'
 
 type EncounterReferralsProps = {
@@ -40,7 +40,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
       setLoadError(null)
       setReferrals([])
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_BASE_URL}/encounters/${encounter.id}/referrals`,
           { signal: controller.signal }
         )
@@ -83,7 +83,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
     setSaveError(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/encounters/${encounter.id}/referrals`,
         {
           method: 'POST',
@@ -119,7 +119,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
     setSaveError(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/referrals/${referral.id}/cancel`,
         {
           method: 'POST',
@@ -160,7 +160,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
     setSaveError(null)
     setSuccessMessage(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/referrals/${referral.id}/complete`,
         {
           method: 'POST',

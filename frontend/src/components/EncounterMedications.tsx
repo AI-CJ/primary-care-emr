@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, EncounterMedication, Medication, MedicationStatus } from '../types'
 
 const statusLabels: Record<MedicationStatus, string> = {
@@ -29,7 +29,7 @@ function EncounterMedications({ encounter }: EncounterMedicationsProps) {
       setIsLoading(true)
       setLoadError(null)
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/encounters/' + encounter.id + '/medications',
           { signal: controller.signal }
         )
@@ -41,7 +41,7 @@ function EncounterMedications({ encounter }: EncounterMedicationsProps) {
           return
         }
 
-        const chartResponse = await fetch(
+        const chartResponse = await apiFetch(
           API_BASE_URL + '/patients/' + encounter.patient_id + '/medications',
           { signal: controller.signal }
         )
@@ -82,7 +82,7 @@ function EncounterMedications({ encounter }: EncounterMedicationsProps) {
     setActionError(null)
     setPending('add')
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/medications',
         {
           method: 'POST',
@@ -110,7 +110,7 @@ function EncounterMedications({ encounter }: EncounterMedicationsProps) {
     setActionError(null)
     setPending(medicationId)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/medications/' + medicationId,
         { method: 'DELETE' }
       )

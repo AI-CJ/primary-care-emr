@@ -94,8 +94,11 @@ source backend/.venv/bin/activate
 python -m pip install -r backend/requirements.txt
 alembic upgrade head
 python -m backend.seed
+python -m backend.bootstrap_staff --username demo.clinician --role clinician
 uvicorn backend.main:app --reload
 ```
+
+The staff account command prompts twice for a local-only password. Do not use real patient data or a real clinical password. Only clinicians and administrators can enter the staff workspace at this stage; front-desk and patient access will be scoped separately.
 
 The API runs at `http://127.0.0.1:8000`.
 

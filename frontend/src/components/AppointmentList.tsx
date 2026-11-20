@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Appointment, AppointmentStatus, PatientAppointment } from '../types'
 import AppointmentForm from './AppointmentForm'
 import AppointmentStatusHistory from './AppointmentStatusHistory'
@@ -51,7 +51,7 @@ function AppointmentList({
       setAppointments([])
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/appointments',
           { signal: controller.signal }
         )
@@ -129,7 +129,7 @@ function AppointmentList({
     setActionError(null)
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/appointments/' + appointment.id + '/' + action,
         { method: 'POST' }
       )

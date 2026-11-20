@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { EncounterAddendum } from '../types'
 
 type EncounterAddendaProps = {
@@ -24,7 +24,7 @@ function EncounterAddenda({ encounterId }: EncounterAddendaProps) {
       setLoadError(null)
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/encounters/' + encounterId + '/addenda',
           { signal: controller.signal }
         )
@@ -63,7 +63,7 @@ function EncounterAddenda({ encounterId }: EncounterAddendaProps) {
 
     setIsSaving(true)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounterId + '/addenda',
         {
           method: 'POST',

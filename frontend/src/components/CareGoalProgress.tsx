@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import './CareGoalProgress.css'
 
 type ProgressEntry = {
@@ -34,7 +34,7 @@ function CareGoalProgress({ goalId, goalTitle, isActive }: CareGoalProgressProps
 
     async function loadProgress() {
       try {
-        const response = await fetch(API_BASE_URL + '/care-goals/' + goalId + '/progress', {
+        const response = await apiFetch(API_BASE_URL + '/care-goals/' + goalId + '/progress', {
           signal: controller.signal,
         })
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
@@ -67,7 +67,7 @@ function CareGoalProgress({ goalId, goalTitle, isActive }: CareGoalProgressProps
     setIsSaving(true)
     setSaveError(null)
     try {
-      const response = await fetch(API_BASE_URL + '/care-goals/' + goalId + '/progress', {
+      const response = await apiFetch(API_BASE_URL + '/care-goals/' + goalId + '/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ note: trimmedNote }),

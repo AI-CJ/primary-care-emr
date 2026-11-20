@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { AppointmentStatus, DailyScheduleEntry } from '../types'
 
 type ClinicScheduleProps = {
@@ -99,7 +99,7 @@ function ClinicSchedule({
     setCompleteError(null)
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/appointments/${appointment.id}/check-in`,
         { method: 'POST' },
       )
@@ -149,7 +149,7 @@ function ClinicSchedule({
     setCompleted(null)
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/appointments/${appointment.id}/complete`,
         { method: 'POST' },
       )
@@ -185,7 +185,7 @@ function ClinicSchedule({
 
     async function loadSchedule() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_BASE_URL}/schedule?day=${encodeURIComponent(day)}`,
           { signal: controller.signal },
         )

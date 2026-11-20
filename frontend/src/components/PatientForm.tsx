@@ -3,7 +3,7 @@ import {
   type FormEvent,
 } from 'react'
 
-import {
+import { apiFetch,
   API_BASE_URL,
   getApiErrorMessage,
 } from '../api'
@@ -118,7 +118,7 @@ function PatientForm({
       : `${API_BASE_URL}/patients`
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: patient ? 'PUT' : 'POST',
 
         headers: {

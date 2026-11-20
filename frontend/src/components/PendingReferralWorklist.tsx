@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Referral } from '../types'
 
 type PendingReferral = Referral & {
@@ -30,7 +30,7 @@ function PendingReferralWorklist({
 
     async function loadReferrals() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_BASE_URL}/worklists/pending-referrals`,
           { signal: controller.signal },
         )

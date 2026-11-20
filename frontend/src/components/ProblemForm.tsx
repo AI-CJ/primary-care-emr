@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Problem, ProblemInput, ProblemStatus } from '../types'
 
 type ProblemFormProps = {
@@ -39,7 +39,7 @@ function ProblemForm({ patientId, problem, onSaved, onCancel }: ProblemFormProps
       : API_BASE_URL + '/patients/' + patientId + '/problems'
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: problem ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(problemData),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter } from '../types'
 import EncounterForm from './EncounterForm'
 import EncounterAddenda from './EncounterAddenda'
@@ -112,7 +112,7 @@ function EncounterList({
     setEncounters([])
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/patients/' + patientId + '/encounters'
       )
       if (!response.ok) {
@@ -174,7 +174,7 @@ function EncounterList({
     setFinalizeError(null)
     setFinalizingId(encounter.id)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/finalize',
         { method: 'POST' }
       )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PatientReferral } from '../types'
 
 type PatientReferralHistoryProps = {
@@ -27,7 +27,7 @@ function PatientReferralHistory({ patientId }: PatientReferralHistoryProps) {
       setReferrals([])
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/referrals',
           { signal: controller.signal }
         )

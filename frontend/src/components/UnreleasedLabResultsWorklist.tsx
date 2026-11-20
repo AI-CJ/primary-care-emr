@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { LabResult } from '../types'
 
 type UnreleasedLabResult = {
@@ -44,7 +44,7 @@ function UnreleasedLabResultsWorklist({
 
     async function loadResults() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/worklists/unreleased-lab-results',
           { signal: controller.signal },
         )
@@ -81,7 +81,7 @@ function UnreleasedLabResultsWorklist({
 
     async function loadResult() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/lab-orders/' + reviewOrderId + '/result',
           { signal: controller.signal },
         )
@@ -130,7 +130,7 @@ function UnreleasedLabResultsWorklist({
     setReleaseError(null)
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/lab-orders/' + order.order_id + '/result/release',
         { method: 'POST' },
       )

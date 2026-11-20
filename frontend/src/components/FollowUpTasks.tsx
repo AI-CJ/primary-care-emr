@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { CareGoal, FollowUpTask } from '../types'
 import FollowUpDueDateHistory from './FollowUpDueDateHistory'
 import './FollowUpTasks.css'
@@ -39,7 +39,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
       setTasks([])
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/follow-up-tasks',
           { signal: controller.signal }
         )
@@ -71,7 +71,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
 
     async function loadGoals() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/care-goals',
           { signal: controller.signal }
         )
@@ -105,7 +105,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
     setIsSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/patients/' + patientId + '/follow-up-tasks',
         {
           method: 'POST',
@@ -148,7 +148,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
     setIsSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/follow-up-tasks/' + taskId + '/complete',
         {
           method: 'POST',
@@ -183,7 +183,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
     setIsSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/follow-up-tasks/' + taskId + '/cancel',
         {
           method: 'POST',
@@ -224,7 +224,7 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
     setIsSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/follow-up-tasks/' + task.id + '/reschedule',
         {
           method: 'POST',

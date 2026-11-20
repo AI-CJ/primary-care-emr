@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PatientLabOrder } from '../types'
 
 type PatientLabHistoryProps = {
@@ -27,7 +27,7 @@ function PatientLabHistory({ patientId }: PatientLabHistoryProps) {
       setOrders([])
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_BASE_URL}/patients/${patientId}/lab-orders`,
           { signal: controller.signal }
         )

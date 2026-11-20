@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PortalReferralSummary } from '../types'
 
 type PortalReferralsProps = {
@@ -27,7 +27,7 @@ function PortalReferrals({ patientId }: PortalReferralsProps) {
       setReferrals(null)
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/portal-preview/referrals',
           { signal: controller.signal },
         )

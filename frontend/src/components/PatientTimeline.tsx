@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PatientTimelineEntry } from '../types'
 
 type PatientTimelineProps = {
@@ -31,7 +31,7 @@ function PatientTimeline({ patientId }: PatientTimelineProps) {
       setEntries([])
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/timeline?limit=50',
           { signal: controller.signal },
         )

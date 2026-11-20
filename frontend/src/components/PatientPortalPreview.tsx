@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Patient, PortalAllergySummary, PortalCareGoalSummary, PortalMedicationSummary, PortalProblemSummary } from '../types'
 import './PatientPortalPreview.css'
 import PortalAppointments from './PortalAppointments'
@@ -31,7 +31,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
     const controller = new AbortController()
 
     async function loadRecords<T>(resource: string): Promise<T> {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/patients/' + patient.id + '/' + resource,
         { signal: controller.signal },
       )

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ChangeEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { LabOrder, LabResult } from '../types'
 
 type EncounterLabResultProps = {
@@ -38,7 +38,7 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
       setIsLoading(true)
       setLoadError(null)
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/lab-orders/' + order.id + '/result',
           { signal: controller.signal }
         )
@@ -69,7 +69,7 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
     setIsSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/lab-orders/' + order.id + '/result',
         {
           method: 'POST',
@@ -105,7 +105,7 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
     setActionError(null)
     setReleaseMessage(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/lab-orders/' + order.id + '/result/release',
         { method: 'POST' }
       )

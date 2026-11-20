@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, EncounterVital, Vital } from '../types'
 
 type EncounterVitalsProps = {
@@ -64,7 +64,7 @@ function EncounterVitals({ encounter }: EncounterVitalsProps) {
       setLinks([])
       setChartVitals([])
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/encounters/' + encounter.id + '/vitals',
           { signal: controller.signal }
         )
@@ -76,7 +76,7 @@ function EncounterVitals({ encounter }: EncounterVitalsProps) {
           return
         }
 
-        const chartResponse = await fetch(
+        const chartResponse = await apiFetch(
           API_BASE_URL + '/patients/' + encounter.patient_id + '/vitals',
           { signal: controller.signal }
         )
@@ -119,7 +119,7 @@ function EncounterVitals({ encounter }: EncounterVitalsProps) {
     setActionError(null)
     setPending('add')
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/vitals',
         {
           method: 'POST',
@@ -147,7 +147,7 @@ function EncounterVitals({ encounter }: EncounterVitalsProps) {
     setActionError(null)
     setPending(vitalId)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/vitals/' + vitalId,
         { method: 'DELETE' }
       )

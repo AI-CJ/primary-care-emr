@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import './App.css'
 
 import {
   API_BASE_URL,
+  apiFetch,
+  setAccessToken,
   getApiErrorMessage,
 } from './api'
 
@@ -29,6 +31,7 @@ import ProblemList from './components/ProblemList'
 import VitalList from './components/VitalList'
 
 import type { Patient } from './types'
+import StaffSignIn, { type SignedInAccount } from './components/StaffSignIn'
 
 
 const sexAtBirthLabels: Record<
@@ -70,7 +73,7 @@ function patientPronouns(
 }
 
 
-function App() {
+function StaffApp() {
   const [search, setSearch] =
     useState('')
 
@@ -149,7 +152,7 @@ function App() {
     setHasSearched(true)
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/patients?search=${encodeURIComponent(
           search
         )}`
@@ -188,7 +191,7 @@ function App() {
     setError(null)
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/patients/${patientId}`
       )
 
@@ -779,5 +782,40 @@ function App() {
   )
 }
 
+
+function App() {
+  const [account, setAccount] = useState<SignedInAccount | null>(null)
+
+  useEffect(() => {
+    const sessionEnded = () => setAccount(null)
+    window.addEventListener('emr:session-ended', sessionEnded)
+    return () => window.removeEventListener('emr:session-ended', sessionEnded)
+  }, [])
+
+  async function signOut() {
+    try {
+      await apiFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' })
+    } finally {
+      setAccessToken(null)
+      setAccount(null)
+    }
+  }
+
+  if (!account) {
+    return <StaffSignIn onSignedIn={setAccount} />
+  }
+
+  return (
+    <>
+      <header className="session-bar">
+        <span>Signed in as {account.username}</span>
+        <button type="button" onClick={() => void signOut()}>
+          Sign out
+        </button>
+      </header>
+      <StaffApp />
+    </>
+  )
+}
 
 export default App

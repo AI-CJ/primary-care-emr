@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 
 type DueDateChange = {
   id: number
@@ -32,7 +32,7 @@ function FollowUpDueDateHistory({ taskId, taskTitle, refreshKey }: FollowUpDueDa
 
     async function loadHistory() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/follow-up-tasks/' + taskId + '/due-date-changes',
           { signal: controller.signal },
         )

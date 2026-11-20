@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { CareGoal } from '../types'
 import CareGoalProgress from './CareGoalProgress'
 import GoalFollowUps from './GoalFollowUps'
@@ -32,7 +32,7 @@ function CareGoals({ patientId }: CareGoalsProps) {
       setGoals([])
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/patients/' + patientId + '/care-goals',
           { signal: controller.signal }
         )
@@ -69,7 +69,7 @@ function CareGoals({ patientId }: CareGoalsProps) {
     setIsSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/patients/' + patientId + '/care-goals',
         {
           method: 'POST',
@@ -109,7 +109,7 @@ function CareGoals({ patientId }: CareGoalsProps) {
     setIsSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/care-goals/' + goalId + '/complete',
         {
           method: 'POST',
@@ -145,7 +145,7 @@ function CareGoals({ patientId }: CareGoalsProps) {
     setIsSaving(true)
     setActionError(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/care-goals/' + goalId + '/discontinue',
         {
           method: 'POST',

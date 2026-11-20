@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { LabOrder } from '../types'
 
 type PendingLabOrder = LabOrder & {
@@ -30,7 +30,7 @@ function PendingLabWorklist({
 
     async function loadOrders() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_BASE_URL}/worklists/pending-lab-orders`,
           { signal: controller.signal },
         )

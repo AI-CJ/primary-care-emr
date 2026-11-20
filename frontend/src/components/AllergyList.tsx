@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Allergy } from '../types'
 import AllergyForm from './AllergyForm'
 
@@ -35,7 +35,7 @@ function AllergyList({ patientId }: AllergyListProps) {
     setError(null)
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/patients/' + patientId + '/allergies'
       )
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import { localDate } from './ClinicSchedule'
 import type { DailyScheduleEntry } from '../types'
 
@@ -40,7 +40,7 @@ function PastAppointmentsWorklist({
 
     async function loadAppointments() {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_BASE_URL}/worklists/past-appointments?before=${localDate()}`,
           { signal: controller.signal },
         )
@@ -82,7 +82,7 @@ function PastAppointmentsWorklist({
     setStatusError(null)
     setCompletionMessage(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/appointments/${appointment.id}/no-show`,
         { method: 'POST' },
       )
@@ -119,7 +119,7 @@ function PastAppointmentsWorklist({
     setStatusError(null)
     setCompletionMessage(null)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE_URL}/appointments/${appointment.id}/complete`,
         { method: 'POST' },
       )

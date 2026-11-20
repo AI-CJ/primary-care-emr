@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Appointment, AppointmentInput } from '../types'
 
 type AppointmentFormProps = {
@@ -48,7 +48,7 @@ function AppointmentForm({
     setIsSaving(true)
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: appointment ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(appointmentData),

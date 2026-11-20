@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { API_BASE_URL, getApiErrorMessage } from '../api'
+import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, EncounterProblem, Problem } from '../types'
 
 type EncounterProblemsProps = {
@@ -23,7 +23,7 @@ function EncounterProblems({ encounter }: EncounterProblemsProps) {
       setIsLoading(true)
       setLoadError(null)
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           API_BASE_URL + '/encounters/' + encounter.id + '/problems',
           { signal: controller.signal }
         )
@@ -35,7 +35,7 @@ function EncounterProblems({ encounter }: EncounterProblemsProps) {
           return
         }
 
-        const chartResponse = await fetch(
+        const chartResponse = await apiFetch(
           API_BASE_URL + '/patients/' + encounter.patient_id + '/problems',
           { signal: controller.signal }
         )
@@ -76,7 +76,7 @@ function EncounterProblems({ encounter }: EncounterProblemsProps) {
     setActionError(null)
     setPending('add')
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/problems',
         {
           method: 'POST',
@@ -104,7 +104,7 @@ function EncounterProblems({ encounter }: EncounterProblemsProps) {
     setActionError(null)
     setPending(problemId)
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         API_BASE_URL + '/encounters/' + encounter.id + '/problems/' + problemId,
         { method: 'DELETE' }
       )
