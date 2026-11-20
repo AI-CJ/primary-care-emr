@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -449,3 +449,35 @@ class AppointmentStatusChange(Base):
         nullable=False,
     )
 
+
+
+class UserAccount(Base):
+    """An identity for a staff member or one synthetic patient."""
+
+    __tablename__ = "user_accounts"
+    __table_args__ = (
+        CheckConstraint(
+            "(account_type = 'staff' AND staff_role IS NOT NULL "
+            "AND staff_role IN ('admin', 'clinician', 'front_desk') "
+            "AND patient_id IS NULL) OR (account_type = 'patient' "
+            "AND staff_role IS NULL AND patient_id IS NOT NULL)",
+            name="ck_user_accounts_role_scope",
+        ),
+        CheckConstraint("username = lower(username)", name="ck_user_accounts_username_lower"),
+        UniqueConstraint("patient_id", name="uq_user_accounts_patient_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    account_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    staff_role: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    patient_id: Mapped[int | None] = mapped_column(
+        ForeignKey("patients.id", ondelete="RESTRICT"), nullable=True
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean(), nullable=False, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
