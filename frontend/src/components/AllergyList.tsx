@@ -55,7 +55,11 @@ function AllergyList({ patientId }: AllergyListProps) {
   }, [patientId])
 
   useEffect(() => {
-    void loadAllergies()
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadAllergies()
+    })
+    return () => { active = false }
   }, [loadAllergies])
 
   function finishEditing() {

@@ -39,8 +39,11 @@ function UnreleasedLabResultsWorklist({
 
   useEffect(() => {
     const controller = new AbortController()
-    setResults(null)
-    setError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setResults(null)
+      setError(null)
+    })
 
     async function loadResults() {
       try {
@@ -73,11 +76,14 @@ function UnreleasedLabResultsWorklist({
     if (reviewOrderId === null) return
 
     const controller = new AbortController()
-    setReviewResult(null)
-    setReviewError(null)
-    setReleaseError(null)
-    setReleaseConfirmed(false)
-    setIsReviewLoading(true)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setReviewResult(null)
+      setReviewError(null)
+      setReleaseError(null)
+      setReleaseConfirmed(false)
+      setIsReviewLoading(true)
+    })
 
     async function loadResult() {
       try {

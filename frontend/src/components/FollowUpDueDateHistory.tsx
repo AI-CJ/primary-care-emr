@@ -27,8 +27,11 @@ function FollowUpDueDateHistory({ taskId, taskTitle, refreshKey }: FollowUpDueDa
     if (!isOpen) return
 
     const controller = new AbortController()
-    setChanges(null)
-    setLoadError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setChanges(null)
+      setLoadError(null)
+    })
 
     async function loadHistory() {
       try {

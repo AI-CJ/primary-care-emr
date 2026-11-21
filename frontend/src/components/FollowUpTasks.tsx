@@ -66,8 +66,11 @@ function FollowUpTasks({ patientId }: FollowUpTasksProps) {
 
   useEffect(() => {
     const controller = new AbortController()
-    setGoals(null)
-    setGoalsError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setGoals(null)
+      setGoalsError(null)
+    })
 
     async function loadGoals() {
       try {
