@@ -227,7 +227,7 @@ _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
 _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
     "/portal/allergies", "/portal/vitals", "/portal/care-goals",
-    "/portal/visits",
+    "/portal/visits", "/portal/lab-orders",
 }
 
 
@@ -1209,6 +1209,12 @@ def read_unreleased_lab_results():
 def read_portal_preview_lab_orders(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_lab_orders(session, patient_id)
+
+
+@app.get("/portal/lab-orders", response_model=list[PortalLabOrderSummary])
+def read_portal_lab_orders(account: UserAccount = Depends(_current_patient_account)):
+    with Session(engine) as session:
+        return list_portal_preview_lab_orders(session, account.patient_id)
 
 
 @app.get(
