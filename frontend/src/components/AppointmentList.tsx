@@ -3,7 +3,7 @@ import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Appointment, AppointmentStatus, PatientAppointment } from '../types'
 import AppointmentForm from './AppointmentForm'
 import AppointmentStatusHistory from './AppointmentStatusHistory'
-import { localDate } from './ClinicSchedule'
+import { localDate } from '../date'
 
 type AppointmentListProps = {
   patientId: number
