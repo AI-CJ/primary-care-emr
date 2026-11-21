@@ -227,6 +227,7 @@ _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
 _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
     "/portal/allergies", "/portal/vitals", "/portal/care-goals",
+    "/portal/visits",
 }
 
 
@@ -954,6 +955,12 @@ def read_patient_encounters(patient_id: int):
 def read_portal_preview_visits(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_visits(session, patient_id)
+
+
+@app.get("/portal/visits", response_model=list[PortalVisitSummary])
+def read_portal_visits(account: UserAccount = Depends(_current_patient_account)):
+    with Session(engine) as session:
+        return list_portal_preview_visits(session, account.patient_id)
 
 
 @app.post(
