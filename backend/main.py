@@ -224,7 +224,10 @@ def _current_patient_account(account: UserAccount = Depends(_current_account)) -
 # Keeping the check at the HTTP boundary also covers newly added routes.
 _PUBLIC_PATHS = {"/", "/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"}
 _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
-_PATIENT_GET_PATHS = {"/portal/appointments", "/portal/problems", "/portal/medications"}
+_PATIENT_GET_PATHS = {
+    "/portal/appointments", "/portal/problems", "/portal/medications",
+    "/portal/allergies",
+}
 
 
 @app.middleware("http")
@@ -789,6 +792,12 @@ def read_patient_allergies(patient_id: int):
 def read_portal_preview_allergies(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_allergies(session, patient_id)
+
+
+@app.get("/portal/allergies", response_model=list[PortalAllergySummary])
+def read_portal_allergies(account: UserAccount = Depends(_current_patient_account)):
+    with Session(engine) as session:
+        return list_portal_preview_allergies(session, account.patient_id)
 
 
 @app.post(
