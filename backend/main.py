@@ -224,7 +224,7 @@ def _current_patient_account(account: UserAccount = Depends(_current_account)) -
 # Keeping the check at the HTTP boundary also covers newly added routes.
 _PUBLIC_PATHS = {"/", "/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"}
 _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
-_PATIENT_GET_PATHS = {"/portal/appointments"}
+_PATIENT_GET_PATHS = {"/portal/appointments", "/portal/problems"}
 
 
 @app.middleware("http")
@@ -601,6 +601,13 @@ def read_patient_problems(patient_id: int):
 def read_portal_preview_problems(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_problems(session, patient_id)
+
+
+@app.get("/portal/problems", response_model=list[PortalProblemSummary])
+def read_portal_problems(account: UserAccount = Depends(_current_patient_account)):
+    # The signed-in account supplies the patient ID, never a request parameter.
+    with Session(engine) as session:
+        return list_portal_preview_problems(session, account.patient_id)
 
 
 @app.post(
