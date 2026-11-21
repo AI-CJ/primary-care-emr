@@ -226,7 +226,7 @@ _PUBLIC_PATHS = {"/", "/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc
 _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
 _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
-    "/portal/allergies",
+    "/portal/allergies", "/portal/vitals",
 }
 
 
@@ -861,6 +861,13 @@ def update_allergy(
 def read_portal_preview_vitals(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_vitals(session, patient_id)
+
+
+@app.get("/portal/vitals", response_model=list[PortalVitalSummary])
+def read_portal_vitals(account: UserAccount = Depends(_current_patient_account)):
+    # Return only recent measurements for the patient linked to this session.
+    with Session(engine) as session:
+        return list_portal_preview_vitals(session, account.patient_id)
 
 
 @app.get(
