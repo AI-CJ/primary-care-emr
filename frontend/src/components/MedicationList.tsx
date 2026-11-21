@@ -52,7 +52,11 @@ function MedicationList({ patientId }: MedicationListProps) {
   }, [patientId])
 
   useEffect(() => {
-    void loadMedications()
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadMedications()
+    })
+    return () => { active = false }
   }, [loadMedications])
 
   function finishEditing() {

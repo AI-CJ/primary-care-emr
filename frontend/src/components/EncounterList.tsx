@@ -131,24 +131,33 @@ function EncounterList({
   }, [patientId])
 
   useEffect(() => {
-    void loadEncounters()
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadEncounters()
+    })
+    return () => { active = false }
   }, [loadEncounters])
 
   useEffect(() => {
     if (!noteToStart || handledStartRequest.current === noteToStart.request) return
 
-    handledStartRequest.current = noteToStart.request
-    if (isAdding || editing) {
-      setStartNoteMessage(
-        'Close the current note form before starting a note for appointment #' +
-        noteToStart.appointmentId + '.'
-      )
-      return
-    }
+    let active = true
+    queueMicrotask(() => {
+      if (!active || handledStartRequest.current === noteToStart.request) return
+      handledStartRequest.current = noteToStart.request
+      if (isAdding || editing) {
+        setStartNoteMessage(
+          'Close the current note form before starting a note for appointment #' +
+          noteToStart.appointmentId + '.'
+        )
+        return
+      }
 
-    setStartNoteMessage(null)
-    setStartingAppointmentId(noteToStart.appointmentId)
-    setIsAdding(true)
+      setStartNoteMessage(null)
+      setStartingAppointmentId(noteToStart.appointmentId)
+      setIsAdding(true)
+    })
+    return () => { active = false }
   }, [noteToStart, isAdding, editing])
 
   useEffect(() => {

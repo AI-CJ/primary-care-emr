@@ -25,8 +25,11 @@ function PendingReferralWorklist({
 
   useEffect(() => {
     const controller = new AbortController()
-    setReferrals(null)
-    setError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setReferrals(null)
+      setError(null)
+    })
 
     async function loadReferrals() {
       try {

@@ -29,8 +29,11 @@ function CareGoalProgress({ goalId, goalTitle, isActive }: CareGoalProgressProps
     if (!isOpen) return
 
     const controller = new AbortController()
-    setEntries(null)
-    setLoadError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setEntries(null)
+      setLoadError(null)
+    })
 
     async function loadProgress() {
       try {

@@ -32,8 +32,10 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
   useEffect(() => {
     if (order.status !== 'resulted') return
 
-    setReleaseReviewed(false)
     const controller = new AbortController()
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) setReleaseReviewed(false)
+    })
     async function loadResult() {
       setIsLoading(true)
       setLoadError(null)
@@ -57,7 +59,9 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
       }
     }
 
-    void loadResult()
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) void loadResult()
+    })
     return () => controller.abort()
   }, [order.id, order.status])
 

@@ -63,7 +63,11 @@ function VitalList({ patientId }: VitalListProps) {
   }, [patientId])
 
   useEffect(() => {
-    void loadVitals()
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadVitals()
+    })
+    return () => { active = false }
   }, [loadVitals])
 
   function finishEditing() {

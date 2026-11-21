@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { localDate } from '../date'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { AppointmentStatus, DailyScheduleEntry } from '../types'
 
@@ -18,14 +19,6 @@ const statusLabels: Record<AppointmentStatus, string> = {
   completed: 'Completed',
   cancelled: 'Cancelled',
   no_show: 'No-show',
-}
-
-export function localDate(): string {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 function moveDate(day: string, offset: number): string {

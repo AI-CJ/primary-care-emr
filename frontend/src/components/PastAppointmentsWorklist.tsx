@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
-import { localDate } from './ClinicSchedule'
+import { localDate } from '../date'
 import type { DailyScheduleEntry } from '../types'
 
 type PastAppointmentsWorklistProps = {
@@ -34,9 +34,12 @@ function PastAppointmentsWorklist({
 
   useEffect(() => {
     const controller = new AbortController()
-    setAppointments(null)
-    setError(null)
-    setStatusError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setAppointments(null)
+      setError(null)
+      setStatusError(null)
+    })
 
     async function loadAppointments() {
       try {

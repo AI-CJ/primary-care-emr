@@ -25,8 +25,11 @@ function PendingLabWorklist({
 
   useEffect(() => {
     const controller = new AbortController()
-    setOrders(null)
-    setError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setOrders(null)
+      setError(null)
+    })
 
     async function loadOrders() {
       try {

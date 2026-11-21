@@ -39,7 +39,11 @@ function ProblemList({ patientId }: ProblemListProps) {
   }, [patientId])
 
   useEffect(() => {
-    void loadProblems()
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadProblems()
+    })
+    return () => { active = false }
   }, [loadProblems])
 
   function finishEditing() {

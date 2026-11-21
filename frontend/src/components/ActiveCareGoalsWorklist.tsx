@@ -24,8 +24,11 @@ function ActiveCareGoalsWorklist({
 
   useEffect(() => {
     const controller = new AbortController()
-    setGoals(null)
-    setError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setGoals(null)
+      setError(null)
+    })
 
     async function loadGoals() {
       try {

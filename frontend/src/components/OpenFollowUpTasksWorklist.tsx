@@ -24,8 +24,11 @@ function OpenFollowUpTasksWorklist({
 
   useEffect(() => {
     const controller = new AbortController()
-    setTasks(null)
-    setError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setTasks(null)
+      setError(null)
+    })
 
     async function loadTasks() {
       try {

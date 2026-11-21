@@ -20,8 +20,11 @@ function GoalFollowUps({ patientId, goalId, goalTitle }: GoalFollowUpsProps) {
     if (!isOpen) return
 
     const controller = new AbortController()
-    setTasks(null)
-    setLoadError(null)
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return
+      setTasks(null)
+      setLoadError(null)
+    })
 
     async function loadTasks() {
       try {
