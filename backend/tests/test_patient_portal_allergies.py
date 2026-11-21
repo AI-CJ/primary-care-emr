@@ -51,7 +51,7 @@ class PatientPortalAllergyTests(unittest.TestCase):
                 ),
                 Allergy(
                     patient_id=self.other_id, allergen="Other patient's allergen",
-                    status="active", notes="Other patient's private notes",
+                    severity="unknown", status="active", notes="Other patient's private notes",
                 ),
             ])
             for username, patient_id in (
