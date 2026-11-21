@@ -214,10 +214,17 @@ def _current_account(token: str = Depends(_bearer_token)) -> UserAccount:
         return account
 
 
-# Clinical routes are staff-only until patient-scoped portal access is implemented.
+def _current_patient_account(account: UserAccount = Depends(_current_account)) -> UserAccount:
+    if account.account_type != "patient" or account.patient_id is None:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return account
+
+
+# Clinical routes are staff-only; patient-facing routes must opt in explicitly.
 # Keeping the check at the HTTP boundary also covers newly added routes.
 _PUBLIC_PATHS = {"/", "/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"}
 _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
+_PATIENT_GET_PATHS = {"/portal/appointments"}
 
 
 @app.middleware("http")
@@ -228,6 +235,12 @@ async def require_clinical_access(request: Request, call_next):
         or request.url.path in _AUTH_PATHS
     ):
         return await call_next(request)
+
+    if request.method == "GET" and request.url.path in _PATIENT_GET_PATHS:
+        # A patient-only dependency checks the session and binds the patient ID.
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     scheme, separator, token = request.headers.get("Authorization", "").partition(" ")
     if scheme.lower() != "bearer" or not separator or not token:
@@ -1391,6 +1404,13 @@ def read_past_appointments(before: date):
 def read_portal_preview_appointments(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_appointments(session, patient_id)
+
+
+@app.get("/portal/appointments", response_model=list[PortalAppointmentSummary])
+def read_portal_appointments(account: UserAccount = Depends(_current_patient_account)):
+    # Never accept the patient ID from the URL or query parameters.
+    with Session(engine) as session:
+        return list_portal_preview_appointments(session, account.patient_id)
 
 
 @app.get(
