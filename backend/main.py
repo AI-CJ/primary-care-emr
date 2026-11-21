@@ -226,7 +226,7 @@ _PUBLIC_PATHS = {"/", "/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc
 _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
 _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
-    "/portal/allergies", "/portal/vitals",
+    "/portal/allergies", "/portal/vitals", "/portal/care-goals",
 }
 
 
@@ -419,6 +419,12 @@ def read_active_care_goals():
 def read_portal_preview_care_goals(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_care_goals(session, patient_id)
+
+
+@app.get("/portal/care-goals", response_model=list[PortalCareGoalSummary])
+def read_portal_care_goals(account: UserAccount = Depends(_current_patient_account)):
+    with Session(engine) as session:
+        return list_portal_preview_care_goals(session, account.patient_id)
 
 
 @app.get(
