@@ -227,7 +227,7 @@ _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
 _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
     "/portal/allergies", "/portal/vitals", "/portal/care-goals",
-    "/portal/visits", "/portal/lab-orders",
+    "/portal/visits", "/portal/lab-orders", "/portal/referrals",
 }
 
 
@@ -1325,6 +1325,12 @@ def read_pending_referrals():
 def read_portal_preview_referrals(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_referrals(session, patient_id)
+
+
+@app.get("/portal/referrals", response_model=list[PortalReferralSummary])
+def read_portal_referrals(account: UserAccount = Depends(_current_patient_account)):
+    with Session(engine) as session:
+        return list_portal_preview_referrals(session, account.patient_id)
 
 
 @app.get(
