@@ -1,29 +1,10 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PortalVitalSummary } from '../types'
+import { formatPortalVitalReadings } from '../portalVitalReadings'
 
 type PortalVitalsProps = {
-  patientId: number
-}
-
-function readings(vital: PortalVitalSummary): string[] {
-  const items: string[] = []
-  if (vital.systolic_bp !== null && vital.diastolic_bp !== null) {
-    items.push(`Blood pressure: ${vital.systolic_bp}/${vital.diastolic_bp} mmHg`)
-  }
-  if (vital.heart_rate !== null) items.push(`Heart rate: ${vital.heart_rate} bpm`)
-  if (vital.respiratory_rate !== null) {
-    items.push(`Breathing rate: ${vital.respiratory_rate} breaths/min`)
-  }
-  if (vital.temperature_c !== null) {
-    items.push(`Temperature: ${vital.temperature_c} °C`)
-  }
-  if (vital.oxygen_saturation !== null) {
-    items.push(`Oxygen saturation: ${vital.oxygen_saturation}%`)
-  }
-  if (vital.height_cm !== null) items.push(`Height: ${vital.height_cm} cm`)
-  if (vital.weight_kg !== null) items.push(`Weight: ${vital.weight_kg} kg`)
-  return items
+  patientId?: number
 }
 
 function PortalVitals({ patientId }: PortalVitalsProps) {
@@ -41,10 +22,10 @@ function PortalVitals({ patientId }: PortalVitalsProps) {
       setVitals(null)
 
       try {
-        const response = await apiFetch(
-          API_BASE_URL + '/patients/' + patientId + '/portal-preview/vitals',
-          { signal: controller.signal },
-        )
+        const url = patientId === undefined
+          ? API_BASE_URL + '/portal/vitals'
+          : API_BASE_URL + '/patients/' + patientId + '/portal-preview/vitals'
+        const response = await apiFetch(url, { signal: controller.signal })
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
 
         const records: PortalVitalSummary[] = await response.json()
@@ -94,7 +75,10 @@ function PortalVitals({ patientId }: PortalVitalsProps) {
           {recentVitals.map((vital) => (
             <li key={vital.id}>
               <strong><time dateTime={vital.recorded_on}>{vital.recorded_on}</time></strong>
-              {readings(vital).map((reading) => <span key={reading}>{reading}</span>)}
+              {formatPortalVitalReadings(vital).map((reading) => <span key={reading}>{reading}</span>)}
+              {formatPortalVitalReadings(vital).length === 0 && (
+                <span>No measurements were recorded for this entry.</span>
+              )}
             </li>
           ))}
         </ul>
