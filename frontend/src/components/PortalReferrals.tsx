@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PortalReferralSummary } from '../types'
+import { portalReferralsPath } from '../portalReferralRoutes'
 
 type PortalReferralsProps = {
-  patientId: number
+  // Staff preview supplies a chart ID. Patient sign-in uses the session-scoped route.
+  patientId?: number
 }
 
 const statusLabels: Record<PortalReferralSummary['status'], string> = {
@@ -28,7 +30,7 @@ function PortalReferrals({ patientId }: PortalReferralsProps) {
 
       try {
         const response = await apiFetch(
-          API_BASE_URL + '/patients/' + patientId + '/portal-preview/referrals',
+          API_BASE_URL + portalReferralsPath(patientId),
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
@@ -59,7 +61,7 @@ function PortalReferrals({ patientId }: PortalReferralsProps) {
       <h2 id="portal-referrals">My referrals</h2>
       <p className="portal-help">
         Recent specialist referrals from finalized visits in this fictional chart.
-        Requests are not sent to outside clinics by this preview.
+        Requests in this portfolio are not sent to outside clinics.
       </p>
 
       {isLoading && <p role="status">Loading referrals...</p>}
