@@ -233,12 +233,15 @@ _PATIENT_GET_PATHS = {
 
 @app.middleware("http")
 async def require_clinical_access(request: Request, call_next):
-    if (
-        request.method == "OPTIONS"
-        or request.url.path in _PUBLIC_PATHS
-        or request.url.path in _AUTH_PATHS
-    ):
+    if request.method == "OPTIONS" or request.url.path in _PUBLIC_PATHS:
         return await call_next(request)
+
+    # Login returns a bearer token, and /auth/me returns account details.
+    # Avoid HTTP caching of successful and failed authentication responses.
+    if request.url.path in _AUTH_PATHS:
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     if request.method == "GET" and request.url.path in _PATIENT_GET_PATHS:
         # A patient-only dependency checks the session and binds the patient ID.
@@ -251,7 +254,7 @@ async def require_clinical_access(request: Request, call_next):
         return JSONResponse(
             {"detail": "Invalid or missing credentials"},
             status_code=401,
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": "Bearer", "Cache-Control": "no-store"},
         )
 
     with Session(engine) as session:
@@ -260,10 +263,14 @@ async def require_clinical_access(request: Request, call_next):
             return JSONResponse(
                 {"detail": "Invalid or missing credentials"},
                 status_code=401,
-                headers={"WWW-Authenticate": "Bearer"},
+                headers={"WWW-Authenticate": "Bearer", "Cache-Control": "no-store"},
             )
         if account.account_type != "staff" or account.staff_role not in {"admin", "clinician"}:
-            return JSONResponse({"detail": "Access denied"}, status_code=403)
+            return JSONResponse(
+                {"detail": "Access denied"},
+                status_code=403,
+                headers={"Cache-Control": "no-store"},
+            )
 
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store"
