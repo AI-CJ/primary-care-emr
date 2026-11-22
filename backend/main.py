@@ -2,6 +2,8 @@ from datetime import date
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
+from starlette.routing import Match
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import or_, select
@@ -9,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import engine
 from backend.account_auth import authenticate_user
+from backend.audit import record_audit_event
 from backend.session_auth import create_session, get_session_account, revoke_session
 from backend.models import UserAccount
 from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse
@@ -206,11 +209,13 @@ def _bearer_token(
     return credentials.credentials
 
 
-def _current_account(token: str = Depends(_bearer_token)) -> UserAccount:
+def _current_account(request: Request, token: str = Depends(_bearer_token)) -> UserAccount:
     with Session(engine) as session:
         account = get_session_account(session, token)
         if account is None:
             raise _unauthorized()
+        request.state.audit_actor_user_id = account.id
+        request.state.audit_patient_id = account.patient_id
         return account
 
 
@@ -231,49 +236,101 @@ _PATIENT_GET_PATHS = {
 }
 
 
+def _audit_clinical_access(request: Request, status_code: int) -> None:
+    """Save a safe route template, never a raw URL, query, header or body."""
+    route_template = "/unmatched"
+    path_params = {}
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        match, child_scope = route.matches(request.scope)
+        if match is Match.FULL:
+            route_template = route.path
+            path_params = child_scope.get("path_params", {})
+            break
+
+    def numeric_id(name: str) -> int | None:
+        # Starlette path parameters are strings unless a converter is declared.
+        value = path_params.get(name)
+        if isinstance(value, int):
+            return value if 0 <= value <= 2_147_483_647 else None
+        if isinstance(value, str) and value.isascii() and value.isdecimal():
+            parsed = int(value) if len(value) <= 10 else None
+            return parsed if parsed is not None and parsed <= 2_147_483_647 else None
+        return None
+
+    resource_id = next(
+        (
+            value for name in (
+                "patient_id", "encounter_id", "goal_id", "task_id", "problem_id",
+                "medication_id", "allergy_id", "vital_id", "order_id",
+                "referral_id", "appointment_id",
+            )
+            if (value := numeric_id(name)) is not None
+        ),
+        None,
+    )
+    subject_patient_id = getattr(request.state, "audit_patient_id", None)
+    if subject_patient_id is None:
+        subject_patient_id = numeric_id("patient_id")
+    event_type = (
+        "access_denied" if status_code in {401, 403}
+        else "clinical_read" if request.method == "GET"
+        else "clinical_write"
+    )
+    with Session(engine) as session:
+        record_audit_event(
+            session, event_type=event_type, route_template=route_template,
+            http_method=request.method, status_code=status_code,
+            actor_user_id=getattr(request.state, "audit_actor_user_id", None),
+            subject_patient_id=subject_patient_id, resource_id=resource_id,
+        )
+        session.commit()
+
+
 @app.middleware("http")
 async def require_clinical_access(request: Request, call_next):
     if request.method == "OPTIONS" or request.url.path in _PUBLIC_PATHS:
         return await call_next(request)
 
-    # Login returns a bearer token, and /auth/me returns account details.
-    # Avoid HTTP caching of successful and failed authentication responses.
     if request.url.path in _AUTH_PATHS:
+        # Login and logout audit writes share the authentication transaction.
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-store"
         return response
 
     if request.method == "GET" and request.url.path in _PATIENT_GET_PATHS:
-        # A patient-only dependency checks the session and binds the patient ID.
+        # The patient-only dependency identifies the actor and enforces ownership.
         response = await call_next(request)
-        response.headers["Cache-Control"] = "no-store"
-        return response
-
-    scheme, separator, token = request.headers.get("Authorization", "").partition(" ")
-    if scheme.lower() != "bearer" or not separator or not token:
-        return JSONResponse(
-            {"detail": "Invalid or missing credentials"},
-            status_code=401,
-            headers={"WWW-Authenticate": "Bearer", "Cache-Control": "no-store"},
-        )
-
-    with Session(engine) as session:
-        account = get_session_account(session, token)
-        if account is None:
-            return JSONResponse(
+    else:
+        scheme, separator, token = request.headers.get("Authorization", "").partition(" ")
+        if scheme.lower() != "bearer" or not separator or not token:
+            response = JSONResponse(
                 {"detail": "Invalid or missing credentials"},
-                status_code=401,
-                headers={"WWW-Authenticate": "Bearer", "Cache-Control": "no-store"},
+                status_code=401, headers={"WWW-Authenticate": "Bearer"},
             )
-        if account.account_type != "staff" or account.staff_role not in {"admin", "clinician"}:
-            return JSONResponse(
-                {"detail": "Access denied"},
-                status_code=403,
-                headers={"Cache-Control": "no-store"},
-            )
+        else:
+            with Session(engine) as session:
+                account = get_session_account(session, token)
+                if account is not None:
+                    request.state.audit_actor_user_id = account.id
+                    request.state.audit_patient_id = account.patient_id
+                staff_allowed = (
+                    account is not None and account.account_type == "staff"
+                    and account.staff_role in {"admin", "clinician"}
+                )
+            if account is None:
+                response = JSONResponse(
+                    {"detail": "Invalid or missing credentials"},
+                    status_code=401, headers={"WWW-Authenticate": "Bearer"},
+                )
+            elif not staff_allowed:
+                response = JSONResponse({"detail": "Access denied"}, status_code=403)
+            else:
+                response = await call_next(request)
 
-    response = await call_next(request)
     response.headers["Cache-Control"] = "no-store"
+    _audit_clinical_access(request, response.status_code)
     return response
 
 
@@ -282,8 +339,19 @@ def login(credentials: AuthLoginRequest):
     with Session(engine) as session:
         account = authenticate_user(session, credentials.username, credentials.password)
         if account is None:
+            # Never store a submitted username or password on failed authentication.
+            record_audit_event(
+                session, event_type="login_failure", route_template="/auth/login",
+                http_method="POST", status_code=401,
+            )
+            session.commit()
             raise _unauthorized()
         token, record = create_session(session, account)
+        record_audit_event(
+            session, event_type="login_success", route_template="/auth/login",
+            http_method="POST", status_code=200, actor_user_id=account.id,
+            subject_patient_id=account.patient_id,
+        )
         session.commit()
         return AuthLoginResponse(access_token=token, expires_at=record.expires_at)
 
@@ -296,9 +364,15 @@ def read_current_account(account: UserAccount = Depends(_current_account)):
 @app.post("/auth/logout", status_code=204)
 def logout(token: str = Depends(_bearer_token)):
     with Session(engine) as session:
-        if get_session_account(session, token) is None:
+        account = get_session_account(session, token)
+        if account is None:
             raise _unauthorized()
         revoke_session(session, token)
+        record_audit_event(
+            session, event_type="logout", route_template="/auth/logout",
+            http_method="POST", status_code=204, actor_user_id=account.id,
+            subject_patient_id=account.patient_id,
+        )
         session.commit()
 
 

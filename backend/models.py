@@ -483,6 +483,37 @@ class UserAccount(Base):
     )
 
 
+class AuditEvent(Base):
+    """Persistent, append-only authentication and clinical access metadata."""
+
+    __tablename__ = "audit_events"
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('login_success', 'login_failure', 'logout', "
+            "'clinical_read', 'clinical_write', 'access_denied')",
+            name="ck_audit_events_event_type",
+        ),
+        CheckConstraint(
+            "status_code BETWEEN 100 AND 599", name="ck_audit_events_status_code"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user_accounts.id", ondelete="RESTRICT"), index=True, nullable=True
+    )
+    # Attempted chart IDs may not exist; do not enforce a foreign key here.
+    subject_patient_id: Mapped[int | None] = mapped_column(index=True, nullable=True)
+    event_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    route_template: Mapped[str] = mapped_column(String(160), nullable=False)
+    http_method: Mapped[str] = mapped_column(String(8), nullable=False)
+    status_code: Mapped[int] = mapped_column(nullable=False)
+    resource_id: Mapped[int | None] = mapped_column(nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
+    )
+
+
 class UserSession(Base):
     """A revocable session; only the bearer token's digest is stored."""
 
