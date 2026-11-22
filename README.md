@@ -145,6 +145,8 @@ Do not add real patient names, dates of birth, contact details, medical historie
 
 The project models health care workflows, but it does not claim to be HIPAA compliant or ready for a real clinic.
 
+Authentication responses and clinical API responses, including access denials, send `Cache-Control: no-store` to discourage HTTP caches from retaining tokens, account details, or patient records. This complements server-side authorization; it is not a substitute for secure transport or production security review.
+
 ## Project status
 
 The main staff EMR is close to the planned portfolio V1. Recent work has focused on tightening appointment and visit workflows, limiting what the patient portal can see, and adding tests around clinical rules.

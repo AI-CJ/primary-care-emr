@@ -148,6 +148,65 @@ class AuthRoutesTests(unittest.TestCase):
             )
             self.assertEqual(client.get("/patients", headers=staff_header).status_code, 401)
 
+    def test_authentication_and_denied_clinical_responses_are_not_cacheable(self):
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            staff_login = client.post("/auth/login", json={
+                "username": "sample.staff", "password": "Synthetic staff password!",
+            })
+            self.assertEqual(staff_login.status_code, 200)
+            staff_header = {
+                "Authorization": f"Bearer {staff_login.json()['access_token']}",
+            }
+
+            patient_login = client.post("/auth/login", json={
+                "username": "sample.patient", "password": "Synthetic patient password!",
+            })
+            self.assertEqual(patient_login.status_code, 200)
+            patient_header = {
+                "Authorization": f"Bearer {patient_login.json()['access_token']}",
+            }
+
+            responses = {
+                "successful_staff_login": staff_login,
+                "successful_patient_login": patient_login,
+                "staff_identity": client.get("/auth/me", headers=staff_header),
+                "patient_identity": client.get("/auth/me", headers=patient_header),
+                "invalid_login": client.post("/auth/login", json={
+                    "username": "sample.staff", "password": "Wrong password",
+                }),
+                "invalid_login_body": client.post("/auth/login", json={
+                    "username": "sample.staff", "password": "",
+                }),
+                "missing_identity_token": client.get("/auth/me"),
+                "missing_staff_token": client.get("/patients"),
+                "invalid_staff_token": client.get("/patients", headers={
+                    "Authorization": "Bearer invalid",
+                }),
+                "patient_denied_staff_chart": client.get(
+                    "/patients", headers=patient_header,
+                ),
+                "staff_chart": client.get("/patients", headers=staff_header),
+                "patient_portal": client.get(
+                    "/portal/problems", headers=patient_header,
+                ),
+                "staff_denied_patient_portal": client.get(
+                    "/portal/problems", headers=staff_header,
+                ),
+                "missing_patient_token": client.get("/portal/problems"),
+                "logout": client.post("/auth/logout", headers=staff_header),
+            }
+            for name, response in responses.items():
+                with self.subTest(response=name):
+                    self.assertEqual(response.headers.get("cache-control"), "no-store")
+            self.assertEqual(
+                client.get("/auth/me", headers=staff_header).headers.get("cache-control"),
+                "no-store",
+            )
+            self.assertEqual(
+                client.get("/patients", headers=staff_header).headers.get("cache-control"),
+                "no-store",
+            )
+
     def test_cors_preflight_remains_accessible(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:
             response = client.options("/patients", headers={
