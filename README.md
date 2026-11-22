@@ -18,9 +18,9 @@ It includes patient charts, scheduling, visit notes, labs, referrals, care goals
 | Labs | Lab requests, results, cancellation, history, staff review, and release to the portal preview |
 | Referrals | New referrals, cancellation, completion, history, and a pending referral worklist |
 | Staff worklists | Daily schedule, past appointments, pending labs, unreleased results, pending referrals, active goals, and open follow ups |
-| Patient portal preview | Patient facing views for medications, problems, allergies, vitals, goals, appointments, visits, labs, and referrals |
+| Patient portal | Staff preview for nine clinical areas; authenticated patient sign-in and patient-scoped appointment view |
 
-The staff side is the most complete part of the project. The portal is still read only and is being kept separate from the staff chart on purpose.
+The staff side is the most complete part of the project. The signed-in patient portal currently shows appointments only; the staff-only preview covers more clinical areas. Both remain read-only and are deliberately separate from the staff chart.
 
 ## How it fits together
 
@@ -95,10 +95,11 @@ python -m pip install -r backend/requirements.txt
 alembic upgrade head
 python -m backend.seed
 python -m backend.bootstrap_staff --username demo.clinician --role clinician
+python -m backend.bootstrap_patient --username demo.patient --patient-id 1
 uvicorn backend.main:app --reload
 ```
 
-The staff account command prompts twice for a local-only password. Do not use real patient data or a real clinical password. Only clinicians and administrators can enter the staff workspace at this stage; front-desk and patient access will be scoped separately.
+Both account commands prompt for a local-only password. The patient command links an account to an existing synthetic chart; replace patient ID 1 with an ID from your own seed records if needed. Do not use real patient data or a real clinical password. Only clinicians and administrators can enter the staff workspace. Patient accounts can sign in to the separate read-only appointment portal.
 
 The API runs at `http://127.0.0.1:8000`.
 
@@ -133,7 +134,7 @@ npm run build
 
 GitHub Actions runs the backend test suite and frontend build on pushes to `main` and on pull requests.
 
-The current tests cover appointment rules, visit note behavior, care goals, follow up tasks, labs, referrals, the patient timeline, and patient portal data limits.
+The current tests cover appointment rules, visit note behavior, care goals, follow up tasks, labs, referrals, the patient timeline, patient-account bootstrap, and patient portal access limits.
 
 ## Data safety
 

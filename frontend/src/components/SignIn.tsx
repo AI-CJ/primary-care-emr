@@ -10,11 +10,13 @@ export type SignedInAccount = {
   patient_id: number | null
 }
 
-type StaffSignInProps = {
+type SignInProps = {
+  mode: 'staff' | 'patient'
+  onModeChange: (mode: 'staff' | 'patient') => void
   onSignedIn: (account: SignedInAccount) => void
 }
 
-export default function StaffSignIn({ onSignedIn }: StaffSignInProps) {
+export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -41,10 +43,13 @@ export default function StaffSignIn({ onSignedIn }: StaffSignInProps) {
         throw new Error('Could not verify the signed-in account.')
       }
       const account = (await me.json()) as SignedInAccount
-      if (account.account_type !== 'staff' ||
-          !['clinician', 'admin'].includes(account.staff_role ?? '')) {
+      const allowed = mode === 'patient'
+        ? account.account_type === 'patient' && account.patient_id !== null
+        : account.account_type === 'staff' &&
+          ['clinician', 'admin'].includes(account.staff_role ?? '')
+      if (!allowed) {
         await apiFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' })
-        throw new Error('This account does not have access to the clinical workspace.')
+        throw new Error(`This account does not have access to the ${mode === 'patient' ? 'patient portal' : 'clinical workspace'}.`)
       }
       setPassword('')
       onSignedIn(account)
@@ -60,20 +65,20 @@ export default function StaffSignIn({ onSignedIn }: StaffSignInProps) {
     <main className="sign-in-page">
       <section className="sign-in-panel" aria-labelledby="sign-in-title">
         <p className="sign-in-eyebrow">Primary Care EMR</p>
-        <h1 id="sign-in-title">Staff sign in</h1>
-        <p>Use a synthetic staff account for this portfolio demo.</p>
+        <h1 id="sign-in-title">{mode === 'patient' ? 'Patient sign in' : 'Staff sign in'}</h1>
+        <p>Use a synthetic {mode} account for this portfolio demo.</p>
         <form onSubmit={(event) => void handleSubmit(event)}>
-          <label htmlFor="staff-username">Username</label>
+          <label htmlFor="account-username">Username</label>
           <input
-            id="staff-username"
+            id="account-username"
             autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             required
           />
-          <label htmlFor="staff-password">Password</label>
+          <label htmlFor="account-password">Password</label>
           <input
-            id="staff-password"
+            id="account-password"
             type="password"
             autoComplete="current-password"
             value={password}
@@ -85,6 +90,13 @@ export default function StaffSignIn({ onSignedIn }: StaffSignInProps) {
             {busy ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
+        <button
+          type="button"
+          className="sign-in-switch"
+          onClick={() => onModeChange(mode === 'staff' ? 'patient' : 'staff')}
+        >
+          {mode === 'staff' ? 'Go to patient sign in' : 'Go to staff sign in'}
+        </button>
       </section>
     </main>
   )

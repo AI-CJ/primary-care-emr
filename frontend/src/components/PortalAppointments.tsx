@@ -3,7 +3,7 @@ import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PortalAppointmentSummary } from '../types'
 
 type PortalAppointmentsProps = {
-  patientId: number
+  patientId?: number
 }
 
 function localToday(): string {
@@ -36,7 +36,9 @@ function PortalAppointments({ patientId }: PortalAppointmentsProps) {
 
       try {
         const response = await apiFetch(
-          API_BASE_URL + '/patients/' + patientId + '/portal-preview/appointments',
+          patientId === undefined
+            ? `${API_BASE_URL}/portal/appointments`
+            : `${API_BASE_URL}/patients/${patientId}/portal-preview/appointments`,
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
