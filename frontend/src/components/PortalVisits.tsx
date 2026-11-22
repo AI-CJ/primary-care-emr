@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PortalVisitSummary } from '../types'
+import { portalVisitsPath } from '../portalVisitRoutes'
 
 type PortalVisitsProps = {
-  patientId: number
+  patientId?: number
 }
 
 function PortalVisits({ patientId }: PortalVisitsProps) {
@@ -22,7 +23,7 @@ function PortalVisits({ patientId }: PortalVisitsProps) {
 
       try {
         const response = await apiFetch(
-          API_BASE_URL + '/patients/' + patientId + '/portal-preview/visits',
+          API_BASE_URL + portalVisitsPath(patientId),
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
@@ -70,7 +71,7 @@ function PortalVisits({ patientId }: PortalVisitsProps) {
         </div>
       )}
       {!isLoading && !error && recentVisits.length === 0 && (
-        <p>No finalized visits are available in this preview.</p>
+        <p>No finalized visits are available in your chart.</p>
       )}
       {!isLoading && !error && recentVisits.length > 0 && (
         <ul className="portal-records">

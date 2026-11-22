@@ -3,6 +3,7 @@ import PortalProblemList from './PortalProblemList'
 import PortalMedications from './PortalMedications'
 import PortalAllergies from './PortalAllergies'
 import PortalVitals from './PortalVitals'
+import PortalVisits from './PortalVisits'
 import './PatientPortalPreview.css'
 
 export default function PatientPortal() {
@@ -12,7 +13,7 @@ export default function PatientPortal() {
         <header className="portal-header">
           <p className="portal-eyebrow">Patient portal</p>
           <h1>My health summary</h1>
-          <p>View your appointments, conditions, medications, allergies, and recent vitals recorded in your chart.</p>
+          <p>View your appointments, finalized visits, conditions, medications, allergies, and recent vitals recorded in your chart.</p>
         </header>
         <p className="portal-disclaimer" role="note">
           This read-only portfolio portal uses fictional records only. It is not for
@@ -20,6 +21,7 @@ export default function PatientPortal() {
         </p>
         <div className="portal-grid">
           <PortalAppointments />
+          <PortalVisits />
           <PortalProblemList />
           <PortalMedications />
           <PortalAllergies />
