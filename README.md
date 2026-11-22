@@ -147,6 +147,18 @@ The project models health care workflows, but it does not claim to be HIPAA comp
 
 Authentication responses and clinical API responses, including access denials, send `Cache-Control: no-store` to discourage HTTP caches from retaining tokens, account details, or patient records. This complements server-side authorization; it is not a substitute for secure transport or production security review.
 
+Authentication outcomes and clinical endpoint access now produce durable audit events
+containing a timestamp, event type, HTTP method/status, a route template, and,
+when applicable, an actor account ID and numeric resource/patient IDs.
+Failed logins do not retain the submitted username. The audit table never stores
+passwords, bearer tokens, query strings, request bodies, clinical text, IP
+addresses, or raw URLs. Events cannot be edited or deleted through the API,
+but database administrators could change them; this is not a tamper-proof or
+compliance-ready audit solution. Unhandled server exceptions are not yet audited,
+and clinical changes and their HTTP audit events do not share a database
+transaction. Production retention, security monitoring, and audit export remain
+open release tasks.
+
 ## Project status
 
 The main staff EMR is close to the planned portfolio V1. Recent work has focused on tightening appointment and visit workflows, limiting what the patient portal can see, and adding tests around clinical rules.
