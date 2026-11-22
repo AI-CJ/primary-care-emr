@@ -10,6 +10,7 @@ import PortalReferrals from './PortalReferrals'
 import PortalCareGoals from './PortalCareGoals'
 import PortalProblemList from './PortalProblemList'
 import PortalMedications from './PortalMedications'
+import PortalAllergies from './PortalAllergies'
 
 type PatientPortalPreviewProps = {
   patient: Patient
@@ -71,11 +72,6 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
     return () => controller.abort()
   }, [patient.id, reloadCount])
 
-  const activeAllergies = overview?.allergies.filter((item) => item.status === 'active') ?? []
-  const inactiveAllergies = overview?.allergies
-    .filter((item) => item.status === 'inactive')
-    .sort((first, second) =>
-      (second.onset_date ?? '').localeCompare(first.onset_date ?? '') || second.id - first.id) ?? []
   const displayName = patient.preferred_name || patient.first_name
 
   return (
@@ -119,48 +115,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
 
             <PortalMedications medications={overview.medications} />
 
-            <section className="portal-card" aria-labelledby="portal-allergies">
-              <h2 id="portal-allergies">My allergies</h2>
-              {activeAllergies.length === 0 ? (
-                <p>No active allergies are listed in your chart. This does not confirm that you have none.</p>
-              ) : (
-                <ul className="portal-records">
-                  {activeAllergies.map((allergy) => (
-                    <li key={allergy.id}>
-                      <strong>{allergy.allergen}</strong>
-                      <span>Severity: {allergy.severity}</span>
-                      {allergy.reaction && <span>Recorded reaction: {allergy.reaction}</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {inactiveAllergies.length > 0 && (
-                <details>
-                  <summary>Inactive allergy entries ({inactiveAllergies.length})</summary>
-                  <p className="portal-help">
-                    These entries remain in your chart history. An inactive entry does not confirm
-                    that an allergy has gone away.
-                  </p>
-                  <ul className="portal-records">
-                    {inactiveAllergies.map((allergy) => (
-                      <li key={allergy.id}>
-                        <strong>{allergy.allergen}</strong>
-                        <span>Status: Inactive in chart</span>
-                        <span>Recorded severity: {allergy.severity}</span>
-                        {allergy.reaction && <span>Recorded reaction: {allergy.reaction}</span>}
-                        {allergy.onset_date && (
-                          <span>
-                            Recorded onset: <time dateTime={allergy.onset_date}>
-                              {allergy.onset_date}
-                            </time>
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </section>
+            <PortalAllergies allergies={overview.allergies} />
 
             <PortalCareGoals goals={overview.careGoals} />
           </div>
