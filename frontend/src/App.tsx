@@ -32,7 +32,8 @@ import ProblemList from './components/ProblemList'
 import VitalList from './components/VitalList'
 
 import type { Patient } from './types'
-import StaffSignIn, { type SignedInAccount } from './components/StaffSignIn'
+import SignIn, { type SignedInAccount } from './components/SignIn'
+import PatientPortal from './components/PatientPortal'
 
 
 const sexAtBirthLabels: Record<
@@ -786,6 +787,7 @@ function StaffApp() {
 
 function App() {
   const [account, setAccount] = useState<SignedInAccount | null>(null)
+  const [signInMode, setSignInMode] = useState<'staff' | 'patient'>('staff')
 
   useEffect(() => {
     const sessionEnded = () => setAccount(null)
@@ -803,7 +805,14 @@ function App() {
   }
 
   if (!account) {
-    return <StaffSignIn onSignedIn={setAccount} />
+    return (
+      <SignIn
+        key={signInMode}
+        mode={signInMode}
+        onModeChange={setSignInMode}
+        onSignedIn={setAccount}
+      />
+    )
   }
 
   return (
@@ -814,7 +823,7 @@ function App() {
           Sign out
         </button>
       </header>
-      <StaffApp />
+      {account.account_type === 'patient' ? <PatientPortal /> : <StaffApp />}
     </>
   )
 }
