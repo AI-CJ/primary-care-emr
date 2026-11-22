@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PortalLabOrder, PortalLabResult } from '../types'
+import { portalLabOrdersPath } from '../portalLabOrderRoutes'
 
 type PortalLabResultsProps = {
-  patientId: number
+  // Staff preview supplies a chart ID. Patient sign-in uses the session-scoped route.
+  patientId?: number
 }
 
 function PortalLabResults({ patientId }: PortalLabResultsProps) {
@@ -22,7 +24,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
 
       try {
         const response = await apiFetch(
-          API_BASE_URL + '/patients/' + patientId + '/portal-preview/lab-orders',
+          API_BASE_URL + portalLabOrdersPath(patientId),
           { signal: controller.signal },
         )
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
@@ -78,7 +80,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
       <p className="portal-help">
         Recent lab requests, reported results, and cancelled requests from finalized visits in this fictional chart.
         A recorded request does not confirm that a test has been scheduled or collected.
-        Result details appear only after a clinic staff member releases them to this preview.
+        Result details appear only after a clinic staff member releases them to the patient portal.
       </p>
 
       {isLoading && <p role="status">Loading lab records...</p>}
@@ -95,7 +97,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
         </div>
       )}
       {!isLoading && !error && pendingRequests.length === 0 && recentResults.length === 0 && awaitingRelease.length === 0 && cancelledRequests.length === 0 && (
-        <p>No lab requests or results from finalized visits are available in this preview.</p>
+        <p>No lab requests or results from finalized visits are available.</p>
       )}
       {!isLoading && !error && pendingRequests.length > 0 && (
         <div className="portal-lab-group">
@@ -141,7 +143,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
       {!isLoading && !error && awaitingRelease.length > 0 && (
         <div className="portal-lab-group">
           <h3>Results awaiting release</h3>
-          <p className="portal-help">These results are recorded but are not yet available in this preview.</p>
+          <p className="portal-help">These results are recorded but are not yet available to patients.</p>
           <ul className="portal-records">
             {awaitingRelease.map((order) => (
               <li key={order.id}>

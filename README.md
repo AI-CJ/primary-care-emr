@@ -18,9 +18,9 @@ It includes patient charts, scheduling, visit notes, labs, referrals, care goals
 | Labs | Lab requests, results, cancellation, history, staff review, and release to the portal preview |
 | Referrals | New referrals, cancellation, completion, history, and a pending referral worklist |
 | Staff worklists | Daily schedule, past appointments, pending labs, unreleased results, pending referrals, active goals, and open follow ups |
-| Patient portal | Staff preview for nine clinical areas; authenticated patient sign-in with patient-scoped appointments, finalized visits, conditions, medication history, allergies, recent vitals, and care goals |
+| Patient portal | Staff preview for nine clinical areas; authenticated patient sign-in with patient-scoped appointments, finalized visits, conditions, medication history, allergies, recent vitals, care goals, and lab requests/released results |
 
-The staff side is the most complete part of the project. The signed-in patient portal currently shows appointments, finalized visits, health conditions, medication history, allergies, recent vitals, and care goals; the staff-only preview covers more clinical areas. Both remain read-only and are deliberately separate from the staff chart.
+The staff side is the most complete part of the project. The signed-in patient portal currently shows appointments, finalized visits, health conditions, medication history, allergies, recent vitals, care goals, and lab requests/released results; the staff-only preview covers more clinical areas. Both remain read-only and are deliberately separate from the staff chart.
 
 ## How it fits together
 
@@ -99,7 +99,7 @@ python -m backend.bootstrap_patient --username demo.patient --patient-id 1
 uvicorn backend.main:app --reload
 ```
 
-Both account commands prompt for a local-only password. The patient command links an account to an existing synthetic chart; replace patient ID 1 with an ID from your own seed records if needed. Do not use real patient data or a real clinical password. Only clinicians and administrators can enter the staff workspace. Patient accounts can sign in to a separate read-only portal for appointments, finalized visits, health conditions, medications, allergies, recent vitals, and care goals.
+Both account commands prompt for a local-only password. The patient command links an account to an existing synthetic chart; replace patient ID 1 with an ID from your own seed records if needed. Do not use real patient data or a real clinical password. Only clinicians and administrators can enter the staff workspace. Patient accounts can sign in to a separate read-only portal for appointments, finalized visits, health conditions, medications, allergies, recent vitals, care goals, and lab requests/released results.
 
 The API runs at `http://127.0.0.1:8000`.
 
