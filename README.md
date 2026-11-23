@@ -230,8 +230,11 @@ Archived charts now reject staff demographic edits and all appointment
 creation, rescheduling, and status actions with HTTP 409. Those writes and
 archive/reactivation share a locked patient row, so scheduling cannot race
 archival on PostgreSQL. Historical chart and appointment reads remain available.
-Other clinical mutation paths and active worklists still require archive
-enforcement; staff UI controls and browser regression tests also remain open. This initial lifecycle API should not
+Care goal creation, completion, discontinuation and progress updates also reject
+archived charts. Archived care goals are hidden from the active-goals worklist,
+while their historical chart and progress reads remain available. Other clinical
+mutation paths and active worklists still require archive enforcement; staff UI
+controls and browser regression tests also remain open. This initial lifecycle API should not
 be treated as a complete clinical-record retention policy.
 
 ## Project status

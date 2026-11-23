@@ -12,7 +12,8 @@ from sqlalchemy.pool import StaticPool
 from backend.account_auth import create_user_account
 from backend.main import app
 from backend.models import (
-    Appointment, AuditEvent, Base, Patient, PatientLifecycleEvent, UserSession,
+    Appointment, AuditEvent, Base, CareGoal, CareGoalProgress, Patient,
+    PatientLifecycleEvent, UserSession,
 )
 
 
@@ -250,6 +251,94 @@ class PatientArchiveLifecycleTests(unittest.TestCase):
                 headers=admin, json=new_slot,
             )
             self.assertEqual(reopened.status_code, 201, reopened.text)
+
+    def test_archived_chart_preserves_care_goals_but_blocks_new_writes(self):
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "clinic.admin")
+            old_goal = client.post(
+                f"/patients/{self.first_id}/care-goals", headers=admin,
+                json={"title": "Synthetic mobility plan"},
+            )
+            self.assertEqual(old_goal.status_code, 201, old_goal.text)
+            goal_id = old_goal.json()["id"]
+            other = client.post(
+                f"/patients/{self.second_id}/care-goals", headers=admin,
+                json={"title": "Synthetic exercise plan"},
+            )
+            self.assertEqual(other.status_code, 201, other.text)
+            other_id = other.json()["id"]
+            original = client.post(
+                f"/care-goals/{goal_id}/progress", headers=admin,
+                json={"note": "Synthetic baseline progress"},
+            )
+            self.assertEqual(original.status_code, 201, original.text)
+
+            archived = client.post(
+                f"/patients/{self.first_id}/archive", headers=admin,
+            )
+            self.assertEqual(archived.status_code, 200, archived.text)
+            goals = client.get(
+                f"/patients/{self.first_id}/care-goals", headers=admin,
+            )
+            self.assertEqual(goals.status_code, 200)
+            self.assertEqual([row["id"] for row in goals.json()], [goal_id])
+            history = client.get(
+                f"/care-goals/{goal_id}/progress", headers=admin,
+            )
+            self.assertEqual(history.status_code, 200)
+            self.assertEqual(len(history.json()), 1)
+
+            active = client.get("/worklists/active-care-goals", headers=admin)
+            self.assertEqual(active.status_code, 200)
+            active_ids = {item["id"] for item in active.json()}
+            self.assertNotIn(goal_id, active_ids)
+            self.assertIn(other_id, active_ids)
+
+            denied_writes = [
+                (f"/patients/{self.first_id}/care-goals",
+                 {"title": "Should not be created"}),
+                (f"/care-goals/{goal_id}/complete",
+                 {"completion_note": "Should not complete"}),
+                (f"/care-goals/{goal_id}/discontinue",
+                 {"reason": "Should not discontinue"}),
+                (f"/care-goals/{goal_id}/progress",
+                 {"note": "Should not append progress"}),
+            ]
+            for path, payload in denied_writes:
+                with self.subTest(path=path):
+                    response = client.post(path, headers=admin, json=payload)
+                    self.assertEqual(response.status_code, 409, response.text)
+                    self.assertIn("Archived", response.json()["detail"])
+
+            with Session(self.engine) as session:
+                goals = session.scalars(select(CareGoal).where(
+                    CareGoal.patient_id == self.first_id,
+                )).all()
+                self.assertEqual(len(goals), 1)
+                self.assertEqual(goals[0].status, "active")
+                self.assertEqual(session.query(CareGoalProgress).filter_by(
+                    goal_id=goal_id,
+                ).count(), 1)
+
+            # Other active charts remain writable, including by resource ID.
+            other_update = client.post(
+                f"/care-goals/{other_id}/complete", headers=admin,
+                json={"completion_note": "Synthetic outcome"},
+            )
+            self.assertEqual(other_update.status_code, 200, other_update.text)
+            self.assertEqual(
+                client.post(
+                    f"/patients/{self.first_id}/reactivate", headers=admin,
+                ).status_code, 200,
+            )
+            resumed = client.post(
+                f"/care-goals/{goal_id}/progress", headers=admin,
+                json={"note": "Synthetic post-reactivation progress"},
+            )
+            self.assertEqual(resumed.status_code, 201, resumed.text)
+            active_again = client.get("/worklists/active-care-goals", headers=admin)
+            self.assertIn(goal_id, {item["id"] for item in active_again.json()})
+
 
     def test_only_admin_can_change_or_read_lifecycle(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:
