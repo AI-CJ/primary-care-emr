@@ -12,6 +12,10 @@ from sqlalchemy.orm import Session
 from backend.database import engine
 from backend.account_auth import authenticate_user
 from backend.audit import record_audit_event
+from backend.communication_preferences import (
+    CommunicationPreferencesPayload, read_communication_preferences,
+    replace_communication_preferences,
+)
 from backend.audit_review import (
     AuditActivitySummary, AuditEventRead, AuditEventType, export_audit_csv,
     list_audit_events, summarize_audit_activity,
@@ -237,7 +241,9 @@ _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
     "/portal/allergies", "/portal/vitals", "/portal/care-goals",
     "/portal/visits", "/portal/lab-orders", "/portal/referrals",
+    "/portal/communication-preferences",
 }
+_PATIENT_WRITE_PATHS = {("PUT", "/portal/communication-preferences")}
 
 
 def _audit_clinical_access(request: Request, status_code: int) -> None:
@@ -313,7 +319,8 @@ async def require_clinical_access(request: Request, call_next):
         response.headers["Cache-Control"] = "no-store"
         return response
 
-    if request.method == "GET" and request.url.path in _PATIENT_GET_PATHS:
+    if ((request.method == "GET" and request.url.path in _PATIENT_GET_PATHS)
+            or (request.method, request.url.path) in _PATIENT_WRITE_PATHS):
         # The patient-only dependency identifies the actor and enforces ownership.
         response = await _run_clinical_endpoint(request, call_next)
     else:
@@ -1606,6 +1613,25 @@ def read_past_appointments(before: date):
 def read_portal_preview_appointments(patient_id: int):
     with Session(engine) as session:
         return list_portal_preview_appointments(session, patient_id)
+
+
+@app.get("/portal/communication-preferences", response_model=CommunicationPreferencesPayload)
+def get_my_communication_preferences(
+    account: UserAccount = Depends(_current_patient_account),
+):
+    """Read defaults without creating a database row until the patient saves."""
+    with Session(engine) as session:
+        return read_communication_preferences(session, account.patient_id)
+
+
+@app.put("/portal/communication-preferences", response_model=CommunicationPreferencesPayload)
+def update_my_communication_preferences(
+    preferences: CommunicationPreferencesPayload,
+    account: UserAccount = Depends(_current_patient_account),
+):
+    """Only replace the authenticated patient's choices, not clinical data."""
+    with Session(engine) as session:
+        return replace_communication_preferences(session, account.patient_id, preferences)
 
 
 @app.get("/portal/appointments", response_model=list[PortalAppointmentSummary])

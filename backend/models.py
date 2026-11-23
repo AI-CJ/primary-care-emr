@@ -483,6 +483,35 @@ class UserAccount(Base):
     )
 
 
+class PatientCommunicationPreference(Base):
+    """One mutable communication preference record per synthetic patient."""
+
+    __tablename__ = "patient_communication_preferences"
+    __table_args__ = (
+        CheckConstraint(
+            "preferred_channel IN ('portal', 'phone', 'email')",
+            name="ck_patient_communication_preferred_channel",
+        ),
+    )
+
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id", ondelete="RESTRICT"), primary_key=True,
+    )
+    preferred_channel: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default="portal",
+    )
+    appointment_reminders: Mapped[bool] = mapped_column(
+        Boolean(), nullable=False, server_default="false",
+    )
+    care_updates: Mapped[bool] = mapped_column(
+        Boolean(), nullable=False, server_default="false",
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),
+        nullable=False,
+    )
+
+
 class AuditEvent(Base):
     """Persistent, append-only authentication and clinical access metadata."""
 

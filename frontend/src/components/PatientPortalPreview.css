@@ -148,3 +148,39 @@
     grid-template-columns: 1fr;
   }
 }
+
+.portal-preferences-form {
+  display: grid;
+  align-items: start;
+  gap: 12px;
+}
+
+.portal-preferences-form select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.portal-preferences-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  line-height: 1.4;
+}
+
+.portal-preferences-check input {
+  width: 18px;
+  height: 18px;
+}
+
+.portal-preferences-form button {
+  justify-self: start;
+  min-height: 44px;
+  max-width: 100%;
+}
