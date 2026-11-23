@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import CareGoal, CareGoalProgress, Patient
+from backend.patient_lifecycle import lock_active_patient
 from backend.schemas import (
     CareGoalComplete, CareGoalCreate, CareGoalDiscontinue, CareGoalProgressCreate,
 )
@@ -29,7 +30,7 @@ def list_active_care_goals(session: Session) -> list[tuple[CareGoal, Patient]]:
     query = (
         select(CareGoal, Patient)
         .join(Patient, CareGoal.patient_id == Patient.id)
-        .where(CareGoal.status == "active")
+        .where(CareGoal.status == "active", Patient.archived_at.is_(None))
         .order_by(
             CareGoal.target_date.is_(None),
             CareGoal.target_date,
@@ -43,8 +44,7 @@ def list_active_care_goals(session: Session) -> list[tuple[CareGoal, Patient]]:
 def create_care_goal(
     session: Session, patient_id: int, goal_data: CareGoalCreate
 ) -> CareGoal:
-    if session.get(Patient, patient_id) is None:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    lock_active_patient(session, patient_id)
 
     goal = CareGoal(patient_id=patient_id, status="active", **goal_data.model_dump())
     session.add(goal)
@@ -52,14 +52,30 @@ def create_care_goal(
     return goal
 
 
-def complete_care_goal(
-    session: Session, goal_id: int, completion: CareGoalComplete
-) -> CareGoal:
+def _lock_active_goal(session: Session, goal_id: int) -> CareGoal:
+    """Lock parent chart first, then the goal, before updating clinical history."""
+    patient_id = session.scalar(
+        select(CareGoal.patient_id).where(CareGoal.id == goal_id)
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Care goal not found")
+
+    # Archives take this same parent row lock before changing archived_at.
+    lock_active_patient(session, patient_id)
     goal = session.scalar(
-        select(CareGoal).where(CareGoal.id == goal_id).with_for_update()
+        select(CareGoal)
+        .where(CareGoal.id == goal_id, CareGoal.patient_id == patient_id)
+        .with_for_update()
     )
     if goal is None:
         raise HTTPException(status_code=404, detail="Care goal not found")
+    return goal
+
+
+def complete_care_goal(
+    session: Session, goal_id: int, completion: CareGoalComplete
+) -> CareGoal:
+    goal = _lock_active_goal(session, goal_id)
     if goal.status != "active":
         raise HTTPException(status_code=409, detail="Only active care goals can be completed.")
 
@@ -72,11 +88,7 @@ def complete_care_goal(
 def discontinue_care_goal(
     session: Session, goal_id: int, discontinuation: CareGoalDiscontinue
 ) -> CareGoal:
-    goal = session.scalar(
-        select(CareGoal).where(CareGoal.id == goal_id).with_for_update()
-    )
-    if goal is None:
-        raise HTTPException(status_code=404, detail="Care goal not found")
+    goal = _lock_active_goal(session, goal_id)
     if goal.status != "active":
         raise HTTPException(
             status_code=409, detail="Only active care goals can be discontinued."
@@ -103,9 +115,7 @@ def list_goal_progress(session: Session, goal_id: int) -> list[CareGoalProgress]
 def record_goal_progress(
     session: Session, goal_id: int, progress_data: CareGoalProgressCreate
 ) -> CareGoalProgress:
-    goal = session.scalar(select(CareGoal).where(CareGoal.id == goal_id).with_for_update())
-    if goal is None:
-        raise HTTPException(status_code=404, detail="Care goal not found")
+    goal = _lock_active_goal(session, goal_id)
     if goal.status != "active":
         raise HTTPException(status_code=409, detail="Only active care goals can receive progress notes.")
 
