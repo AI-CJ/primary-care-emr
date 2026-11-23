@@ -3,7 +3,7 @@
 import csv
 from io import StringIO
 import unittest
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -236,6 +236,82 @@ class AuditReviewTests(unittest.TestCase):
             self.assertEqual([event.status_code for event in exports[:2]], [200, 200])
             self.assertTrue(all(event.resource_id is None for event in exports))
             self.assertNotIn("do-not-store", repr(exports))
+
+
+    def test_activity_summary_is_recent_aggregate_admin_only_and_audited(self):
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "demo.admin")
+            now = datetime.now(timezone.utc)
+            with Session(self.engine) as session:
+                for event_type, status_code, age_hours in (
+                    ("login_failure", 401, 2),
+                    ("access_denied", 403, 3),
+                    ("clinical_read", 503, 4),
+                    ("clinical_write", 200, 5),
+                    ("login_failure", 401, 36),
+                ):
+                    session.add(AuditEvent(
+                        event_type=event_type,
+                        route_template="/patients/{patient_id}",
+                        http_method="GET",
+                        status_code=status_code,
+                        occurred_at=now - timedelta(hours=age_hours),
+                    ))
+                session.commit()
+
+            activity = client.get(
+                "/admin/audit-events/activity?hours=24&secret=do-not-save",
+                headers=admin,
+            )
+            self.assertEqual(activity.status_code, 200)
+            self.assertEqual(activity.headers["cache-control"], "no-store")
+            self.assertEqual(set(activity.json()), {
+                "hours", "since", "total_events", "failed_logins",
+                "access_denials", "server_errors",
+            })
+            self.assertEqual(activity.json()["hours"], 24)
+            # Admin login is itself audited; the older failure is outside 24 hours.
+            self.assertEqual(activity.json()["total_events"], 5)
+            self.assertEqual(activity.json()["failed_logins"], 1)
+            self.assertEqual(activity.json()["access_denials"], 1)
+            self.assertEqual(activity.json()["server_errors"], 1)
+            self.assertNotIn("do-not-save", activity.text)
+            self.assertNotIn("Synthetic audit password!", activity.text)
+
+            longer = client.get(
+                "/admin/audit-events/activity?hours=72", headers=admin,
+            )
+            self.assertEqual(longer.status_code, 200)
+            self.assertEqual(longer.json()["failed_logins"], 2)
+            for parameters in ("hours=0", "hours=169", "hours=abc"):
+                with self.subTest(parameters=parameters):
+                    self.assertEqual(client.get(
+                        f"/admin/audit-events/activity?{parameters}", headers=admin,
+                    ).status_code, 422)
+
+            for username in ("demo.clinician", "demo.desk", "demo.patient"):
+                denied = client.get(
+                    "/admin/audit-events/activity", headers=self.login(client, username),
+                )
+                self.assertEqual(denied.status_code, 403)
+                self.assertEqual(denied.headers["cache-control"], "no-store")
+                self.assertNotIn("total_events", denied.text)
+            anonymous = client.get("/admin/audit-events/activity")
+            self.assertEqual(anonymous.status_code, 401)
+
+        with Session(self.engine) as session:
+            reviews = session.scalars(
+                select(AuditEvent)
+                .where(AuditEvent.route_template == "/admin/audit-events/activity")
+                .order_by(AuditEvent.id)
+            ).all()
+            self.assertEqual([event.status_code for event in reviews[:2]], [200, 200])
+            self.assertEqual(
+                sorted(event.status_code for event in reviews[2:]),
+                [401, 403, 403, 403, 422, 422, 422],
+            )
+            self.assertTrue(all(event.resource_id is None for event in reviews))
+            self.assertNotIn("do-not-save", repr(reviews))
 
 
 if __name__ == "__main__":

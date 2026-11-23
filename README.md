@@ -169,7 +169,14 @@ Exports contain the same limited metadata, are audited, and use `no-store` and
 `nosniff` headers. This is not a bulk backup or an immutable evidence store. Create a
 local administrator with `python -m backend.bootstrap_staff --username demo.admin --role admin`.
 
-Production retention, security monitoring, and an operationally reviewed
+An administrator-only `GET /admin/audit-events/activity?hours=24` endpoint
+also summarizes recent event volume, failed logins, denied access, and HTTP
+server errors. Its window can be set to 1–168 hours, and the response contains
+no account, route, or patient identifiers. Review requests are audited and
+marked `no-store`. This is a historical summary, not an alerting service,
+intrusion detector, or incident response system.
+
+Production retention, active security alerting, and an operationally reviewed
 bulk archival/export process remain open release tasks.
 
 ## Project status

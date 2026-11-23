@@ -13,7 +13,8 @@ from backend.database import engine
 from backend.account_auth import authenticate_user
 from backend.audit import record_audit_event
 from backend.audit_review import (
-    AuditEventRead, AuditEventType, export_audit_csv, list_audit_events,
+    AuditActivitySummary, AuditEventRead, AuditEventType, export_audit_csv,
+    list_audit_events, summarize_audit_activity,
 )
 from backend.session_auth import create_session, get_session_account, revoke_session
 from backend.models import UserAccount
@@ -403,6 +404,18 @@ def read_audit_events(
         return list_audit_events(
             session, limit=limit, before_id=before_id, event_type=event_type,
         )
+
+
+@app.get("/admin/audit-events/activity", response_model=AuditActivitySummary)
+def read_audit_activity(
+    hours: int = Query(default=24, ge=1, le=168),
+    account: UserAccount = Depends(_current_account),
+):
+    """Review recent failure counts without returning patient or account details."""
+    if account.account_type != "staff" or account.staff_role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    with Session(engine) as session:
+        return summarize_audit_activity(session, hours=hours)
 
 
 @app.get("/admin/audit-events/export")
