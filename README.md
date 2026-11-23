@@ -162,12 +162,15 @@ share a database transaction. A read-only `GET /admin/audit-events` endpoint let
 review this minimal metadata, newest first, with a bounded `limit` (1–100),
 `before_id` cursor and optional `event_type` filter. Clinicians, front desk
 accounts and patients cannot use it. Audit reviews and denied attempts are
-themselves logged, and the response is marked `no-store`. This is an API-only
-administrative review, not an export or an immutable evidence store. Create a
+themselves logged, and the response is marked `no-store`. Administrators can
+also download one page at a time as a CSV attachment using
+`GET /admin/audit-events/export` with the same filters and a 100-row maximum.
+Exports contain the same limited metadata, are audited, and use `no-store` and
+`nosniff` headers. This is not a bulk backup or an immutable evidence store. Create a
 local administrator with `python -m backend.bootstrap_staff --username demo.admin --role admin`.
 
-Production retention, security monitoring, and audit export remain
-open release tasks.
+Production retention, security monitoring, and an operationally reviewed
+bulk archival/export process remain open release tasks.
 
 ## Project status
 

@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.routing import APIRoute
 from starlette.routing import Match
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 from backend.database import engine
 from backend.account_auth import authenticate_user
 from backend.audit import record_audit_event
-from backend.audit_review import AuditEventRead, AuditEventType, list_audit_events
+from backend.audit_review import (
+    AuditEventRead, AuditEventType, export_audit_csv, list_audit_events,
+)
 from backend.session_auth import create_session, get_session_account, revoke_session
 from backend.models import UserAccount
 from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse
@@ -401,6 +403,30 @@ def read_audit_events(
         return list_audit_events(
             session, limit=limit, before_id=before_id, event_type=event_type,
         )
+
+
+@app.get("/admin/audit-events/export")
+def download_audit_events(
+    limit: int = Query(default=100, ge=1, le=100),
+    before_id: int | None = Query(default=None, ge=1),
+    event_type: AuditEventType | None = None,
+    account: UserAccount = Depends(_current_account),
+):
+    """Export at most one page of approved audit metadata for administrators."""
+    if account.account_type != "staff" or account.staff_role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    with Session(engine) as session:
+        content = export_audit_csv(list_audit_events(
+            session, limit=limit, before_id=before_id, event_type=event_type,
+        ))
+    return Response(
+        content=content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": 'attachment; filename="audit-events.csv"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @app.get("/")

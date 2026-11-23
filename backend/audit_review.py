@@ -1,6 +1,8 @@
 """Bounded, read-only review of audit metadata for clinic administrators."""
 
+from csv import writer
 from datetime import datetime
+from io import StringIO
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -46,3 +48,16 @@ def list_audit_events(
     if event_type is not None:
         query = query.where(AuditEvent.event_type == event_type)
     return list(session.scalars(query.order_by(AuditEvent.id.desc()).limit(limit)).all())
+
+
+
+def export_audit_csv(events: list[AuditEvent]) -> str:
+    """Export only the same allowlisted metadata available in admin review."""
+    buffer = StringIO(newline="")
+    output = writer(buffer)
+    columns = tuple(AuditEventRead.model_fields)
+    output.writerow(columns)
+    for event in events:
+        safe = AuditEventRead.model_validate(event).model_dump(mode="json")
+        output.writerow(safe[column] for column in columns)
+    return buffer.getvalue()
