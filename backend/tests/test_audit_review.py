@@ -1,5 +1,7 @@
 """Admin-only, cursor-paginated review of synthetic audit metadata."""
 
+import csv
+from io import StringIO
 import unittest
 from datetime import date
 from unittest.mock import patch
@@ -154,6 +156,86 @@ class AuditReviewTests(unittest.TestCase):
             self.assertNotIn("never-store", repr(reviews))
             self.assertNotIn("Synthetic audit password!", first.text)
             self.assertNotIn(admin["Authorization"], first.text)
+
+
+    def test_csv_export_is_admin_only_paged_and_audited(self):
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "demo.admin")
+            with Session(self.engine) as session:
+                for route in ("/patients/{patient_id}", "/patients/{patient_id}/timeline"):
+                    record_audit_event(
+                        session, event_type="clinical_read", route_template=route,
+                        http_method="GET", status_code=200,
+                        subject_patient_id=self.patient_id,
+                    )
+                    session.flush()
+                ids = session.scalars(
+                    select(AuditEvent.id)
+                    .where(AuditEvent.event_type == "clinical_read")
+                    .order_by(AuditEvent.id)
+                ).all()
+                session.commit()
+
+            first = client.get(
+                "/admin/audit-events/export?limit=1&event_type=clinical_read&secret=do-not-store",
+                headers=admin,
+            )
+            self.assertEqual(first.status_code, 200)
+            self.assertEqual(first.headers["cache-control"], "no-store")
+            self.assertTrue(first.headers["content-type"].startswith("text/csv"))
+            self.assertEqual(first.headers["x-content-type-options"], "nosniff")
+            self.assertEqual(
+                first.headers["content-disposition"],
+                'attachment; filename="audit-events.csv"',
+            )
+            rows = list(csv.DictReader(StringIO(first.text)))
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(int(rows[0]["id"]), ids[-1])
+            self.assertEqual(rows[0]["subject_patient_id"], str(self.patient_id))
+            self.assertEqual(rows[0]["actor_user_id"], "")
+            self.assertEqual(set(rows[0]), {
+                "id", "occurred_at", "event_type", "route_template", "http_method",
+                "status_code", "actor_user_id", "subject_patient_id", "resource_id",
+            })
+            self.assertNotIn("secret", first.text)
+            self.assertNotIn("Synthetic audit password!", first.text)
+
+            second = client.get(
+                f"/admin/audit-events/export?before_id={ids[-1]}&limit=1"
+                "&event_type=clinical_read", headers=admin,
+            )
+            self.assertEqual(second.status_code, 200)
+            self.assertEqual(
+                int(list(csv.DictReader(StringIO(second.text)))[0]["id"]), ids[0],
+            )
+            for parameters in ("limit=0", "limit=101", "before_id=0",
+                               "event_type=other"):
+                with self.subTest(parameters=parameters):
+                    self.assertEqual(client.get(
+                        f"/admin/audit-events/export?{parameters}", headers=admin,
+                    ).status_code, 422)
+
+            for username in ("demo.clinician", "demo.desk", "demo.patient"):
+                forbidden = client.get(
+                    "/admin/audit-events/export", headers=self.login(client, username),
+                )
+                self.assertEqual(forbidden.status_code, 403)
+                self.assertEqual(forbidden.headers["cache-control"], "no-store")
+                self.assertNotIn("id,occurred_at", forbidden.text)
+            anonymous = client.get("/admin/audit-events/export")
+            self.assertEqual(anonymous.status_code, 401)
+            self.assertEqual(anonymous.headers["cache-control"], "no-store")
+
+        with Session(self.engine) as session:
+            exports = session.scalars(
+                select(AuditEvent)
+                .where(AuditEvent.route_template == "/admin/audit-events/export")
+                .order_by(AuditEvent.id)
+            ).all()
+            self.assertGreaterEqual(len(exports), 6)
+            self.assertEqual([event.status_code for event in exports[:2]], [200, 200])
+            self.assertTrue(all(event.resource_id is None for event in exports))
+            self.assertNotIn("do-not-store", repr(exports))
 
 
 if __name__ == "__main__":
