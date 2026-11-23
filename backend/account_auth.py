@@ -78,8 +78,11 @@ def create_user_account(
     elif account_type == "patient":
         if staff_role is not None or patient_id is None:
             raise ValueError("Patient accounts need one patient link and no staff role")
-        if session.get(Patient, patient_id) is None:
+        patient = session.get(Patient, patient_id)
+        if patient is None:
             raise ValueError("Patient does not exist")
+        if patient.archived_at is not None:
+            raise ValueError("Archived patient charts cannot receive portal accounts")
     else:
         raise ValueError("Unsupported account type")
 
@@ -106,6 +109,10 @@ def authenticate_user(session: Session, username: str, password: str) -> UserAcc
     account = session.scalar(select(UserAccount).where(UserAccount.username == username))
     if account is None or not account.is_active:
         return None
+    if account.account_type == "patient":
+        patient = session.get(Patient, account.patient_id)
+        if patient is None or patient.archived_at is not None:
+            return None
     if not verify_password(password, account.password_hash):
         return None
     return account

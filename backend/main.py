@@ -10,6 +10,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.patient_lifecycle import (
+    PatientLifecycleEventRead, archive_patient, reactivate_patient,
+    list_patient_lifecycle_events,
+)
 from backend.account_auth import authenticate_user
 from backend.audit import record_audit_event
 from backend.appointment_change_requests import (
@@ -547,6 +551,37 @@ def read_patient(patient_id: int):
             )
 
         return patient
+
+
+@app.post("/patients/{patient_id}/archive", response_model=PatientRead)
+def archive_patient_chart(
+    patient_id: int, account: UserAccount = Depends(_current_account),
+):
+    """Administrative status transition; never delete historical records."""
+    if account.account_type != "staff" or account.staff_role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    with Session(engine) as session:
+        return archive_patient(session, patient_id, account.id)
+
+
+@app.post("/patients/{patient_id}/reactivate", response_model=PatientRead)
+def reactivate_patient_chart(
+    patient_id: int, account: UserAccount = Depends(_current_account),
+):
+    if account.account_type != "staff" or account.staff_role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    with Session(engine) as session:
+        return reactivate_patient(session, patient_id, account.id)
+
+
+@app.get("/patients/{patient_id}/lifecycle", response_model=list[PatientLifecycleEventRead])
+def read_patient_lifecycle(
+    patient_id: int, account: UserAccount = Depends(_current_account),
+):
+    if account.account_type != "staff" or account.staff_role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    with Session(engine) as session:
+        return list_patient_lifecycle_events(session, patient_id)
 
 
 @app.get(
