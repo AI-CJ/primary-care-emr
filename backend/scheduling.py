@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import Appointment, AppointmentStatusChange, Encounter, Patient
+from backend.patient_lifecycle import lock_active_patient
 from backend.schemas import AppointmentCreate
 
 
@@ -105,13 +106,7 @@ def reschedule_appointment(
     if appointment is None:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    patient_id = session.scalar(
-        select(Patient.id)
-        .where(Patient.id == appointment.patient_id)
-        .with_for_update()
-    )
-    if patient_id is None:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    patient_id = lock_active_patient(session, appointment.patient_id).id
 
     # Refresh after the scheduling lock to avoid editing an outdated state.
     session.refresh(appointment)
@@ -146,13 +141,7 @@ def check_in_appointment(session: Session, appointment_id: int) -> Appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
     # Use the same parent-row lock as scheduling and rescheduling.
-    patient_id = session.scalar(
-        select(Patient.id)
-        .where(Patient.id == appointment.patient_id)
-        .with_for_update()
-    )
-    if patient_id is None:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    patient_id = lock_active_patient(session, appointment.patient_id).id
 
     # Refresh after locking, so a concurrent edit cannot race this change.
     session.refresh(appointment)
@@ -181,13 +170,7 @@ def complete_appointment(session: Session, appointment_id: int) -> Appointment:
     if appointment is None:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    patient_id = session.scalar(
-        select(Patient.id)
-        .where(Patient.id == appointment.patient_id)
-        .with_for_update()
-    )
-    if patient_id is None:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    patient_id = lock_active_patient(session, appointment.patient_id).id
 
     # Recheck status after locking to prevent concurrent completion or cancellation.
     session.refresh(appointment)
@@ -216,13 +199,7 @@ def cancel_appointment(session: Session, appointment_id: int) -> Appointment:
     if appointment is None:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    patient_id = session.scalar(
-        select(Patient.id)
-        .where(Patient.id == appointment.patient_id)
-        .with_for_update()
-    )
-    if patient_id is None:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    patient_id = lock_active_patient(session, appointment.patient_id).id
 
     # Recheck after acquiring the lock so cancellation cannot race completion.
     session.refresh(appointment)
@@ -259,13 +236,7 @@ def mark_appointment_no_show(
     if appointment is None:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    patient_id = session.scalar(
-        select(Patient.id)
-        .where(Patient.id == appointment.patient_id)
-        .with_for_update()
-    )
-    if patient_id is None:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    patient_id = lock_active_patient(session, appointment.patient_id).id
 
     # Recheck after locking so check-in and no-show cannot both succeed.
     session.refresh(appointment)

@@ -226,9 +226,12 @@ administrative controls. Staff chart reads remain available for historical
 review, and patient responses expose `archived_at` to identify inactive
 charts. These are synthetic records; no deletion is performed.
 
-**Remaining release work:** Ensure every staff clinical mutation path and
-every active worklist consistently handles archived patients; add staff UI
-controls and browser regression tests. This initial lifecycle API should not
+Archived charts now reject staff demographic edits and all appointment
+creation, rescheduling, and status actions with HTTP 409. Those writes and
+archive/reactivation share a locked patient row, so scheduling cannot race
+archival on PostgreSQL. Historical chart and appointment reads remain available.
+Other clinical mutation paths and active worklists still require archive
+enforcement; staff UI controls and browser regression tests also remain open. This initial lifecycle API should not
 be treated as a complete clinical-record retention policy.
 
 ## Project status

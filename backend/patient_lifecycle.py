@@ -31,6 +31,20 @@ def _lock_patient(session: Session, patient_id: int) -> Patient:
     return patient
 
 
+def lock_active_patient(session: Session, patient_id: int) -> Patient:
+    """Lock the chart against concurrent archival before a staff write.
+
+    The caller must keep this session and its transaction open until commit.
+    Both archival and appointment writes take this same parent-row lock.
+    """
+    patient = _lock_patient(session, patient_id)
+    if patient.archived_at is not None:
+        raise HTTPException(
+            status_code=409, detail="Archived patient charts cannot be modified",
+        )
+    return patient
+
+
 def archive_patient(session: Session, patient_id: int, actor_id: int) -> Patient:
     """Reject unresolved visits and revoke sessions in the status transaction."""
     patient = _lock_patient(session, patient_id)
