@@ -21,6 +21,28 @@ class Patient(Base):
     pronouns: Mapped[str | None] = mapped_column(nullable=True)
     custom_pronouns: Mapped[str | None] = mapped_column(nullable=True)
     sex_at_birth: Mapped[str] = mapped_column(nullable=False)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PatientLifecycleEvent(Base):
+    """Append-only status transitions. Archiving never deletes chart data."""
+
+    __tablename__ = "patient_lifecycle_events"
+    __table_args__ = (
+        CheckConstraint("action IN ('archive', 'reactivate')", name="ck_patient_lifecycle_action"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id", ondelete="RESTRICT"), index=True, nullable=False,
+    )
+    actor_user_id: Mapped[int] = mapped_column(
+        ForeignKey("user_accounts.id", ondelete="RESTRICT"), index=True, nullable=False,
+    )
+    action: Mapped[str] = mapped_column(String(16), nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(),
+    )
 
 
 class Problem(Base):

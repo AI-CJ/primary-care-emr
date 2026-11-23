@@ -122,6 +122,7 @@ class PatientCreate(PatientBase):
 
 class PatientRead(PatientBase):
     id: int
+    archived_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -8,7 +8,7 @@ import secrets
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.models import UserAccount, UserSession
+from backend.models import Patient, UserAccount, UserSession
 
 
 SESSION_LIFETIME = timedelta(hours=12)
@@ -50,7 +50,13 @@ def get_session_account(session: Session, token: str) -> UserAccount | None:
     if _utc(record.expires_at) <= datetime.now(timezone.utc):
         return None
     account = session.get(UserAccount, record.user_id)
-    return account if account is not None and account.is_active else None
+    if account is None or not account.is_active:
+        return None
+    if account.account_type == "patient":
+        patient = session.get(Patient, account.patient_id)
+        if patient is None or patient.archived_at is not None:
+            return None
+    return account
 
 
 def revoke_session(session: Session, token: str) -> bool:

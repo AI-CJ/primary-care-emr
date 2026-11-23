@@ -212,6 +212,25 @@ must make any scheduling changes separately in the patient chart. Notifications
 and automatic scheduling actions remain out of scope. This is not an
 emergency communications service.
 
+### Patient chart archive and reactivation (API)
+
+Administrators can POST to `/patients/{patient_id}/archive` and
+`/patients/{patient_id}/reactivate`. Archive preserves the complete chart
+and append-only lifecycle events, refuses charts with scheduled or checked-in
+appointments, and revokes any existing patient portal sessions. Archived
+patients cannot sign in to the portal or receive newly bootstrapped portal
+accounts. Reactivation does not restore revoked sessions: the patient must
+sign in again. Admins can review up to 100 newest lifecycle events via
+`GET /patients/{patient_id}/lifecycle`; other roles cannot access these
+administrative controls. Staff chart reads remain available for historical
+review, and patient responses expose `archived_at` to identify inactive
+charts. These are synthetic records; no deletion is performed.
+
+**Remaining release work:** Ensure every staff clinical mutation path and
+every active worklist consistently handles archived patients; add staff UI
+controls and browser regression tests. This initial lifecycle API should not
+be treated as a complete clinical-record retention policy.
+
 ## Project status
 
 The main staff EMR is close to the planned portfolio V1. Recent work has focused on tightening appointment and visit workflows, limiting what the patient portal can see, and adding tests around clinical rules.
