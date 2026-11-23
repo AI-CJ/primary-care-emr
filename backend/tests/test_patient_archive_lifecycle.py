@@ -1,7 +1,7 @@
 """Administrative archival preserves records and closes existing portal sessions."""
 
 import unittest
-from datetime import date, time
+from datetime import date, time, timedelta
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -182,6 +182,74 @@ class PatientArchiveLifecycleTests(unittest.TestCase):
                 self.assertEqual(
                     session.query(PatientLifecycleEvent).count(), 1,
                 )
+
+
+    def test_archived_chart_rejects_staff_demographic_and_scheduling_writes(self):
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "clinic.admin")
+            with Session(self.engine) as session:
+                completed_id = session.scalar(select(Appointment.id).where(
+                    Appointment.patient_id == self.first_id,
+                ))
+            self.assertEqual(
+                client.post(f"/patients/{self.first_id}/archive", headers=admin).status_code,
+                200,
+            )
+            new_slot = {
+                "scheduled_date": (date.today() + timedelta(days=30)).isoformat(),
+                "start_time": "11:00:00",
+                "reason_for_visit": "Synthetic follow-up",
+            }
+            demographics = {
+                "first_name": "Changed", "last_name": "Example",
+                "date_of_birth": "1990-01-01", "sex_at_birth": "unknown",
+            }
+            denied = client.put(
+                f"/patients/{self.first_id}", headers=admin, json=demographics,
+            )
+            self.assertEqual(denied.status_code, 409)
+            self.assertIn("Archived", denied.json()["detail"])
+
+            writes = [
+                ("post", f"/patients/{self.first_id}/appointments", new_slot),
+                ("put", f"/appointments/{completed_id}", new_slot),
+                ("post", f"/appointments/{completed_id}/check-in", None),
+                ("post", f"/appointments/{completed_id}/complete", None),
+                ("post", f"/appointments/{completed_id}/cancel", None),
+                ("post", f"/appointments/{completed_id}/no-show", None),
+            ]
+            for method, path, payload in writes:
+                with self.subTest(path=path):
+                    kwargs = {"headers": admin}
+                    if payload is not None:
+                        kwargs["json"] = payload
+                    result = getattr(client, method)(path, **kwargs)
+                    self.assertEqual(result.status_code, 409, result.text)
+                    self.assertIn("Archived", result.json()["detail"])
+
+            with Session(self.engine) as session:
+                self.assertEqual(session.get(Patient, self.first_id).first_name, "Robin")
+                visits = session.scalars(select(Appointment).where(
+                    Appointment.patient_id == self.first_id,
+                )).all()
+                self.assertEqual(len(visits), 1)
+                self.assertEqual(visits[0].status, "completed")
+
+            # An active chart remains schedulable; reactivation restores access.
+            active = client.post(
+                f"/patients/{self.second_id}/appointments",
+                headers=admin, json=new_slot,
+            )
+            self.assertEqual(active.status_code, 201, active.text)
+            self.assertEqual(
+                client.post(f"/patients/{self.first_id}/reactivate",
+                            headers=admin).status_code, 200,
+            )
+            reopened = client.post(
+                f"/patients/{self.first_id}/appointments",
+                headers=admin, json=new_slot,
+            )
+            self.assertEqual(reopened.status_code, 201, reopened.text)
 
     def test_only_admin_can_change_or_read_lifecycle(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:

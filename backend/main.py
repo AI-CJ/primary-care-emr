@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from backend.database import engine
 from backend.patient_lifecycle import (
     PatientLifecycleEventRead, archive_patient, reactivate_patient,
-    list_patient_lifecycle_events,
+    list_patient_lifecycle_events, lock_active_patient,
 )
 from backend.account_auth import authenticate_user
 from backend.audit import record_audit_event
@@ -520,13 +520,7 @@ def update_patient(
     patient_data: PatientCreate,
 ):
     with Session(engine) as session:
-        patient = session.get(Patient, patient_id)
-
-        if patient is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Patient not found",
-            )
+        patient = lock_active_patient(session, patient_id)
 
         for field, value in patient_data.model_dump().items():
             setattr(patient, field, value)
@@ -1764,12 +1758,8 @@ def create_patient_appointment(
     appointment_data: AppointmentCreate,
 ):
     with Session(engine) as session:
-        # Serialize scheduling changes for this patient before checking the slot.
-        patient = session.scalar(
-            select(Patient).where(Patient.id == patient_id).with_for_update()
-        )
-        if patient is None:
-            raise HTTPException(status_code=404, detail="Patient not found")
+        # The same patient-row lock serializes scheduling and archive/reactivation.
+        lock_active_patient(session, patient_id)
 
         if appointment_data.status != "scheduled":
             raise HTTPException(
