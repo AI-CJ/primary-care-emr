@@ -288,6 +288,16 @@ def _audit_clinical_access(request: Request, status_code: int) -> None:
         session.commit()
 
 
+async def _run_clinical_endpoint(request: Request, call_next):
+    """Persist failed clinical access attempts even when handlers raise."""
+    try:
+        return await call_next(request)
+    except Exception:
+        # Record only the templated route and status, never exception details.
+        _audit_clinical_access(request, 500)
+        raise
+
+
 @app.middleware("http")
 async def require_clinical_access(request: Request, call_next):
     if request.method == "OPTIONS" or request.url.path in _PUBLIC_PATHS:
@@ -301,7 +311,7 @@ async def require_clinical_access(request: Request, call_next):
 
     if request.method == "GET" and request.url.path in _PATIENT_GET_PATHS:
         # The patient-only dependency identifies the actor and enforces ownership.
-        response = await call_next(request)
+        response = await _run_clinical_endpoint(request, call_next)
     else:
         scheme, separator, token = request.headers.get("Authorization", "").partition(" ")
         if scheme.lower() != "bearer" or not separator or not token:
@@ -327,7 +337,7 @@ async def require_clinical_access(request: Request, call_next):
             elif not staff_allowed:
                 response = JSONResponse({"detail": "Access denied"}, status_code=403)
             else:
-                response = await call_next(request)
+                response = await _run_clinical_endpoint(request, call_next)
 
     response.headers["Cache-Control"] = "no-store"
     _audit_clinical_access(request, response.status_code)
