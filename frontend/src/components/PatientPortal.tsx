@@ -8,6 +8,7 @@ import PortalCareGoals from './PortalCareGoals'
 import PortalLabResults from './PortalLabResults'
 import PortalReferrals from './PortalReferrals'
 import PortalCommunicationPreferences from './PortalCommunicationPreferences'
+import PortalAppointmentChangeRequests from './PortalAppointmentChangeRequests'
 import './PatientPortalPreview.css'
 
 export default function PatientPortal() {
@@ -21,11 +22,12 @@ export default function PatientPortal() {
         </header>
         <p className="portal-disclaimer" role="note">
           This portfolio portal uses fictional records only. Clinical information is
-          read-only; communication preferences can be changed in this demo. Do not
+          read-only. You can request appointment changes and edit communication preferences. Do not
           use it for real patient information or medical decisions.
         </p>
         <div className="portal-grid">
           <PortalAppointments />
+          <PortalAppointmentChangeRequests />
           <PortalVisits />
           <PortalProblemList />
           <PortalMedications />

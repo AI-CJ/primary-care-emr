@@ -315,6 +315,19 @@ export type PortalAppointmentSummary = Pick<
   'id' | 'scheduled_date' | 'start_time' | 'reason_for_visit' | 'status'
 >
 
+export type AppointmentChangeRequest = {
+  id: number
+  appointment_id: number
+  kind: 'cancel' | 'reschedule'
+  status: 'pending' | 'reviewed'
+  created_at: string
+  reviewed_at: string | null
+}
+
+export type StaffAppointmentChangeRequest = AppointmentChangeRequest & {
+  patient_id: number
+}
+
 export type AppointmentInput = Omit<Appointment, 'id' | 'patient_id'>
 
 export type AppointmentStatusChange = {

@@ -20,7 +20,7 @@ It includes patient charts, scheduling, visit notes, labs, referrals, care goals
 | Staff worklists | Daily schedule, past appointments, pending labs, unreleased results, pending referrals, active goals, and open follow ups |
 | Patient portal | Staff preview for nine clinical areas; authenticated patient sign-in with patient-scoped appointments, finalized visits, conditions, medication history, allergies, recent vitals, care goals, lab requests/released results, and referrals |
 
-The staff side is the most complete part of the project. The signed-in patient portal currently shows appointments, finalized visits, health conditions, medication history, allergies, recent vitals, care goals, lab requests/released results, and referrals; the staff-only preview uses separate chart-scoped routes. Clinical information remains read-only; signed-in patients can now save their own communication preferences. Staff previews remain separate from the patient portal.
+The staff side is the most complete part of the project. The signed-in patient portal currently shows appointments, finalized visits, health conditions, medication history, allergies, recent vitals, care goals, lab requests/released results, and referrals; the staff-only preview uses separate chart-scoped routes. Clinical information remains read-only; signed-in patients can submit appointment change requests and save their own communication preferences. Staff previews remain separate from the patient portal.
 
 ## How it fits together
 
@@ -203,8 +203,13 @@ request history. Clinicians and administrators can GET
 /worklists/appointment-change-requests (oldest 100 pending requests) and POST
 /appointment-change-requests/{request_id}/review to mark a request reviewed.
 Review means acknowledged, not fulfilled: staff must change the schedule using
-the existing appointment workflow. The patient UI, staff queue UI, notifications,
-and automatic scheduling actions are not implemented yet. This is not an
+the existing appointment workflow. The patient portal now has a request form and status history, and the staff
+workspace has an appointment-request queue with chart links and acknowledgment
+controls. Submitting or reviewing a request does not alter a scheduled visit.
+The patient form offers only eligible scheduled visits without another pending
+request; the server independently checks ownership and eligibility. Staff
+must make any scheduling changes separately in the patient chart. Notifications
+and automatic scheduling actions remain out of scope. This is not an
 emergency communications service.
 
 ## Project status

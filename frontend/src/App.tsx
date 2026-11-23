@@ -9,6 +9,7 @@ import {
   getApiErrorMessage,
 } from './api'
 
+import AppointmentChangeRequestsWorklist from './components/AppointmentChangeRequestsWorklist'
 import ActiveCareGoalsWorklist from './components/ActiveCareGoalsWorklist'
 import AllergyList from './components/AllergyList'
 import AppointmentList from './components/AppointmentList'
@@ -84,6 +85,8 @@ function StaffApp() {
 
   const [showPastAppointments, setShowPastAppointments] =
     useState(false)
+
+  const [showAppointmentRequests, setShowAppointmentRequests] = useState(false)
 
   const [showPortalPreview, setShowPortalPreview] =
     useState(false)
@@ -341,7 +344,7 @@ function StaffApp() {
               setSelectedPatient(null)
             }
           >
-            ← Back to {showOpenFollowUpTasks ? 'open follow-ups' : showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showUnreleasedLabResults ? 'results to release' : showPendingLabs ? 'pending labs' : showPastAppointments ? 'past appointments' : showSchedule ? 'clinic schedule' : 'patient search'}
+            ← Back to {showAppointmentRequests ? 'appointment requests' : showOpenFollowUpTasks ? 'open follow-ups' : showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showUnreleasedLabResults ? 'results to release' : showPendingLabs ? 'pending labs' : showPastAppointments ? 'past appointments' : showSchedule ? 'clinic schedule' : 'patient search'}
           </button>
 
 
@@ -465,6 +468,18 @@ function StaffApp() {
     )
   }
 
+
+  if (showAppointmentRequests) {
+    return (
+      <AppointmentChangeRequestsWorklist
+        onBack={() => { setError(null); setShowAppointmentRequests(false) }}
+        onOpenPatient={(patientId, appointmentId) => {
+          void openPatient(patientId, appointmentId)
+        }}
+        patientError={error}
+      />
+    )
+  }
 
   if (showOpenFollowUpTasks) {
     return (
@@ -617,6 +632,10 @@ function StaffApp() {
               }}
             >
               Past Appointments
+            </button>
+            <button className="secondary-action-button" type="button"
+              onClick={() => { setError(null); setShowAppointmentRequests(true) }}>
+              Appointment Requests
             </button>
             <button
               className="secondary-action-button"
