@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, String, Text, UniqueConstraint, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -509,6 +509,38 @@ class PatientCommunicationPreference(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),
         nullable=False,
+    )
+
+
+
+class AppointmentChangeRequest(Base):
+    """A patient request awaiting human review; clinical history is unaffected."""
+
+    __tablename__ = "appointment_change_requests"
+    __table_args__ = (
+        CheckConstraint("kind IN ('cancel', 'reschedule')",
+                        name="ck_appointment_change_kind"),
+        CheckConstraint("status IN ('pending', 'reviewed')",
+                        name="ck_appointment_change_status"),
+        Index("uq_appointment_change_requests_pending", "appointment_id",
+              unique=True, postgresql_where=text("status = 'pending'"),
+              sqlite_where=text("status = 'pending'")),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    appointment_id: Mapped[int] = mapped_column(
+        ForeignKey("appointments.id", ondelete="RESTRICT"), index=True, nullable=False,
+    )
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id", ondelete="RESTRICT"), index=True, nullable=False,
+    )
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="pending")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True,
     )
 
 
