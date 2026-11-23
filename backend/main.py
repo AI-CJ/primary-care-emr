@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from backend.database import engine
 from backend.account_auth import authenticate_user
 from backend.audit import record_audit_event
+from backend.audit_review import AuditEventRead, AuditEventType, list_audit_events
 from backend.session_auth import create_session, get_session_account, revoke_session
 from backend.models import UserAccount
 from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse
@@ -384,6 +385,22 @@ def logout(token: str = Depends(_bearer_token)):
             subject_patient_id=account.patient_id,
         )
         session.commit()
+
+
+@app.get("/admin/audit-events", response_model=list[AuditEventRead])
+def read_audit_events(
+    limit: int = Query(default=50, ge=1, le=100),
+    before_id: int | None = Query(default=None, ge=1),
+    event_type: AuditEventType | None = None,
+    account: UserAccount = Depends(_current_account),
+):
+    """Allow administrators, but not clinical staff or patients, to review audits."""
+    if account.account_type != "staff" or account.staff_role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    with Session(engine) as session:
+        return list_audit_events(
+            session, limit=limit, before_id=before_id, event_type=event_type,
+        )
 
 
 @app.get("/")
