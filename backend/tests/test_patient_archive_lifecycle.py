@@ -340,6 +340,79 @@ class PatientArchiveLifecycleTests(unittest.TestCase):
             self.assertIn(goal_id, {item["id"] for item in active_again.json()})
 
 
+    def test_archived_follow_up_tasks_preserve_history_and_leave_worklist(self):
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "clinic.admin")
+            chart = f"/patients/{self.first_id}/follow-up-tasks"
+            other_chart = f"/patients/{self.second_id}/follow-up-tasks"
+            first = client.post(chart, headers=admin, json={
+                "title": "Synthetic follow-up", "due_date": "2027-01-10",
+            })
+            self.assertEqual(first.status_code, 201, first.text)
+            task_id = first.json()["id"]
+            other = client.post(other_chart, headers=admin, json={
+                "title": "Other synthetic follow-up",
+            })
+            self.assertEqual(other.status_code, 201, other.text)
+            other_id = other.json()["id"]
+            task = f"/follow-up-tasks/{task_id}"
+            original = client.post(task + "/reschedule", headers=admin, json={
+                "due_date": "2027-01-12", "reason": "Synthetic scheduling change",
+            })
+            self.assertEqual(original.status_code, 200, original.text)
+            before = client.get(chart, headers=admin).json()
+            history = client.get(task + "/due-date-changes", headers=admin).json()
+            self.assertEqual(len(history), 1)
+
+            archived = client.post(
+                f"/patients/{self.first_id}/archive", headers=admin,
+            )
+            self.assertEqual(archived.status_code, 200, archived.text)
+            writes = [
+                (chart, {"title": "Blocked synthetic follow-up"}),
+                (task + "/complete", {"completion_note": "Blocked completion"}),
+                (task + "/cancel", {"reason": "Blocked cancellation"}),
+                (task + "/reschedule", {
+                    "due_date": "2027-01-15", "reason": "Blocked date change",
+                }),
+            ]
+            for path, payload in writes:
+                with self.subTest(path=path):
+                    response = client.post(path, headers=admin, json=payload)
+                    self.assertEqual(response.status_code, 409, response.text)
+                    self.assertIn("Archived", response.json()["detail"])
+
+            saved = client.get(chart, headers=admin)
+            self.assertEqual(saved.status_code, 200, saved.text)
+            self.assertEqual(saved.json(), before)
+            saved_history = client.get(task + "/due-date-changes", headers=admin)
+            self.assertEqual(saved_history.status_code, 200, saved_history.text)
+            self.assertEqual(saved_history.json(), history)
+            queue_path = "/worklists/open-follow-up-tasks"
+            queue = client.get(queue_path, headers=admin)
+            self.assertEqual(queue.status_code, 200, queue.text)
+            self.assertEqual({row["id"] for row in queue.json()}, {other_id})
+
+            other_change = client.post(
+                f"/follow-up-tasks/{other_id}/complete", headers=admin,
+                json={"completion_note": "Synthetic outcome"},
+            )
+            self.assertEqual(other_change.status_code, 200, other_change.text)
+            resumed = client.post(
+                f"/patients/{self.first_id}/reactivate", headers=admin,
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            queue = client.get(queue_path, headers=admin)
+            self.assertEqual(queue.status_code, 200, queue.text)
+            self.assertEqual({row["id"] for row in queue.json()}, {task_id})
+            changed = client.post(task + "/reschedule", headers=admin, json={
+                "due_date": "2027-01-15", "reason": "Synthetic resumed follow-up",
+            })
+            self.assertEqual(changed.status_code, 200, changed.text)
+            self.assertEqual(
+                len(client.get(task + "/due-date-changes", headers=admin).json()), 2,
+            )
+
     def test_only_admin_can_change_or_read_lifecycle(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:
             doctor = self.login(client, "clinic.doctor")

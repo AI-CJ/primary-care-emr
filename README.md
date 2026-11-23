@@ -232,7 +232,10 @@ archive/reactivation share a locked patient row, so scheduling cannot race
 archival on PostgreSQL. Historical chart and appointment reads remain available.
 Care goal creation, completion, discontinuation and progress updates also reject
 archived charts. Archived care goals are hidden from the active-goals worklist,
-while their historical chart and progress reads remain available. Other clinical
+while their historical chart and progress reads remain available. Follow-up task
+creation, completion, cancellation, and due-date changes also reject archived
+charts; the open follow-up worklist excludes archived patients without altering
+task history or due-date change records. Other clinical
 mutation paths and active worklists still require archive enforcement; staff UI
 controls and browser regression tests also remain open. This initial lifecycle API should not
 be treated as a complete clinical-record retention policy.

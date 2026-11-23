@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.models import CareGoal, FollowUpDueDateChange, FollowUpTask, Patient
+from backend.patient_lifecycle import lock_active_patient
 from backend.schemas import (
     FollowUpTaskCancel,
     FollowUpTaskComplete,
@@ -32,7 +33,7 @@ def list_open_follow_up_tasks(session: Session) -> list[tuple[FollowUpTask, Pati
     query = (
         select(FollowUpTask, Patient)
         .join(Patient, FollowUpTask.patient_id == Patient.id)
-        .where(FollowUpTask.status == "open")
+        .where(FollowUpTask.status == "open", Patient.archived_at.is_(None))
         .order_by(
             FollowUpTask.due_date.is_(None),
             FollowUpTask.due_date,
@@ -45,8 +46,7 @@ def list_open_follow_up_tasks(session: Session) -> list[tuple[FollowUpTask, Pati
 def create_follow_up_task(
     session: Session, patient_id: int, task_data: FollowUpTaskCreate
 ) -> FollowUpTask:
-    if session.get(Patient, patient_id) is None:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    lock_active_patient(session, patient_id)
 
     if task_data.care_goal_id is not None:
         goal = session.scalar(
@@ -71,14 +71,29 @@ def create_follow_up_task(
     return task
 
 
-def complete_follow_up_task(
-    session: Session, task_id: int, completion: FollowUpTaskComplete
-) -> FollowUpTask:
+def _lock_active_task(session: Session, task_id: int) -> FollowUpTask:
+    """Lock the chart before the task to serialize writes with archival."""
+    patient_id = session.scalar(
+        select(FollowUpTask.patient_id).where(FollowUpTask.id == task_id)
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Follow-up task not found")
+
+    lock_active_patient(session, patient_id)
     task = session.scalar(
-        select(FollowUpTask).where(FollowUpTask.id == task_id).with_for_update()
+        select(FollowUpTask)
+        .where(FollowUpTask.id == task_id, FollowUpTask.patient_id == patient_id)
+        .with_for_update()
     )
     if task is None:
         raise HTTPException(status_code=404, detail="Follow-up task not found")
+    return task
+
+
+def complete_follow_up_task(
+    session: Session, task_id: int, completion: FollowUpTaskComplete
+) -> FollowUpTask:
+    task = _lock_active_task(session, task_id)
     if task.status != "open":
         raise HTTPException(status_code=409, detail="Only open tasks can be completed.")
 
@@ -92,11 +107,7 @@ def complete_follow_up_task(
 def cancel_follow_up_task(
     session: Session, task_id: int, cancellation: FollowUpTaskCancel
 ) -> FollowUpTask:
-    task = session.scalar(
-        select(FollowUpTask).where(FollowUpTask.id == task_id).with_for_update()
-    )
-    if task is None:
-        raise HTTPException(status_code=404, detail="Follow-up task not found")
+    task = _lock_active_task(session, task_id)
     if task.status != "open":
         raise HTTPException(status_code=409, detail="Only open tasks can be cancelled.")
 
@@ -110,11 +121,7 @@ def cancel_follow_up_task(
 def reschedule_follow_up_task(
     session: Session, task_id: int, change: FollowUpTaskReschedule
 ) -> FollowUpTask:
-    task = session.scalar(
-        select(FollowUpTask).where(FollowUpTask.id == task_id).with_for_update()
-    )
-    if task is None:
-        raise HTTPException(status_code=404, detail="Follow-up task not found")
+    task = _lock_active_task(session, task_id)
     if task.status != "open":
         raise HTTPException(status_code=409, detail="Only open tasks can be rescheduled.")
     if task.due_date == change.due_date:
