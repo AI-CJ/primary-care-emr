@@ -12,6 +12,11 @@ from sqlalchemy.orm import Session
 from backend.database import engine
 from backend.account_auth import authenticate_user
 from backend.audit import record_audit_event
+from backend.appointment_change_requests import (
+    AppointmentChangeRequestCreate, AppointmentChangeRequestRead,
+    StaffAppointmentChangeRequestRead, submit_appointment_change_request,
+    list_patient_change_requests, list_pending_change_requests, review_change_request,
+)
 from backend.communication_preferences import (
     CommunicationPreferencesPayload, read_communication_preferences,
     replace_communication_preferences,
@@ -241,9 +246,12 @@ _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
     "/portal/allergies", "/portal/vitals", "/portal/care-goals",
     "/portal/visits", "/portal/lab-orders", "/portal/referrals",
-    "/portal/communication-preferences",
+    "/portal/communication-preferences", "/portal/appointment-change-requests",
 }
-_PATIENT_WRITE_PATHS = {("PUT", "/portal/communication-preferences")}
+_PATIENT_WRITE_PATHS = {
+    ("PUT", "/portal/communication-preferences"),
+    ("POST", "/portal/appointment-change-requests"),
+}
 
 
 def _audit_clinical_access(request: Request, status_code: int) -> None:
@@ -274,7 +282,7 @@ def _audit_clinical_access(request: Request, status_code: int) -> None:
             value for name in (
                 "patient_id", "encounter_id", "goal_id", "task_id", "problem_id",
                 "medication_id", "allergy_id", "vital_id", "order_id",
-                "referral_id", "appointment_id",
+                "referral_id", "appointment_id", "request_id",
             )
             if (value := numeric_id(name)) is not None
         ),
@@ -1632,6 +1640,40 @@ def update_my_communication_preferences(
     """Only replace the authenticated patient's choices, not clinical data."""
     with Session(engine) as session:
         return replace_communication_preferences(session, account.patient_id, preferences)
+
+
+@app.get("/portal/appointment-change-requests",
+         response_model=list[AppointmentChangeRequestRead])
+def read_my_appointment_change_requests(
+    account: UserAccount = Depends(_current_patient_account),
+):
+    with Session(engine) as session:
+        return list_patient_change_requests(session, account.patient_id)
+
+
+@app.post("/portal/appointment-change-requests", status_code=201,
+          response_model=AppointmentChangeRequestRead)
+def create_my_appointment_change_request(
+    payload: AppointmentChangeRequestCreate,
+    account: UserAccount = Depends(_current_patient_account),
+):
+    with Session(engine) as session:
+        return submit_appointment_change_request(session, account.patient_id, payload)
+
+
+@app.get("/worklists/appointment-change-requests",
+         response_model=list[StaffAppointmentChangeRequestRead])
+def read_pending_appointment_change_requests():
+    with Session(engine) as session:
+        return list_pending_change_requests(session)
+
+
+@app.post("/appointment-change-requests/{request_id}/review",
+          response_model=StaffAppointmentChangeRequestRead)
+def mark_appointment_change_request_reviewed(request_id: int):
+    # Review alone cannot change the visit's status or appointment time.
+    with Session(engine) as session:
+        return review_change_request(session, request_id)
 
 
 @app.get("/portal/appointments", response_model=list[PortalAppointmentSummary])

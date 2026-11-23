@@ -188,6 +188,25 @@ database row until the patient saves. Only these preferences are mutable;
 clinical records remain read-only. This demo stores preferences but does
 not send email, SMS, phone messages, notifications, or reminders.
 
+
+### Patient appointment change requests (API)
+
+An authenticated patient can request a cancellation or reschedule of one of their
+own current or future scheduled appointments. Requests are a separate, persistent
+administrative queue: they do not change the appointment itself. Each request has
+a constrained action choice, without clinical free-text; duplicate pending requests
+for one appointment are prevented with a database constraint.
+
+Patients can POST to /portal/appointment-change-requests with appointment_id
+and kind (cancel or reschedule), and GET the same route to see only their own
+request history. Clinicians and administrators can GET
+/worklists/appointment-change-requests (oldest 100 pending requests) and POST
+/appointment-change-requests/{request_id}/review to mark a request reviewed.
+Review means acknowledged, not fulfilled: staff must change the schedule using
+the existing appointment workflow. The patient UI, staff queue UI, notifications,
+and automatic scheduling actions are not implemented yet. This is not an
+emergency communications service.
+
 ## Project status
 
 The main staff EMR is close to the planned portfolio V1. Recent work has focused on tightening appointment and visit workflows, limiting what the patient portal can see, and adding tests around clinical rules.
