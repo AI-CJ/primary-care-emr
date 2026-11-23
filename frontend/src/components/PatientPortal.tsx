@@ -7,6 +7,7 @@ import PortalVisits from './PortalVisits'
 import PortalCareGoals from './PortalCareGoals'
 import PortalLabResults from './PortalLabResults'
 import PortalReferrals from './PortalReferrals'
+import PortalCommunicationPreferences from './PortalCommunicationPreferences'
 import './PatientPortalPreview.css'
 
 export default function PatientPortal() {
@@ -19,8 +20,9 @@ export default function PatientPortal() {
           <p>View your appointments, finalized visits, conditions, medications, allergies, recent vitals, care goals, lab requests, released results, and referrals recorded in your chart.</p>
         </header>
         <p className="portal-disclaimer" role="note">
-          This read-only portfolio portal uses fictional records only. It is not for
-          real patient information or medical decisions.
+          This portfolio portal uses fictional records only. Clinical information is
+          read-only; communication preferences can be changed in this demo. Do not
+          use it for real patient information or medical decisions.
         </p>
         <div className="portal-grid">
           <PortalAppointments />
@@ -32,6 +34,7 @@ export default function PatientPortal() {
           <PortalCareGoals />
           <PortalLabResults />
           <PortalReferrals />
+          <PortalCommunicationPreferences />
         </div>
       </div>
     </main>
