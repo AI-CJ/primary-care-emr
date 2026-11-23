@@ -154,9 +154,11 @@ Failed logins do not retain the submitted username. The audit table never stores
 passwords, bearer tokens, query strings, request bodies, clinical text, IP
 addresses, or raw URLs. Events cannot be edited or deleted through the API,
 but database administrators could change them; this is not a tamper-proof or
-compliance-ready audit solution. Unhandled server exceptions are not yet audited,
-and clinical changes and their HTTP audit events do not share a database
-transaction. Production retention, security monitoring, and audit export remain
+compliance-ready audit solution. Unexpected exceptions raised by clinical endpoint handlers are recorded as
+HTTP 500 events without storing exception messages or clinical content.
+Authentication failures and other errors outside the clinical dispatch path
+are not all covered, and clinical changes and their HTTP audit events do not
+share a database transaction. Production retention, security monitoring, and audit export remain
 open release tasks.
 
 ## Project status

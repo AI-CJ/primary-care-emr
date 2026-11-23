@@ -136,5 +136,57 @@ class AuditTrailTests(unittest.TestCase):
         self.assertNotIn("keep-out", repr(events))
 
 
+    def test_unhandled_staff_and_patient_clinical_errors_are_audited(self):
+        """Unexpected failures keep their status and scope, not private contents."""
+        with patch("backend.main.engine", self.engine), TestClient(
+            app, raise_server_exceptions=False
+        ) as client:
+            staff_header = self.login(client, "test.clinician")
+            patient_header = self.login(client, "test.patient")
+
+            with patch(
+                "backend.main.select",
+                side_effect=RuntimeError("private staff chart details"),
+            ):
+                staff_response = client.get(
+                    "/patients?secret=never-save-query", headers=staff_header,
+                )
+            with patch(
+                "backend.main.list_portal_preview_problems",
+                side_effect=RuntimeError("private patient clinical details"),
+            ):
+                patient_response = client.get(
+                    "/portal/problems?secret=never-save-query", headers=patient_header,
+                )
+
+        self.assertEqual(staff_response.status_code, 500)
+        self.assertEqual(patient_response.status_code, 500)
+        events = self.events()
+        failed = [event for event in events if event.status_code == 500]
+        self.assertEqual(len(failed), 2)
+        self.assertEqual(
+            [(e.event_type, e.route_template, e.http_method) for e in failed],
+            [
+                ("clinical_read", "/patients", "GET"),
+                ("clinical_read", "/portal/problems", "GET"),
+            ],
+        )
+        self.assertIsNotNone(failed[0].actor_user_id)
+        self.assertIsNotNone(failed[1].actor_user_id)
+        self.assertNotEqual(failed[0].actor_user_id, failed[1].actor_user_id)
+        self.assertIsNone(failed[0].subject_patient_id)
+        self.assertEqual(failed[1].subject_patient_id, self.patient_id)
+        stored_metadata = repr([
+            (e.event_type, e.route_template, e.http_method, e.status_code,
+             e.actor_user_id, e.subject_patient_id, e.resource_id)
+            for e in events
+        ])
+        for forbidden in (
+            "private staff chart details", "private patient clinical details",
+            "never-save-query",
+        ):
+            self.assertNotIn(forbidden, stored_metadata)
+
+
 if __name__ == "__main__":
     unittest.main()
