@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { API_BASE_URL, apiFetch, getApiErrorMessage, setAccessToken } from '../api'
+import { API_BASE_URL, BROWSER_MODE, apiFetch, getApiErrorMessage, setAccessToken } from '../api'
 import './StaffSignIn.css'
 
 export type SignedInAccount = {
@@ -24,13 +24,19 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    await signIn(username, password)
+  }
+
+  async function signIn(loginName: string, loginPassword: string) {
+    if (busy) return
     setError(null)
     setBusy(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      setAccessToken(null)
+      const response = await apiFetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: loginName, password: loginPassword }),
       })
       if (!response.ok) {
         setError(await getApiErrorMessage(response))
@@ -67,6 +73,19 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
         <p className="sign-in-eyebrow">Primary Care EMR</p>
         <h1 id="sign-in-title">{mode === 'patient' ? 'Patient sign in' : 'Staff sign in'}</h1>
         <p>Enter your {mode} account credentials.</p>
+        {BROWSER_MODE && (
+          <div className="account-choices" aria-label="Available accounts">
+            {(mode === 'staff'
+              ? [{ username: 'admin', name: 'Administrator' }, { username: 'clinician', name: 'Clinician' }]
+              : [{ username: 'jordan.lee', name: 'Jordan Lee' }, { username: 'maria.thompson', name: 'Maria Thompson' }]
+            ).map((choice) => (
+              <button key={choice.username} type="button" disabled={busy}
+                onClick={() => void signIn(choice.username, 'Welcome-EMR-2026')}>
+                Sign in as {choice.name}
+              </button>
+            ))}
+          </div>
+        )}
         <form onSubmit={(event) => void handleSubmit(event)}>
           <label htmlFor="account-username">Username</label>
           <input
@@ -90,6 +109,7 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
             {busy ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
+        {busy && <p role="status">Connecting to your workspace…</p>}
         <button
           type="button"
           className="sign-in-switch"
