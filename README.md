@@ -239,6 +239,9 @@ task history or due-date change records. Lab order creation, cancellation, resul
 recording and result release also reject archived charts. Pending orders and
 unreleased results for archived charts are hidden from their active worklists;
 historical orders and results remain readable and reactivation restores access.
+Referral creation, cancellation, and completion likewise reject archived charts;
+pending referrals from archived patients are excluded from the worklist while
+historical referral reads remain available. Reactivation restores referral writes.
 Other clinical mutation paths and active worklists still require archive enforcement; staff UI
 controls and browser regression tests also remain open. This initial lifecycle API should not
 be treated as a complete clinical-record retention policy.
