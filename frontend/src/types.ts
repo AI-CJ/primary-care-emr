@@ -24,9 +24,10 @@ export type Patient = {
   pronouns: Pronouns
   custom_pronouns: string | null
   sex_at_birth: SexAtBirth
+  archived_at: string | null
 }
 
-export type PatientInput = Omit<Patient, 'id'>
+export type PatientInput = Omit<Patient, 'id' | 'archived_at'>
 
 export type ProblemStatus =
   | 'active'

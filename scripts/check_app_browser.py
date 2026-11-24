@@ -126,6 +126,7 @@ def run():
         sign_in(mobile, "smoke.patient")
         expect(mobile.get_by_role("heading", name="My health summary")).to_be_visible()
         assert_legal_notice(mobile)
+        mobile.get_by_role("navigation", name="Patient portal sections").get_by_role("button", name="Preferences").click()
         channel = mobile.get_by_label("Preferred contact method")
         expect(channel).to_have_value("portal")
         channel.select_option("email")
@@ -135,6 +136,7 @@ def run():
         assert_legal_notice(mobile)
         sign_out(mobile, "Patient")
         sign_in(mobile, "smoke.patient")
+        mobile.get_by_role("navigation", name="Patient portal sections").get_by_role("button", name="Preferences").click()
         expect(mobile.get_by_label("Preferred contact method")).to_have_value("email")
         sign_out(mobile, "Patient")
         assert not mobile_errors, mobile_errors

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Patient, PortalAllergySummary, PortalCareGoalSummary, PortalMedicationSummary, PortalProblemSummary } from '../types'
 import './PatientPortalPreview.css'
+import SectionNavigation from './SectionNavigation'
+import { type PortalSection, portalSections } from '../portalNavigation'
 import PortalAppointments from './PortalAppointments'
 import PortalVisits from './PortalVisits'
 import PortalVitals from './PortalVitals'
@@ -25,6 +27,7 @@ type PortalOverview = {
 }
 
 function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
+  const [section, setSection] = useState<PortalSection>('health')
   const [overview, setOverview] = useState<PortalOverview | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -101,20 +104,27 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
           </div>
         )}
 
+        <SectionNavigation label="Patient portal preview sections"
+          options={portalSections.filter((option) => option.id !== 'preferences')}
+          current={section} onChange={setSection} />
+
         {!isLoading && overview && (
-          <div className="portal-grid">
-            <PortalAppointments key={patient.id} patientId={patient.id} />
-            <PortalVisits patientId={patient.id} />
-            <PortalVitals key={patient.id} patientId={patient.id} />
-            <PortalLabResults key={patient.id} patientId={patient.id} />
-            <PortalReferrals patientId={patient.id} />
-            <PortalProblemList problems={overview.problems} />
-
-            <PortalMedications medications={overview.medications} />
-
-            <PortalAllergies allergies={overview.allergies} />
-
-            <PortalCareGoals goals={overview.careGoals} />
+          <div className="portal-grid" key={section}>
+            {section === 'health' && <>
+              <PortalProblemList problems={overview.problems} />
+              <PortalMedications medications={overview.medications} />
+              <PortalAllergies allergies={overview.allergies} />
+              <PortalVitals key={patient.id} patientId={patient.id} />
+            </>}
+            {section === 'visits' && <>
+              <PortalAppointments key={patient.id} patientId={patient.id} />
+              <PortalVisits patientId={patient.id} />
+            </>}
+            {section === 'results' && <>
+              <PortalLabResults key={patient.id} patientId={patient.id} />
+              <PortalReferrals patientId={patient.id} />
+            </>}
+            {section === 'care' && <PortalCareGoals goals={overview.careGoals} />}
           </div>
         )}
       </div>

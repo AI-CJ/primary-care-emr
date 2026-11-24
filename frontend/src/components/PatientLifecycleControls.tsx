@@ -9,9 +9,11 @@ import {
   type PatientLifecycleAction,
 } from '../patientLifecycle'
 import './PatientLifecycleControls.css'
+import type { Patient } from '../types'
 
 type PatientLifecycleControlsProps = {
   patientId: number
+  onChanged?: (patient: Patient) => void
 }
 
 type LifecyclePatient = {
@@ -19,7 +21,7 @@ type LifecyclePatient = {
   archived_at: string | null
 }
 
-export default function PatientLifecycleControls({ patientId }: PatientLifecycleControlsProps) {
+export default function PatientLifecycleControls({ patientId, onChanged }: PatientLifecycleControlsProps) {
   const [account, setAccount] = useState<LifecycleAccount | null>(null)
   const [patient, setPatient] = useState<LifecyclePatient | null>(null)
   const [confirming, setConfirming] = useState<PatientLifecycleAction | null>(null)
@@ -71,8 +73,9 @@ export default function PatientLifecycleControls({ patientId }: PatientLifecycle
         { method: 'POST' },
       )
       if (!response.ok) throw new Error(await getApiErrorMessage(response))
-      const updated = (await response.json()) as LifecyclePatient
+      const updated = (await response.json()) as Patient
       setPatient(updated)
+      onChanged?.(updated)
       setConfirming(null)
       setMessage(
         action === 'archive'

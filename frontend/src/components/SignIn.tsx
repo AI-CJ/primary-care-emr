@@ -69,23 +69,33 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
 
   return (
     <main className="sign-in-page">
+      <div className="sign-in-layout">
+      <div className="sign-in-intro">
+        <div className="sign-in-brand"><span aria-hidden="true">+</span> Primary Care EMR</div>
+        <p className="sign-in-kicker">Outpatient care workspace</p>
+        <h2>Connected care.<br />Clearer workflows.</h2>
+        <p>Patient records, clinical documentation, and care coordination in one workspace.</p>
+        <div className="sign-in-intro-rule" />
+        <p className="sign-in-intro-detail">Staff and patient accounts use separate, role-based access.</p>
+      </div>
       <section className="sign-in-panel" aria-labelledby="sign-in-title">
-        <p className="sign-in-eyebrow">Primary Care EMR</p>
+        <p className="sign-in-eyebrow">{mode === 'patient' ? 'Patient portal' : 'Clinical workspace'}</p>
         <h1 id="sign-in-title">{mode === 'patient' ? 'Patient sign in' : 'Staff sign in'}</h1>
-        <p>Enter your {mode} account credentials.</p>
+        <p className="sign-in-description">{BROWSER_MODE ? 'Choose an account to open your workspace.' : 'Enter your account credentials to continue.'}</p>
         {BROWSER_MODE && (
           <div className="account-choices" aria-label="Available accounts">
             {(mode === 'staff'
-              ? [{ username: 'admin', name: 'Administrator' }, { username: 'clinician', name: 'Clinician' }]
-              : [{ username: 'jordan.lee', name: 'Jordan Lee' }, { username: 'maria.thompson', name: 'Maria Thompson' }]
+              ? [{ username: 'admin', name: 'Administrator', description: 'Clinical work and chart administration' }, { username: 'clinician', name: 'Clinician', description: 'Patient care and clinic work queues' }]
+              : [{ username: 'jordan.lee', name: 'Jordan Lee', description: 'Health record and appointments' }, { username: 'maria.thompson', name: 'Maria Thompson', description: 'Health record and appointments' }]
             ).map((choice) => (
-              <button key={choice.username} type="button" disabled={busy}
+              <button key={choice.username} type="button" disabled={busy} aria-label={'Sign in as ' + choice.name}
                 onClick={() => void signIn(choice.username, 'Welcome-EMR-2026')}>
-                Sign in as {choice.name}
+                <span><strong>{choice.name}</strong><small>{choice.description}</small></span><span aria-hidden="true">›</span>
               </button>
             ))}
           </div>
         )}
+        {BROWSER_MODE && <p className="sign-in-divider">Or sign in with account credentials</p>}
         <form onSubmit={(event) => void handleSubmit(event)}>
           <label htmlFor="account-username">Username</label>
           <input
@@ -118,6 +128,7 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
           {mode === 'staff' ? 'Go to patient sign in' : 'Go to staff sign in'}
         </button>
       </section>
+      </div>
     </main>
   )
 }
