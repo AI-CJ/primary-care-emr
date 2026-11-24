@@ -22,6 +22,7 @@ import FollowUpTasks from './components/FollowUpTasks'
 import OpenFollowUpTasksWorklist from './components/OpenFollowUpTasksWorklist'
 import MedicationList from './components/MedicationList'
 import PatientTimeline from './components/PatientTimeline'
+import PatientLifecycleControls from './components/PatientLifecycleControls'
 import PatientPortalPreview from './components/PatientPortalPreview'
 import PatientLabHistory from './components/PatientLabHistory'
 import PendingLabWorklist from './components/PendingLabWorklist'
@@ -413,6 +414,7 @@ function StaffApp() {
 
 
           <div className="overview-grid">
+            <PatientLifecycleControls key={selectedPatient.id} patientId={selectedPatient.id} />
             <PatientTimeline key={selectedPatient.id} patientId={selectedPatient.id} />
 
             <ProblemList patientId={selectedPatient.id} />
@@ -731,7 +733,8 @@ function StaffApp() {
         >
           <input
             className="search-input"
-            type="text"
+            type="search"
+            aria-label="Search patients"
             value={search}
             onChange={(event) =>
               setSearch(event.target.value)

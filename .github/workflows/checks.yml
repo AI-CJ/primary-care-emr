@@ -110,3 +110,61 @@ jobs:
             sleep 1
           done
           EMR_DEMO_URL=http://127.0.0.1:4173/ /tmp/emr-demo-venv/bin/python scripts/check_demo_browser.py
+
+  api-browser-smoke:
+    runs-on: ubuntu-24.04
+    env:
+      POSTGRES_USER: emr_smoke
+      POSTGRES_PASSWORD: disposable-ci-only
+      POSTGRES_DB: emr_browser_smoke
+      EMR_RUN_SYNTHETIC_SMOKE: "1"
+      VITE_API_BASE_URL: http://127.0.0.1:8000
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: emr_smoke
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: emr_browser_smoke
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U emr_smoke -d emr_browser_smoke"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install backend and browser dependencies
+        run: |
+          python -m pip install -r backend/requirements.txt playwright==1.51.0
+          python -m playwright install --with-deps chromium
+      - name: Migrate and seed disposable PostgreSQL
+        run: |
+          alembic upgrade head
+          python -m backend.seed
+      - name: Build real React application
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Exercise real staff and patient workflows
+        run: |
+          uvicorn backend.main:app --host 127.0.0.1 --port 8000 > /tmp/emr-api.log 2>&1 &
+          api_pid=$!
+          npm --prefix frontend run preview -- --host 127.0.0.1 --port 5173 --strictPort > /tmp/emr-ui.log 2>&1 &
+          ui_pid=$!
+          trap 'kill "$api_pid" "$ui_pid" 2>/dev/null || true' EXIT
+          for url in http://127.0.0.1:8000/ http://127.0.0.1:5173/; do
+            for attempt in {1..30}; do
+              if curl --fail --silent "$url" > /dev/null; then break; fi
+              sleep 1
+            done
+            curl --fail --silent --show-error "$url" > /dev/null
+          done
+          python -m scripts.check_app_browser
