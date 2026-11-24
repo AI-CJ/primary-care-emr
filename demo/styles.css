@@ -6,9 +6,9 @@
   --text: #293239;
   --muted: #66737a;
   --line: #d8e0dd;
-  --terracotta: #b85f4a;
+  --terracotta: #a34c38;
   --terracotta-soft: #f7e6e1;
-  --aqua: #168b8c;
+  --aqua: #087477;
   --aqua-soft: #def1f0;
   --emerald: #28765a;
   --emerald-soft: #e2f0e9;
@@ -40,8 +40,8 @@ body {
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
-button:focus-visible, a:focus-visible, input:focus-visible {
-  outline: 3px solid rgba(22, 139, 140, 0.42);
+button:focus-visible, a:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid #087477;
   outline-offset: 3px;
 }
 
