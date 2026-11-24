@@ -1,5 +1,6 @@
 """Exercise the real synthetic application in Chromium against a disposable database."""
 import os
+import re
 import secrets
 
 from playwright.sync_api import expect, sync_playwright
@@ -37,6 +38,16 @@ def create_smoke_accounts():
         session.commit()
 
 
+def assert_legal_notice(page):
+    notice = page.get_by_role("note", name="Legal notice")
+    expect(notice).to_have_count(1)
+    expect(notice).to_be_visible()
+    expect(notice).to_contain_text("All provided patient records are fictional.")
+    expect(notice).to_contain_text("Do not enter real patient information.")
+    body = page.locator("body").inner_text().replace(notice.inner_text(), "", 1)
+    assert not re.search(r"\b(synthetic|mock|fake|fictional|demo|portfolio|simulat\w*)\b", body, re.I), body
+
+
 def sign_in(page, username):
     page.get_by_label("Username", exact=True).fill(username)
     page.get_by_label("Password", exact=True).fill(PASSWORD)
@@ -49,6 +60,7 @@ def open_chart(page):
     page.get_by_role("button", name="Search", exact=True).click()
     page.get_by_role("button", name="Lee, Jordan", exact=False).click()
     expect(page.get_by_role("heading", name="Jordan Lee", exact=True)).to_be_visible()
+    assert_legal_notice(page)
 
 
 def sign_out(page, mode):
@@ -69,6 +81,7 @@ def run():
         errors = []
         desktop.on("pageerror", lambda error: errors.append(str(error)))
         desktop.goto(URL)
+        assert_legal_notice(desktop)
         sign_in(desktop, "smoke.clinician")
         open_chart(desktop)
         expect(desktop.get_by_role("heading", name="Active chart", exact=True)).to_be_visible()
@@ -103,6 +116,7 @@ def run():
         mobile_errors = []
         mobile.on("pageerror", lambda error: mobile_errors.append(str(error)))
         mobile.goto(URL)
+        assert_legal_notice(mobile)
         assert_no_overflow(mobile)
         # Use the keyboard to activate the labeled account-mode control.
         switch = mobile.get_by_role("button", name="Go to patient sign in")
@@ -110,12 +124,14 @@ def run():
         switch.press("Enter")
         sign_in(mobile, "smoke.patient")
         expect(mobile.get_by_role("heading", name="My health summary")).to_be_visible()
+        assert_legal_notice(mobile)
         channel = mobile.get_by_label("Preferred contact method")
         expect(channel).to_have_value("portal")
         channel.select_option("email")
         mobile.get_by_role("button", name="Save preferences", exact=True).click()
-        expect(mobile.get_by_text("Your demo communication preferences were saved.")).to_be_visible()
+        expect(mobile.get_by_text("Your communication preferences were saved.")).to_be_visible()
         assert_no_overflow(mobile)
+        assert_legal_notice(mobile)
         sign_out(mobile, "Patient")
         sign_in(mobile, "smoke.patient")
         expect(mobile.get_by_label("Preferred contact method")).to_have_value("email")

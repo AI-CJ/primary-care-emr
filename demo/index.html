@@ -3,29 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="A read-only synthetic demonstration of a patient-centered primary care EMR." />
-    <title>Primary Care EMR — Synthetic Demo</title>
+    <meta name="description" content="Patient-centered primary care EMR and patient portal." />
+    <title>Primary Care EMR</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
 
+    <aside class="legal-notice" role="note" aria-label="Legal notice"><p><strong>NOTICE:</strong> For educational and demonstration purposes only. All provided patient records are fictional. Not approved for clinical use, diagnosis, or treatment. Do not enter real patient information. No orders, referrals, or messages are transmitted to external clinical services. On the public website, interactions remain in the browser.</p></aside>
+
     <header class="site-header">
-      <a class="brand" href="#" aria-label="Primary Care EMR demo home">
+      <a class="brand" href="#" aria-label="Primary Care EMR home">
         <span class="brand-mark" aria-hidden="true">+</span>
         <span>
           <strong>Primary Care EMR</strong>
-          <small>Synthetic portfolio demo</small>
         </span>
       </a>
       <div class="header-actions">
-        <span class="demo-pill">Read-only demo</span>
         <a class="repo-link" href="https://github.com/AI-CJ/primary-care-emr">View source</a>
       </div>
     </header>
 
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Demo navigation">
+      <aside class="sidebar" aria-label="Application navigation">
         <div class="mode-switch" aria-label="Choose application view">
           <button type="button" class="mode-button is-active" data-mode-target="staff" aria-pressed="true">
             Staff EMR
@@ -71,24 +71,15 @@
           </button>
         </nav>
 
-        <div class="sidebar-note">
-          <strong>Fictional records only</strong>
-          <p>No real patient information is used. Actions in this public demo do not reach a clinical server.</p>
-        </div>
       </aside>
 
       <main id="main-content" class="main-content" tabindex="-1">
-        <div class="release-banner" role="note">
-          <span class="release-dot" aria-hidden="true"></span>
-          <span><strong>Portfolio V1 demo.</strong> This site demonstrates product design and synthetic workflows; it is not approved for clinical use.</span>
-        </div>
-
         <section class="view is-active" data-view="staff-overview">
           <div class="page-heading">
             <div>
               <p class="eyebrow">Tuesday, November 24, 2026</p>
               <h1>Good morning, Dr. Rivera</h1>
-              <p>Here is the clinic at a glance. Every item below belongs to a fictional patient.</p>
+              <p>Here is the clinic at a glance.</p>
             </div>
             <button type="button" class="primary-button" data-go-view="staff-schedule">Open today’s schedule</button>
           </div>
@@ -120,7 +111,7 @@
                 <div><dt>Latest BP</dt><dd>132/82</dd></div>
                 <div><dt>Open task</dt><dd>Review home readings</dd></div>
               </dl>
-              <button type="button" class="secondary-button" data-go-view="staff-chart">Open synthetic chart</button>
+              <button type="button" class="secondary-button" data-go-view="staff-chart">Open patient chart</button>
             </article>
 
             <article class="panel">
@@ -136,8 +127,7 @@
 
         <section class="view" data-view="staff-schedule" hidden>
           <div class="page-heading compact">
-            <div><p class="eyebrow">Clinic operations</p><h1>Today’s schedule</h1><p>Tuesday, November 24 · 5 of 8 fictional appointments shown</p></div>
-            <span class="muted">Sample schedule · read-only</span>
+            <div><p class="eyebrow">Clinic operations</p><h1>Today’s schedule</h1><p>Tuesday, November 24 · 5 of 8 appointments shown</p></div>
           </div>
           <article class="panel table-panel">
             <div class="table-toolbar">
@@ -148,11 +138,11 @@
               <table>
                 <thead><tr><th>Time</th><th>Patient</th><th>Reason</th><th>Status</th><th><span class="sr-only">Action</span></th></tr></thead>
                 <tbody id="schedule-body">
-                  <tr data-search="maya thompson annual physical"><td>8:30 AM</td><td>Maya Thompson</td><td>Annual physical</td><td><span class="status-chip complete">Complete</span></td><td><span class="muted">Not in demo</span></td></tr>
+                  <tr data-search="maya thompson annual physical"><td>8:30 AM</td><td>Maya Thompson</td><td>Annual physical</td><td><span class="status-chip complete">Complete</span></td><td><span class="muted">Unavailable</span></td></tr>
                   <tr data-search="jordan lee hypertension follow-up"><td>9:30 AM</td><td>Jordan Lee</td><td>Hypertension follow-up</td><td><span class="status-chip checked-in">Checked in</span></td><td><button class="text-button" data-go-view="staff-chart">Open chart</button></td></tr>
-                  <tr data-search="alex kim medication review"><td>10:15 AM</td><td>Alex Kim</td><td>Medication review</td><td><span class="status-chip scheduled">Scheduled</span></td><td><span class="muted">Not in demo</span></td></tr>
-                  <tr data-search="sam rivera acute cough"><td>11:00 AM</td><td>Sam Rivera</td><td>Acute cough</td><td><span class="status-chip scheduled">Scheduled</span></td><td><span class="muted">Not in demo</span></td></tr>
-                  <tr data-search="casey morgan diabetes follow-up"><td>1:00 PM</td><td>Casey Morgan</td><td>Diabetes follow-up</td><td><span class="status-chip scheduled">Scheduled</span></td><td><span class="muted">Not in demo</span></td></tr>
+                  <tr data-search="alex kim medication review"><td>10:15 AM</td><td>Alex Kim</td><td>Medication review</td><td><span class="status-chip scheduled">Scheduled</span></td><td><span class="muted">Unavailable</span></td></tr>
+                  <tr data-search="sam rivera acute cough"><td>11:00 AM</td><td>Sam Rivera</td><td>Acute cough</td><td><span class="status-chip scheduled">Scheduled</span></td><td><span class="muted">Unavailable</span></td></tr>
+                  <tr data-search="casey morgan diabetes follow-up"><td>1:00 PM</td><td>Casey Morgan</td><td>Diabetes follow-up</td><td><span class="status-chip scheduled">Scheduled</span></td><td><span class="muted">Unavailable</span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -163,7 +153,7 @@
           <div class="patient-header panel">
             <div class="patient-avatar" aria-hidden="true">JL</div>
             <div class="patient-identity">
-              <p class="eyebrow">Synthetic patient · MRN DEMO-1042</p>
+              <p class="eyebrow">MRN 1042</p>
               <h1>Jordan Lee</h1>
               <p>Born March 12, 1984 · They/them · PCP: Elena Rivera, MD</p>
             </div>
@@ -183,7 +173,7 @@
               <article class="panel"><p class="eyebrow">Active problems</p><ul class="record-list"><li><strong>Essential hypertension</strong><span>Monitoring</span></li><li><strong>Hyperlipidemia</strong><span>Stable</span></li></ul></article>
               <article class="panel"><p class="eyebrow">Next steps</p><ul class="check-list"><li>Review home BP log</li><li>Repeat lipid panel in 3 months</li><li>Follow up Feb 23, 2027</li></ul></article>
             </div>
-            <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Today’s visit</p><h2>Hypertension follow-up</h2></div><span class="status-chip checked-in">Checked in</span></div><p class="muted">The real application supports appointment-linked notes, structured assessment and plan, orders, referrals, follow-up tasks, finalization, and immutable addenda.</p><p class="muted">Editing and clinical actions are available only in the local API-backed application.</p></article>
+            <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Today’s visit</p><h2>Hypertension follow-up</h2></div><span class="status-chip checked-in">Checked in</span></div><p class="muted">Appointment-linked notes support structured assessment and plan, orders, referrals, follow-up tasks, finalization, and immutable addenda.</p><p class="muted">Editing is available in the installed application.</p></article>
           </div>
 
           <div role="tabpanel" id="panel-medications" aria-labelledby="tab-medications" tabindex="0" data-chart-panel="medications" hidden>
@@ -202,10 +192,10 @@
         <section class="view" data-view="staff-worklists" hidden>
           <div class="page-heading compact"><div><p class="eyebrow">Care coordination</p><h1>Staff worklists</h1><p>Focused queues keep unresolved work out of visit notes and inbox clutter.</p></div></div>
           <div class="worklist-grid">
-            <article class="panel worklist-card"><span class="worklist-count terracotta-bg">3</span><h2>Open follow-ups</h2><p>Tasks that still need staff action.</p><p class="muted">Sample count only</p></article>
-            <article class="panel worklist-card"><span class="worklist-count aqua-bg">2</span><h2>Pending labs</h2><p>Orders awaiting collection or results.</p><p class="muted">Sample count only</p></article>
-            <article class="panel worklist-card"><span class="worklist-count emerald-bg">1</span><h2>Unreleased results</h2><p>Results ready for clinical review.</p><p class="muted">Sample count only</p></article>
-            <article class="panel worklist-card"><span class="worklist-count purple-bg">1</span><h2>Appointment requests</h2><p>Patient requests awaiting acknowledgement.</p><p class="muted">Sample count only</p></article>
+            <article class="panel worklist-card"><span class="worklist-count terracotta-bg">3</span><h2>Open follow-ups</h2><p>Tasks that still need staff action.</p></article>
+            <article class="panel worklist-card"><span class="worklist-count aqua-bg">2</span><h2>Pending labs</h2><p>Orders awaiting collection or results.</p></article>
+            <article class="panel worklist-card"><span class="worklist-count emerald-bg">1</span><h2>Unreleased results</h2><p>Results ready for clinical review.</p></article>
+            <article class="panel worklist-card"><span class="worklist-count purple-bg">1</span><h2>Appointment requests</h2><p>Patient requests awaiting acknowledgement.</p></article>
           </div>
         </section>
 
@@ -213,12 +203,12 @@
           <div class="page-heading compact"><div><p class="eyebrow">Administrative controls</p><h1>Audit & patient lifecycle</h1><p>Privacy-minimal events and non-destructive chart status changes.</p></div></div>
           <div class="two-column">
             <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Last 24 hours</p><h2>Audit activity</h2></div><span class="status-chip active">Normal</span></div><dl class="audit-metrics"><div><dt>Clinical reads</dt><dd>47</dd></div><div><dt>Clinical writes</dt><dd>18</dd></div><div><dt>Denied access</dt><dd>2</dd></div><div><dt>Server errors</dt><dd>0</dd></div></dl><p class="muted">Audit records exclude passwords, tokens, query strings, request bodies, clinical text, raw URLs, and IP addresses.</p></article>
-            <article class="panel"><p class="eyebrow">Chart lifecycle</p><h2>Archive without deletion</h2><p>Archived charts preserve clinical history, revoke portal sessions, leave historical records readable, and reject new writes until an administrator reactivates the chart.</p><div class="lifecycle-example"><span class="status-chip resolved" id="lifecycle-chip">Archived</span><strong>Taylor Example</strong><small id="lifecycle-detail">Archived Nov 18 · synthetic record</small></div><button type="button" class="secondary-button" id="lifecycle-demo">Simulate reactivation</button><p class="form-status" id="lifecycle-status" aria-live="polite"></p></article>
+            <article class="panel"><p class="eyebrow">Chart lifecycle</p><h2>Archive without deletion</h2><p>Archived charts preserve clinical history, revoke portal sessions, leave historical records readable, and reject new writes until an administrator reactivates the chart.</p><div class="lifecycle-example"><span class="status-chip resolved" id="lifecycle-chip">Archived</span><strong>Taylor Example</strong><small id="lifecycle-detail">Archived Nov 18</small></div><button type="button" class="secondary-button" id="lifecycle-demo">Reactivate chart</button><p class="form-status" id="lifecycle-status" aria-live="polite"></p></article>
           </div>
         </section>
 
         <section class="view" data-view="patient-home" hidden>
-          <div class="page-heading"><div><p class="eyebrow">Patient portal · Synthetic account</p><h1>Welcome back, Jordan</h1><p>Your next steps, recent results, and care plan in one place.</p></div><button type="button" class="secondary-button" data-go-view="patient-preferences">Communication settings</button></div>
+          <div class="page-heading"><div><p class="eyebrow">Patient portal</p><h1>Welcome back, Jordan</h1><p>Your next steps, recent results, and care plan in one place.</p></div><button type="button" class="secondary-button" data-go-view="patient-preferences">Communication settings</button></div>
           <div class="portal-hero">
             <div><p class="eyebrow">Next appointment</p><h2>Hypertension follow-up</h2><p>February 23, 2027 · 10:30 AM · Elena Rivera, MD</p></div><span class="status-chip scheduled">Scheduled</span>
           </div>
@@ -230,7 +220,7 @@
         </section>
 
         <section class="view" data-view="patient-health" hidden>
-          <div class="page-heading compact"><div><p class="eyebrow">My health</p><h1>Your health summary</h1><p>Patient-friendly summaries from your fictional clinical record.</p></div></div>
+          <div class="page-heading compact"><div><p class="eyebrow">My health</p><h1>Your health summary</h1><p>Patient-friendly summaries from your clinical record.</p></div></div>
           <div class="two-column">
             <article class="panel"><p class="eyebrow">Conditions</p><h2>Current health conditions</h2><ul class="record-list"><li><strong>High blood pressure</strong><span>Monitoring</span></li><li><strong>High cholesterol</strong><span>Stable</span></li></ul></article>
             <article class="panel"><p class="eyebrow">Medications</p><h2>What you are taking</h2><ul class="record-list"><li><strong>Lisinopril 20 mg</strong><span>Once daily</span></li><li><strong>Atorvastatin 20 mg</strong><span>Nightly</span></li></ul></article>
@@ -241,7 +231,7 @@
 
         <section class="view" data-view="patient-appointments" hidden>
           <div class="page-heading compact"><div><p class="eyebrow">Appointments</p><h1>Your visits</h1><p>Request a scheduling change without altering the appointment directly.</p></div></div>
-          <article class="panel"><div class="appointment-card"><div class="calendar-date"><strong>23</strong><span>Feb 2027</span></div><div><h2>Hypertension follow-up</h2><p>10:30 AM · Elena Rivera, MD</p><span class="status-chip scheduled">Scheduled</span></div><button type="button" class="secondary-button" id="request-change" aria-expanded="false" aria-controls="request-panel">Request a change</button></div><div id="request-panel" class="request-panel" hidden><h3>Request a change</h3><p>This demo simulates a request for staff review. No request is sent and the appointment does not change.</p><div class="action-row"><button type="button" class="primary-button" data-request-kind="reschedule">Request reschedule</button><button type="button" class="danger-button" data-request-kind="cancel">Request cancellation</button></div></div><p class="form-status" id="request-status" aria-live="polite"></p></article>
+          <article class="panel"><div class="appointment-card"><div class="calendar-date"><strong>23</strong><span>Feb 2027</span></div><div><h2>Hypertension follow-up</h2><p>10:30 AM · Elena Rivera, MD</p><span class="status-chip scheduled">Scheduled</span></div><button type="button" class="secondary-button" id="request-change" aria-expanded="false" aria-controls="request-panel">Request a change</button></div><div id="request-panel" class="request-panel" hidden><h3>Request a change</h3><p>Select the type of change. The appointment does not change.</p><div class="action-row"><button type="button" class="primary-button" data-request-kind="reschedule">Request reschedule</button><button type="button" class="danger-button" data-request-kind="cancel">Request cancellation</button></div></div><p class="form-status" id="request-status" aria-live="polite"></p></article>
         </section>
 
         <section class="view" data-view="patient-results" hidden>
@@ -254,7 +244,7 @@
         </section>
 
         <section class="view" data-view="patient-preferences" hidden>
-          <div class="page-heading compact"><div><p class="eyebrow">Preferences</p><h1>Communication settings</h1><p>These demo choices are saved only in this browser.</p></div></div>
+          <div class="page-heading compact"><div><p class="eyebrow">Preferences</p><h1>Communication settings</h1><p>Choose how you prefer to receive clinic updates.</p></div></div>
           <form class="panel preferences-form" id="preferences-form">
             <fieldset>
               <legend>Preferred contact method</legend>
@@ -267,7 +257,7 @@
               <label class="check-control"><input type="checkbox" name="appointments" checked /> Appointment reminders</label>
               <label class="check-control"><input type="checkbox" name="care" /> General care updates</label>
             </fieldset>
-            <button class="primary-button" type="submit">Save demo preferences</button>
+            <button class="primary-button" type="submit">Save preferences</button>
             <p class="form-status" id="preferences-status" aria-live="polite"></p>
           </form>
         </section>
@@ -275,8 +265,8 @@
     </div>
 
     <footer class="site-footer">
-      <p>Built with React, TypeScript, FastAPI, SQLAlchemy, PostgreSQL, Alembic, and a synthetic-data-only rule.</p>
-      <p>This static public demonstration contains no real patient data and no live clinical backend.</p>
+      <p>Primary Care EMR</p>
+      <p><a class="repo-link" href="https://github.com/AI-CJ/primary-care-emr">View source</a></p>
     </footer>
 
     <script src="./app.js"></script>

@@ -101,17 +101,17 @@ const lifecycleStatus = document.querySelector('#lifecycle-status')
 let lifecycleActive = false
 lifecycleButton?.addEventListener('click', () => {
   lifecycleActive = !lifecycleActive
-  lifecycleButton.textContent = lifecycleActive ? 'Simulate archive' : 'Simulate reactivation'
+  lifecycleButton.textContent = lifecycleActive ? 'Archive chart' : 'Reactivate chart'
   const chip = document.querySelector('#lifecycle-chip')
   chip.textContent = lifecycleActive ? 'Active' : 'Archived'
   chip.classList.toggle('active', lifecycleActive)
   chip.classList.toggle('resolved', !lifecycleActive)
   document.querySelector('#lifecycle-detail').textContent = lifecycleActive
-    ? 'Reactivated in this demo only'
-    : 'Archived in this demo only'
+    ? 'Reactivated'
+    : 'Archived'
   lifecycleStatus.textContent = lifecycleActive
-    ? 'Demo chart reactivated. Historical records remain intact.'
-    : 'Demo chart archived. New clinical writes would now be blocked.'
+    ? 'Chart status changed to active.'
+    : 'Chart status changed to archived.'
 })
 
 const requestButton = document.querySelector('#request-change')
@@ -125,7 +125,7 @@ requestButton?.addEventListener('click', () => {
 document.querySelectorAll('[data-request-kind]').forEach((button) => {
   button.addEventListener('click', () => {
     const label = button.dataset.requestKind === 'cancel' ? 'cancellation' : 'rescheduling'
-    requestStatus.textContent = `Synthetic ${label} request simulated. Nothing was sent and the appointment was not changed.`
+    requestStatus.textContent = `${label.charAt(0).toUpperCase() + label.slice(1)} request selected. Nothing was sent and the appointment was not changed.`
     requestPanel.hidden = true
     requestButton.setAttribute('aria-expanded', 'false')
     requestButton.focus()
@@ -161,7 +161,7 @@ preferencesForm?.addEventListener('submit', (event) => {
   }
   try {
     localStorage.setItem(storageKey, JSON.stringify(preferences))
-    preferencesStatus.textContent = 'Demo preferences saved in this browser. No message will be sent.'
+    preferencesStatus.textContent = 'Preferences saved in this browser. No message will be sent.'
   } catch {
     preferencesStatus.textContent = 'Browser storage is unavailable. Preferences were not saved or sent.'
   }

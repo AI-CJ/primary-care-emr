@@ -272,7 +272,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
                             />
                           </label>
                           <p className="encounter-help">
-                            Use fictional details only. Recorded follow-up cannot be edited.
+                            Recorded follow-up cannot be edited.
                           </p>
                           <div className="encounter-form-actions">
                             <button
@@ -408,7 +408,7 @@ function EncounterReferrals({ encounter }: EncounterReferralsProps) {
             </form>
           )}
           <p className="encounter-help">
-            Demo only: referral requests are stored in the chart, not sent to specialists.
+            Referral requests are stored in the chart.
           </p>
           {saveError && <p className="form-error" role="alert">{saveError}</p>}
           {successMessage && <p role="status">{successMessage}</p>}

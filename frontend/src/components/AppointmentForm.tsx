@@ -71,7 +71,7 @@ function AppointmentForm({
   return (
     <form className="appointment-form" onSubmit={handleSubmit}>
       <p className="appointment-help">
-        Development only. Use fictional patient information. Times are
+        Times are
         entered in the clinic's local time.
       </p>
 

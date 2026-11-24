@@ -123,7 +123,7 @@ function PatientReferralHistory({ patientId }: PatientReferralHistoryProps) {
         </ul>
       )}
       <p className="encounter-help">
-        Demo only: referral requests are stored in the chart, not sent to specialists.
+        Referral requests are stored in the chart.
       </p>
     </section>
   )

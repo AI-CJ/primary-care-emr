@@ -20,11 +20,6 @@ export default function PatientPortal() {
           <h1>My health summary</h1>
           <p>View your appointments, finalized visits, conditions, medications, allergies, recent vitals, care goals, lab requests, released results, and referrals recorded in your chart.</p>
         </header>
-        <p className="portal-disclaimer" role="note">
-          This portfolio portal uses fictional records only. Clinical information is
-          read-only. You can request appointment changes and edit communication preferences. Do not
-          use it for real patient information or medical decisions.
-        </p>
         <div className="portal-grid">
           <PortalAppointments />
           <PortalAppointmentChangeRequests />

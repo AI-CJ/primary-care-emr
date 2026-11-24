@@ -215,7 +215,7 @@ function EncounterLabResult({ order, visitDate, canRelease, onRecorded }: Encoun
                   onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setResultText(event.target.value)}
                 />
               </label>
-              <p className="encounter-help">Use fictional findings only. Saved results cannot be edited.</p>
+              <p className="encounter-help">Saved results cannot be edited.</p>
               <div className="encounter-form-actions">
                 <button className="secondary-action-button" type="submit" disabled={isSaving || !collectedOn || !resultText.trim()}>
                   {isSaving ? 'Recording...' : 'Save Result'}

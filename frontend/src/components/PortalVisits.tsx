@@ -53,7 +53,7 @@ function PortalVisits({ patientId }: PortalVisitsProps) {
     <section className="portal-card" aria-labelledby="portal-visits">
       <h2 id="portal-visits">My past visits</h2>
       <p className="portal-help">
-        Recent visits with finalized notes in this fictional chart.
+        Recent visits with finalized notes in your chart.
         Only instructions written for patients are shown. Draft notes and private clinical details stay in the staff chart.
       </p>
 

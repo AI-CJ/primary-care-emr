@@ -99,9 +99,8 @@ p { line-height: 1.58; }
   color: white;
   text-decoration: none;
 }
-.brand strong, .brand small { display: block; }
+.brand strong { display: block; }
 .brand strong { letter-spacing: -0.02em; }
-.brand small { margin-top: 0.12rem; color: #c9d5d3; font-size: 0.77rem; }
 .brand-mark {
   display: grid;
   place-items: center;
@@ -115,13 +114,12 @@ p { line-height: 1.58; }
 }
 
 .header-actions { display: flex; align-items: center; gap: 0.75rem; }
-.demo-pill, .repo-link {
+.repo-link {
   padding: 0.55rem 0.8rem;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
 }
-.demo-pill { color: #daf5ef; background: rgba(43, 147, 113, 0.2); border: 1px solid rgba(116, 220, 185, 0.25); }
 .repo-link { color: white; border: 1px solid rgba(255,255,255,0.22); text-decoration: none; }
 .repo-link:hover { background: rgba(255,255,255,0.08); }
 
@@ -183,15 +181,6 @@ p { line-height: 1.58; }
 .nav-button:hover { background: rgba(255,255,255,0.65); }
 .nav-button.is-active { color: var(--surface-dark); background: white; box-shadow: 0 7px 22px rgba(31,45,48,0.07); }
 
-.sidebar-note {
-  margin-top: auto;
-  padding: 1rem;
-  color: #eaf2ef;
-  background: linear-gradient(145deg, #34444a, #253138);
-  border-radius: 14px;
-}
-.sidebar-note strong { font-size: 0.82rem; }
-.sidebar-note p { margin: 0.35rem 0 0; color: #c3d0cd; font-size: 0.74rem; line-height: 1.45; }
 
 .main-content {
   width: 100%;
@@ -199,19 +188,17 @@ p { line-height: 1.58; }
   margin: 0 auto;
   padding: 1.25rem clamp(1rem, 3vw, 2.5rem) 3rem;
 }
-.release-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 1.5rem;
-  padding: 0.7rem 0.9rem;
-  color: #3b5c51;
-  background: var(--emerald-soft);
-  border: 1px solid #c7ded3;
-  border-radius: 12px;
-  font-size: 0.82rem;
+.legal-notice {
+  padding: 0.45rem clamp(0.75rem, 3vw, 2.5rem);
+  color: #293239;
+  background: #eef3f1;
+  border-bottom: 1px solid #d8e0dd;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
-.release-dot { width: 9px; height: 9px; flex: 0 0 auto; background: var(--emerald); border-radius: 999px; box-shadow: 0 0 0 5px rgba(40,118,90,0.11); }
+.legal-notice p { margin: 0; }
+.legal-notice strong { font-weight: 700; }
 
 .view[hidden], [hidden] { display: none !important; }
 .view.is-active { animation: rise 180ms ease-out; }
@@ -408,15 +395,12 @@ blockquote { margin: 1rem 0 0; padding: 0.85rem 1rem; color: #4f5c61; background
 
 @media (max-width: 760px) {
   .site-header { position: static; align-items: flex-start; }
-  .demo-pill { display: none; }
   .app-shell { display: block; }
   .sidebar { position: static; height: auto; padding: 0.8rem; border-right: 0; border-bottom: 1px solid var(--line); overflow: visible; }
-  .sidebar-note { display: none; }
   .side-nav { display: flex; overflow-x: auto; padding-bottom: 0.15rem; }
   .side-nav[hidden] { display: none !important; }
   .nav-button { width: auto; min-width: max-content; }
   .main-content { padding-top: 0.9rem; }
-  .release-banner { align-items: flex-start; }
   .page-heading { align-items: flex-start; flex-direction: column; }
   .metric-grid, .two-column, .three-column, .worklist-grid { grid-template-columns: 1fr; }
   .three-column > :last-child { grid-column: auto; }
@@ -430,7 +414,7 @@ blockquote { margin: 1rem 0 0; padding: 0.85rem 1rem; color: #4f5c61; background
 
 @media (max-width: 480px) {
   .site-header { min-height: auto; padding: 0.75rem; }
-  .brand small, .repo-link { display: none; }
+  .header-actions .repo-link { display: none; }
   .mode-switch { width: 100%; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
   .metric-card { min-height: 125px; }

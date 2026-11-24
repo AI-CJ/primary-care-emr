@@ -126,7 +126,7 @@ export default function AppointmentChangeRequestsWorklist({
           )}
         </>}
         <p className="pending-lab-disclaimer">
-          Synthetic records only. Acknowledgment does not cancel or reschedule a visit.
+          Acknowledgment does not cancel or reschedule a visit.
         </p>
       </section>
     </main>

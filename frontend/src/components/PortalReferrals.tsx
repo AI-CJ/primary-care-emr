@@ -60,8 +60,7 @@ function PortalReferrals({ patientId }: PortalReferralsProps) {
     <section className="portal-card" aria-labelledby="portal-referrals">
       <h2 id="portal-referrals">My referrals</h2>
       <p className="portal-help">
-        Recent specialist referrals from finalized visits in this fictional chart.
-        Requests in this portfolio are not sent to outside clinics.
+        Recent specialist referrals from finalized visits in your chart.
       </p>
 
       {isLoading && <p role="status">Loading referrals...</p>}

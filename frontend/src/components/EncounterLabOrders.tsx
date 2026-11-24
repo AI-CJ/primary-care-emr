@@ -265,7 +265,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
             </form>
           )}
           <p className="encounter-help">
-            Demo only: use fictional requests. No orders are sent to a laboratory.
+            Orders are recorded in the chart.
           </p>
           {actionError && <p className="form-error" role="alert">{actionError}</p>}
           {successMessage && <p role="status">{successMessage}</p>}
