@@ -59,9 +59,35 @@ jobs:
       - name: Lint frontend
         working-directory: frontend
         run: npm run lint
-      - name: Test frontend medication grouping
+      - name: Run frontend tests
         working-directory: frontend
         run: npm test
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  public-demo-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify public demo files
+        run: |
+          test -s demo/index.html
+          test -s demo/styles.css
+          test -s demo/app.js
+          grep -q "Synthetic portfolio demo" demo/index.html
+          grep -q "not approved for clinical use" demo/index.html
+      - name: Serve and request public demo
+        run: |
+          python3 -m http.server 4173 --directory demo > /tmp/emr-demo-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ > /tmp/emr-demo.html; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent --show-error http://127.0.0.1:4173/styles.css > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:4173/app.js > /dev/null
+          grep -q "Primary Care EMR" /tmp/emr-demo.html
