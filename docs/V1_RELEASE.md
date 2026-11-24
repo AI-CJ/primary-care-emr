@@ -16,7 +16,7 @@ The source application includes:
 - patient communication preferences and appointment-change requests;
 - privacy-minimal authentication and clinical-access audit events;
 - non-destructive patient chart archive and reactivation controls;
-- PostgreSQL migrations, automated backend tests, frontend lint/tests, and production builds.
+- PostgreSQL migrations, automated backend tests, frontend lint/tests, production builds, and Chromium workflow checks.
 
 The public GitHub Pages site is intentionally a static, read-only presentation layer. It demonstrates the product design with fictional records but does not connect to FastAPI or PostgreSQL. The complete API-backed application remains available in this repository for local execution and technical review.
 
@@ -49,7 +49,14 @@ npm test
 npm run build
 ```
 
-The GitHub Actions `Checks` workflow repeats the migration check, backend suite, frontend lint, frontend tests, and production build on pull requests and pushes to `main`.
+The GitHub Actions `Checks` workflow repeats the migration check, backend suite, frontend lint, frontend tests, and production build on pull requests and pushes to `main`. It also:
+
+- serves the static demo and exercises its desktop and mobile workflows in Chromium;
+- verifies the core demo text palette meets a 4.5:1 contrast target;
+- builds the real React application against a freshly migrated and seeded disposable PostgreSQL database;
+- exercises staff and patient authentication, permission boundaries, archive/reactivation persistence, archived-patient access rejection, communication preference persistence, keyboard account-mode switching, and mobile layout.
+
+The browser jobs run from a clean GitHub Actions checkout with reduced-motion preferences and horizontal-overflow checks.
 
 ## Configuration for a hosted synthetic instance
 
@@ -81,7 +88,7 @@ Each command prompts for a password. Use credentials made only for local demonst
 
 ## Safety and privacy limits
 
-V1 includes server-side authentication, patient ownership checks, clinical-role restrictions, no-store response headers, and privacy-minimal audit metadata. These controls are meaningful engineering safeguards, but they are not a claim of HIPAA compliance or production readiness.
+V1 includes server-side authentication, patient ownership checks, clinical-role restrictions, no-store response headers, privacy-minimal audit metadata, and archive-aware mutation controls. These controls are meaningful engineering safeguards, but they are not a claim of HIPAA compliance or production readiness.
 
 The project does not include:
 
@@ -96,20 +103,22 @@ The project does not include:
 
 ## Release acceptance checklist
 
-A V1 release is ready when:
+Verified on the release-candidate branch and current `main` history:
 
-- [ ] the latest `main` commit passes GitHub Actions;
-- [ ] the Alembic upgrade chain succeeds against PostgreSQL;
-- [ ] backend tests pass;
-- [ ] frontend lint, tests, and production build pass;
-- [ ] authenticated staff and patient boundaries are verified;
-- [ ] archived charts reject all active mutation paths while retaining history;
+- [x] the latest verified `main` commit passes GitHub Actions;
+- [x] the Alembic upgrade chain succeeds against PostgreSQL;
+- [x] backend tests pass;
+- [x] frontend lint, tests, and production build pass;
+- [x] authenticated staff and patient boundaries are verified;
+- [x] archived charts reject active mutation paths while retaining history;
 - [ ] the static public demo is reachable and clearly labeled;
-- [ ] keyboard, reduced-motion, responsive, and basic contrast checks are complete;
-- [ ] README setup steps work from a clean clone;
-- [ ] known limitations remain visible in the repository and demo;
-- [ ] a release tag is created from the verified commit.
+- [x] keyboard, reduced-motion, responsive, and basic contrast checks are complete;
+- [x] setup and workflow checks run successfully from clean CI checkouts;
+- [x] known limitations remain visible in the repository and demo;
+- [ ] a release tag is created from the verified deployed commit.
+
+The Pages workflow deploys only after the `Checks` workflow succeeds. After a successful public deployment, it creates the `v1.0.0` tag and GitHub release automatically if they do not already exist. The two unchecked items therefore depend on first-time GitHub Pages enablement and successful URL verification, not additional application development.
 
 ## Post-V1 work
 
-Future development may include a production hosting reference architecture, stronger operational audit retention, formal accessibility testing, browser-level end-to-end automation, patient correction requests, records export, FHIR mappings, secure messaging, billing demonstrations, and additional primary-care workflows. Those items are not required to represent this synthetic portfolio V1 honestly.
+Future development may include a production hosting reference architecture, stronger operational audit retention, formal manual accessibility testing, patient correction requests, records export, FHIR mappings, secure messaging, billing demonstrations, and additional primary-care workflows. Those items are not required to represent this synthetic portfolio V1 honestly.

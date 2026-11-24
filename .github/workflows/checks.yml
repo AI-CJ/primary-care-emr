@@ -77,6 +77,8 @@ jobs:
           test -s demo/app.js
           grep -q "Synthetic portfolio demo" demo/index.html
           grep -q "not approved for clinical use" demo/index.html
+      - name: Check public demo palette contrast
+        run: python scripts/check_demo_contrast.py
       - name: Serve and request public demo
         run: |
           python3 -m http.server 4173 --directory demo > /tmp/emr-demo-server.log 2>&1 &

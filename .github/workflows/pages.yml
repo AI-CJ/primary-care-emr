@@ -1,15 +1,13 @@
 name: Deploy public demo
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "demo/**"
-      - ".github/workflows/pages.yml"
+  workflow_run:
+    workflows: ["Checks"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -19,13 +17,19 @@ concurrency:
 
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Check out verified release commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
         with:
@@ -37,3 +41,31 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Publish V1 release after verified deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          RELEASE_TARGET: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          if gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v1.0.0 already exists."
+            exit 0
+          fi
+
+          cat > /tmp/emr-v1-release.md <<EOF
+          Primary Care EMR V1.0.0 is a synthetic-data portfolio release demonstrating outpatient staff workflows and a patient-facing portal.
+
+          **Public demo:** ${PAGE_URL}
+
+          The deployed site is a static, read-only presentation using fictional records. The full React, FastAPI, SQLAlchemy, PostgreSQL, and Alembic application remains in this repository for local execution and technical review.
+
+          Verification includes the PostgreSQL migration chain, backend tests, frontend lint and unit tests, production build, Chromium checks for the public demo, and a disposable-database full-stack browser workflow covering staff permissions, archive/reactivation, patient access, preference persistence, keyboard operation, and mobile layout.
+
+          This release is not HIPAA compliant, is not approved for clinical use, and must never receive real patient information. See `docs/V1_RELEASE.md` for the complete release boundary and known limitations.
+          EOF
+
+          gh release create v1.0.0 \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RELEASE_TARGET" \
+            --title "Primary Care EMR V1.0.0" \
+            --notes-file /tmp/emr-v1-release.md
