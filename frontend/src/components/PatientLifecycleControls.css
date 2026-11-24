@@ -1,0 +1,104 @@
+.lifecycle-card {
+  border-left: 5px solid #2f7c68;
+}
+
+.lifecycle-card-archived {
+  border-left-color: #b35b4a;
+  background: #fffaf8;
+}
+
+.lifecycle-card-header {
+  align-items: flex-start;
+}
+
+.lifecycle-card .eyebrow {
+  margin: 0 0 0.25rem;
+  color: #586a70;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lifecycle-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.lifecycle-status-active {
+  color: #195843;
+  background: #dff1e9;
+}
+
+.lifecycle-status-archived {
+  color: #7c362c;
+  background: #f5ddd7;
+}
+
+.lifecycle-date,
+.lifecycle-permission-note {
+  color: #66737a;
+  font-size: 0.86rem;
+}
+
+.lifecycle-confirmation {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #dcc9c4;
+  border-radius: 12px;
+  background: #fff7f5;
+}
+
+.lifecycle-confirmation p {
+  margin: 0 0 0.85rem;
+  line-height: 1.5;
+}
+
+.lifecycle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.lifecycle-card .danger-button {
+  min-height: 42px;
+  padding: 0.65rem 0.95rem;
+  color: #8b342c;
+  background: #fff7f5;
+  border: 1px solid #d9a89f;
+  border-radius: 10px;
+  font-weight: 750;
+}
+
+.lifecycle-card .danger-button:hover:not(:disabled) {
+  color: white;
+  background: #a94438;
+  border-color: #a94438;
+}
+
+.lifecycle-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.lifecycle-card .form-success {
+  margin: 0.85rem 0 0;
+  color: #195843;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .lifecycle-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .lifecycle-actions > button {
+    width: 100%;
+  }
+}
