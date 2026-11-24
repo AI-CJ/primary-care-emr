@@ -67,7 +67,7 @@ jobs:
         run: npm run build
 
   public-demo-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Verify public demo files
@@ -92,6 +92,9 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:4173/app.js > /dev/null
           grep -q "Primary Care EMR" /tmp/emr-demo.html
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install browser smoke dependencies
         run: |
           python3 -m venv /tmp/emr-demo-venv
