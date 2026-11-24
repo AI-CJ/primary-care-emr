@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A read-only synthetic demonstration of a patient-centered primary care EMR." />
+    <title>Primary Care EMR — Synthetic Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="Primary Care EMR demo home">
+        <span class="brand-mark" aria-hidden="true">+</span>
+        <span>
+          <strong>Primary Care EMR</strong>
+          <small>Synthetic portfolio demo</small>
+        </span>
+      </a>
+      <div class="header-actions">
+        <span class="demo-pill">Read-only demo</span>
+        <a class="repo-link" href="https://github.com/AI-CJ/primary-care-emr">View source</a>
+      </div>
+    </header>
+
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Demo navigation">
+        <div class="mode-switch" aria-label="Choose application view">
+          <button type="button" class="mode-button is-active" data-mode-target="staff" aria-pressed="true">
+            Staff EMR
+          </button>
+          <button type="button" class="mode-button" data-mode-target="patient" aria-pressed="false">
+            Patient portal
+          </button>
+        </div>
+
+        <nav class="side-nav" data-mode-nav="staff" aria-label="Staff workspace">
+          <button type="button" class="nav-button is-active" data-view-target="staff-overview">
+            <span aria-hidden="true">⌂</span> Overview
+          </button>
+          <button type="button" class="nav-button" data-view-target="staff-schedule">
+            <span aria-hidden="true">◷</span> Clinic schedule
+          </button>
+          <button type="button" class="nav-button" data-view-target="staff-chart">
+            <span aria-hidden="true">▤</span> Patient chart
+          </button>
+          <button type="button" class="nav-button" data-view-target="staff-worklists">
+            <span aria-hidden="true">✓</span> Worklists
+          </button>
+          <button type="button" class="nav-button" data-view-target="staff-audit">
+            <span aria-hidden="true">◎</span> Audit & lifecycle
+          </button>
+        </nav>
+
+        <nav class="side-nav" data-mode-nav="patient" aria-label="Patient portal" hidden>
+          <button type="button" class="nav-button is-active" data-view-target="patient-home">
+            <span aria-hidden="true">⌂</span> Home
+          </button>
+          <button type="button" class="nav-button" data-view-target="patient-health">
+            <span aria-hidden="true">♡</span> My health
+          </button>
+          <button type="button" class="nav-button" data-view-target="patient-appointments">
+            <span aria-hidden="true">◷</span> Appointments
+          </button>
+          <button type="button" class="nav-button" data-view-target="patient-results">
+            <span aria-hidden="true">▥</span> Results & visits
+          </button>
+          <button type="button" class="nav-button" data-view-target="patient-preferences">
+            <span aria-hidden="true">⚙</span> Preferences
+          </button>
+        </nav>
+
+        <div class="sidebar-note">
+          <strong>Fictional records only</strong>
+          <p>No real patient information is used. Actions in this public demo do not reach a clinical server.</p>
+        </div>
+      </aside>
+
+      <main id="main-content" class="main-content" tabindex="-1">
+        <div class="release-banner" role="note">
+          <span class="release-dot" aria-hidden="true"></span>
+          <span><strong>Portfolio V1 demo.</strong> This site demonstrates product design and synthetic workflows; it is not approved for clinical use.</span>
+        </div>
+
+        <section class="view is-active" data-view="staff-overview">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">Tuesday, November 24, 2026</p>
+              <h1>Good morning, Dr. Rivera</h1>
+              <p>Here is the clinic at a glance. Every item below belongs to a fictional patient.</p>
+            </div>
+            <button type="button" class="primary-button" data-go-view="staff-schedule">Open today’s schedule</button>
+          </div>
+
+          <div class="metric-grid" aria-label="Clinic summary">
+            <article class="metric-card terracotta">
+              <span>Appointments</span><strong>8</strong><small>2 checked in</small>
+            </article>
+            <article class="metric-card aqua">
+              <span>Pending labs</span><strong>2</strong><small>1 result to release</small>
+            </article>
+            <article class="metric-card emerald">
+              <span>Follow-ups</span><strong>3</strong><small>1 due today</small>
+            </article>
+            <article class="metric-card purple">
+              <span>Referrals</span><strong>1</strong><small>Awaiting review</small>
+            </article>
+          </div>
+
+          <div class="two-column">
+            <article class="panel">
+              <div class="panel-heading">
+                <div><p class="eyebrow">Next patient</p><h2>Jordan Lee</h2></div>
+                <span class="status-chip checked-in">Checked in</span>
+              </div>
+              <dl class="detail-grid">
+                <div><dt>Visit</dt><dd>Hypertension follow-up</dd></div>
+                <div><dt>Time</dt><dd>9:30 AM</dd></div>
+                <div><dt>Latest BP</dt><dd>132/82</dd></div>
+                <div><dt>Open task</dt><dd>Review home readings</dd></div>
+              </dl>
+              <button type="button" class="secondary-button" data-go-view="staff-chart">Open synthetic chart</button>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading"><div><p class="eyebrow">Since last review</p><h2>Clinical changes</h2></div></div>
+              <ol class="timeline-list">
+                <li><span class="timeline-icon emerald">✓</span><div><strong>Lab result released</strong><p>Jordan Lee · Lipid panel · 8:41 AM</p></div></li>
+                <li><span class="timeline-icon aqua">↗</span><div><strong>Referral completed</strong><p>Casey Morgan · Cardiology · Yesterday</p></div></li>
+                <li><span class="timeline-icon terracotta">!</span><div><strong>Follow-up due</strong><p>Alex Kim · Blood pressure check · Today</p></div></li>
+              </ol>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" data-view="staff-schedule" hidden>
+          <div class="page-heading compact">
+            <div><p class="eyebrow">Clinic operations</p><h1>Today’s schedule</h1><p>Tuesday, November 24 · 8 fictional appointments</p></div>
+            <button type="button" class="secondary-button">Print schedule</button>
+          </div>
+          <article class="panel table-panel">
+            <div class="table-toolbar">
+              <label for="schedule-filter">Filter appointments</label>
+              <input id="schedule-filter" type="search" placeholder="Search name or reason" autocomplete="off" />
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Time</th><th>Patient</th><th>Reason</th><th>Status</th><th><span class="sr-only">Action</span></th></tr></thead>
+                <tbody id="schedule-body">
+                  <tr data-search="maya thompson annual physical"><td>8:30 AM</td><td>Maya Thompson</td><td>Annual physical</td><td><span class="status-chip complete">Complete</span></td><td><button class="text-button">View</button></td></tr>
+                  <tr data-search="jordan lee hypertension follow-up"><td>9:30 AM</td><td>Jordan Lee</td><td>Hypertension follow-up</td><td><span class="status-chip checked-in">Checked in</span></td><td><button class="text-button" data-go-view="staff-chart">Open chart</button></td></tr>
+                  <tr data-search="alex kim medication review"><td>10:15 AM</td><td>Alex Kim</td><td>Medication review</td><td><span class="status-chip scheduled">Scheduled</span></td><td><button class="text-button">View</button></td></tr>
+                  <tr data-search="sam rivera acute cough"><td>11:00 AM</td><td>Sam Rivera</td><td>Acute cough</td><td><span class="status-chip scheduled">Scheduled</span></td><td><button class="text-button">View</button></td></tr>
+                  <tr data-search="casey morgan diabetes follow-up"><td>1:00 PM</td><td>Casey Morgan</td><td>Diabetes follow-up</td><td><span class="status-chip scheduled">Scheduled</span></td><td><button class="text-button">View</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="view" data-view="staff-chart" hidden>
+          <div class="patient-header panel">
+            <div class="patient-avatar" aria-hidden="true">JL</div>
+            <div class="patient-identity">
+              <p class="eyebrow">Synthetic patient · MRN DEMO-1042</p>
+              <h1>Jordan Lee</h1>
+              <p>Born March 12, 1984 · They/them · PCP: Elena Rivera, MD</p>
+            </div>
+            <div class="patient-status"><span class="status-chip active">Active chart</span><small>No known drug allergies</small></div>
+          </div>
+
+          <div class="chart-tabs" role="tablist" aria-label="Patient chart sections">
+            <button role="tab" aria-selected="true" data-chart-tab="summary">Summary</button>
+            <button role="tab" aria-selected="false" data-chart-tab="medications">Medications</button>
+            <button role="tab" aria-selected="false" data-chart-tab="timeline">Timeline</button>
+            <button role="tab" aria-selected="false" data-chart-tab="care-plan">Care plan</button>
+          </div>
+
+          <div data-chart-panel="summary">
+            <div class="three-column">
+              <article class="panel"><p class="eyebrow">Latest vitals</p><h2>132 / 82</h2><p>Blood pressure · Nov 21</p><hr /><dl class="mini-list"><div><dt>Pulse</dt><dd>72 bpm</dd></div><div><dt>Weight</dt><dd>184 lb</dd></div></dl></article>
+              <article class="panel"><p class="eyebrow">Active problems</p><ul class="record-list"><li><strong>Essential hypertension</strong><span>Monitoring</span></li><li><strong>Hyperlipidemia</strong><span>Stable</span></li></ul></article>
+              <article class="panel"><p class="eyebrow">Next steps</p><ul class="check-list"><li>Review home BP log</li><li>Repeat lipid panel in 3 months</li><li>Follow up Feb 23, 2027</li></ul></article>
+            </div>
+            <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Today’s visit</p><h2>Hypertension follow-up</h2></div><span class="status-chip checked-in">Checked in</span></div><p class="muted">The real application supports appointment-linked notes, structured assessment and plan, orders, referrals, follow-up tasks, finalization, and immutable addenda.</p><div class="action-row"><button class="primary-button">Start visit note</button><button class="secondary-button">Review home readings</button></div></article>
+          </div>
+
+          <div data-chart-panel="medications" hidden>
+            <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Medication history</p><h2>Active medications</h2></div><span class="count-badge">2 active</span></div><div class="record-stack"><div class="record-row"><div><strong>Lisinopril</strong><p>20 mg by mouth once daily</p></div><span class="status-chip active">Active</span></div><div class="record-row"><div><strong>Atorvastatin</strong><p>20 mg by mouth nightly</p></div><span class="status-chip active">Active</span></div><div class="record-row historical"><div><strong>Lisinopril 10 mg</strong><p>Discontinued September 6, 2026 · Dose increased</p></div><span class="status-chip resolved">Historical</span></div></div></article>
+          </div>
+
+          <div data-chart-panel="timeline" hidden>
+            <article class="panel"><p class="eyebrow">Longitudinal record</p><h2>Clinical timeline</h2><ol class="clinical-timeline"><li><time>Nov 21</time><div><strong>Blood pressure recorded</strong><p>132/82 · Pulse 72</p></div></li><li><time>Oct 15</time><div><strong>Lipid result released</strong><p>LDL 121 mg/dL · Improved from 142</p></div></li><li><time>Sep 6</time><div><strong>Medication dose increased</strong><p>Lisinopril 10 mg → 20 mg daily</p></div></li><li><time>Jul 2</time><div><strong>Hypertension added</strong><p>Active problem · Goal under 130/80</p></div></li></ol></article>
+          </div>
+
+          <div data-chart-panel="care-plan" hidden>
+            <article class="panel"><p class="eyebrow">Shared plan</p><h2>Blood pressure goal</h2><div class="goal-progress"><div><strong>Goal</strong><span>Under 130/80</span></div><div><strong>Current</strong><span>132/82</span></div><div><strong>Patient task</strong><span>Record BP three times weekly</span></div><div><strong>Next review</strong><span>February 23, 2027</span></div></div><div class="progress-track" aria-label="Goal progress: close to target"><span style="width: 82%"></span></div></article>
+          </div>
+        </section>
+
+        <section class="view" data-view="staff-worklists" hidden>
+          <div class="page-heading compact"><div><p class="eyebrow">Care coordination</p><h1>Staff worklists</h1><p>Focused queues keep unresolved work out of visit notes and inbox clutter.</p></div></div>
+          <div class="worklist-grid">
+            <article class="panel worklist-card"><span class="worklist-count terracotta-bg">3</span><h2>Open follow-ups</h2><p>Tasks that still need staff action.</p><button class="text-button">Review queue →</button></article>
+            <article class="panel worklist-card"><span class="worklist-count aqua-bg">2</span><h2>Pending labs</h2><p>Orders awaiting collection or results.</p><button class="text-button">Review queue →</button></article>
+            <article class="panel worklist-card"><span class="worklist-count emerald-bg">1</span><h2>Unreleased results</h2><p>Results ready for clinical review.</p><button class="text-button">Review queue →</button></article>
+            <article class="panel worklist-card"><span class="worklist-count purple-bg">1</span><h2>Appointment requests</h2><p>Patient requests awaiting acknowledgement.</p><button class="text-button">Review queue →</button></article>
+          </div>
+        </section>
+
+        <section class="view" data-view="staff-audit" hidden>
+          <div class="page-heading compact"><div><p class="eyebrow">Administrative controls</p><h1>Audit & patient lifecycle</h1><p>Privacy-minimal events and non-destructive chart status changes.</p></div></div>
+          <div class="two-column">
+            <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Last 24 hours</p><h2>Audit activity</h2></div><span class="status-chip active">Normal</span></div><dl class="audit-metrics"><div><dt>Clinical reads</dt><dd>47</dd></div><div><dt>Clinical writes</dt><dd>18</dd></div><div><dt>Denied access</dt><dd>2</dd></div><div><dt>Server errors</dt><dd>0</dd></div></dl><p class="muted">Audit records exclude passwords, tokens, query strings, request bodies, clinical text, raw URLs, and IP addresses.</p></article>
+            <article class="panel"><p class="eyebrow">Chart lifecycle</p><h2>Archive without deletion</h2><p>Archived charts preserve clinical history, revoke portal sessions, leave historical records readable, and reject new writes until an administrator reactivates the chart.</p><div class="lifecycle-example"><span class="status-chip resolved">Archived</span><strong>Taylor Example</strong><small>Archived Nov 18 · synthetic record</small></div><button type="button" class="secondary-button" id="lifecycle-demo">Simulate reactivation</button><p class="form-status" id="lifecycle-status" aria-live="polite"></p></article>
+          </div>
+        </section>
+
+        <section class="view" data-view="patient-home" hidden>
+          <div class="page-heading"><div><p class="eyebrow">Patient portal · Synthetic account</p><h1>Welcome back, Jordan</h1><p>Your next steps, recent results, and care plan in one place.</p></div><button type="button" class="secondary-button" data-go-view="patient-preferences">Communication settings</button></div>
+          <div class="portal-hero">
+            <div><p class="eyebrow">Next appointment</p><h2>Hypertension follow-up</h2><p>February 23, 2027 · 10:30 AM · Elena Rivera, MD</p></div><span class="status-chip scheduled">Scheduled</span>
+          </div>
+          <div class="three-column">
+            <article class="panel"><p class="eyebrow">Blood pressure</p><h2>132 / 82</h2><p>Close to your goal of under 130/80.</p><div class="mini-progress"><span style="width:82%"></span></div></article>
+            <article class="panel"><p class="eyebrow">Recent result</p><h2>LDL 121</h2><p>Released Oct 15 · improved from 142.</p><button class="text-button" data-go-view="patient-results">See results →</button></article>
+            <article class="panel"><p class="eyebrow">Your task</p><h2>Home readings</h2><p>Record your blood pressure three times each week.</p><span class="status-chip active">In progress</span></article>
+          </div>
+        </section>
+
+        <section class="view" data-view="patient-health" hidden>
+          <div class="page-heading compact"><div><p class="eyebrow">My health</p><h1>Your health summary</h1><p>Patient-friendly summaries from your fictional clinical record.</p></div></div>
+          <div class="two-column">
+            <article class="panel"><p class="eyebrow">Conditions</p><h2>Current health conditions</h2><ul class="record-list"><li><strong>High blood pressure</strong><span>Monitoring</span></li><li><strong>High cholesterol</strong><span>Stable</span></li></ul></article>
+            <article class="panel"><p class="eyebrow">Medications</p><h2>What you are taking</h2><ul class="record-list"><li><strong>Lisinopril 20 mg</strong><span>Once daily</span></li><li><strong>Atorvastatin 20 mg</strong><span>Nightly</span></li></ul></article>
+            <article class="panel"><p class="eyebrow">Allergies</p><h2>No known drug allergies</h2><p>Your clinical team has not recorded an active medication allergy.</p></article>
+            <article class="panel"><p class="eyebrow">Recent vitals</p><h2>November 21</h2><dl class="mini-list"><div><dt>Blood pressure</dt><dd>132/82</dd></div><div><dt>Pulse</dt><dd>72 bpm</dd></div><div><dt>Weight</dt><dd>184 lb</dd></div></dl></article>
+          </div>
+        </section>
+
+        <section class="view" data-view="patient-appointments" hidden>
+          <div class="page-heading compact"><div><p class="eyebrow">Appointments</p><h1>Your visits</h1><p>Request a scheduling change without altering the appointment directly.</p></div></div>
+          <article class="panel"><div class="appointment-card"><div class="calendar-date"><strong>23</strong><span>Feb 2027</span></div><div><h2>Hypertension follow-up</h2><p>10:30 AM · Elena Rivera, MD</p><span class="status-chip scheduled">Scheduled</span></div><button type="button" class="secondary-button" id="request-change">Request a change</button></div><div id="request-panel" class="request-panel" hidden><h3>Request a change</h3><p>This demo queues a fictional request for staff review. It does not change the appointment.</p><div class="action-row"><button type="button" class="primary-button" data-request-kind="reschedule">Request reschedule</button><button type="button" class="danger-button" data-request-kind="cancel">Request cancellation</button></div></div><p class="form-status" id="request-status" aria-live="polite"></p></article>
+        </section>
+
+        <section class="view" data-view="patient-results" hidden>
+          <div class="page-heading compact"><div><p class="eyebrow">Results & visits</p><h1>Your recent care</h1><p>Only finalized visits and explicitly released results appear here.</p></div></div>
+          <div class="two-column">
+            <article class="panel"><div class="panel-heading"><div><p class="eyebrow">Released laboratory result</p><h2>Lipid panel</h2></div><span class="status-chip active">Released</span></div><dl class="result-list"><div><dt>LDL cholesterol</dt><dd>121 mg/dL</dd></div><div><dt>HDL cholesterol</dt><dd>52 mg/dL</dd></div><div><dt>Triglycerides</dt><dd>151 mg/dL</dd></div></dl><p class="muted">Released October 15, 2026. Discuss interpretation with your clinical team.</p></article>
+            <article class="panel"><p class="eyebrow">Finalized visit</p><h2>Annual physical</h2><p>September 6, 2026</p><blockquote>Continue current medications. Record home blood pressure three times weekly. Return in six months.</blockquote></article>
+            <article class="panel"><p class="eyebrow">Referral</p><h2>Nutrition counseling</h2><p>Completed October 2, 2026</p><span class="status-chip complete">Completed</span></article>
+          </div>
+        </section>
+
+        <section class="view" data-view="patient-preferences" hidden>
+          <div class="page-heading compact"><div><p class="eyebrow">Preferences</p><h1>Communication settings</h1><p>These demo choices are saved only in this browser.</p></div></div>
+          <form class="panel preferences-form" id="preferences-form">
+            <fieldset>
+              <legend>Preferred contact method</legend>
+              <label><input type="radio" name="contact" value="portal" checked /> Portal</label>
+              <label><input type="radio" name="contact" value="phone" /> Phone</label>
+              <label><input type="radio" name="contact" value="email" /> Email</label>
+            </fieldset>
+            <fieldset>
+              <legend>Optional updates</legend>
+              <label class="check-control"><input type="checkbox" name="appointments" checked /> Appointment reminders</label>
+              <label class="check-control"><input type="checkbox" name="care" /> General care updates</label>
+            </fieldset>
+            <button class="primary-button" type="submit">Save demo preferences</button>
+            <p class="form-status" id="preferences-status" aria-live="polite"></p>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <footer class="site-footer">
+      <p>Built with React, TypeScript, FastAPI, SQLAlchemy, PostgreSQL, Alembic, and a synthetic-data-only rule.</p>
+      <p>This static public demonstration contains no real patient data and no live clinical backend.</p>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
