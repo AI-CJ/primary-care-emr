@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PatientTimelineEntry } from '../types'
-import PatientLifecycleControls from './PatientLifecycleControls'
 
 type PatientTimelineProps = {
   patientId: number
@@ -60,61 +59,58 @@ function PatientTimeline({ patientId }: PatientTimelineProps) {
   }, [patientId, reloadCount])
 
   return (
-    <>
-      <PatientLifecycleControls patientId={patientId} />
-      <section className="overview-card patient-timeline-card" aria-labelledby="patient-timeline-heading">
-        <div className="overview-card-header">
-          <h2 id="patient-timeline-heading">Clinical Activity</h2>
+    <section className="overview-card patient-timeline-card" aria-labelledby="patient-timeline-heading">
+      <div className="overview-card-header">
+        <h2 id="patient-timeline-heading">Clinical Activity</h2>
+        <button
+          className="secondary-action-button"
+          type="button"
+          disabled={isLoading}
+          onClick={() => setReloadCount((count) => count + 1)}
+        >
+          Refresh
+        </button>
+      </div>
+      <p className="patient-timeline-help">
+        A dated summary of chart records, not an audit trail. Refresh to see recent changes.
+      </p>
+
+      {isLoading && <p role="status">Loading clinical activity...</p>}
+      {error && (
+        <div>
+          <p className="form-error" role="alert">{error}</p>
           <button
             className="secondary-action-button"
             type="button"
-            disabled={isLoading}
             onClick={() => setReloadCount((count) => count + 1)}
           >
-            Refresh
+            Try Again
           </button>
         </div>
-        <p className="patient-timeline-help">
-          A dated summary of chart records, not an audit trail. Refresh to see recent changes.
-        </p>
-
-        {isLoading && <p role="status">Loading clinical activity...</p>}
-        {error && (
-          <div>
-            <p className="form-error" role="alert">{error}</p>
-            <button
-              className="secondary-action-button"
-              type="button"
-              onClick={() => setReloadCount((count) => count + 1)}
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-        {!isLoading && !error && entries.length === 0 && (
-          <p>No clinical activity recorded for this patient.</p>
-        )}
-        {!isLoading && !error && entries.length > 0 && (
-          <>
-            <ol className="patient-timeline-list">
-              {entries.map((entry) => (
-                <li className="patient-timeline-row" key={entry.kind + '-' + entry.record_id}>
-                  <time dateTime={entry.occurred_on}>{entry.occurred_on}</time>
-                  <div className="patient-timeline-detail">
-                    <span className="patient-timeline-kind">{activityLabels[entry.kind]}</span>
-                    <strong>{entry.title}</strong>
-                    <span className="patient-timeline-status">{entry.status.replaceAll('_', ' ')}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            {entries.length === 50 && (
-              <p className="patient-timeline-help">Showing the 50 most recent records.</p>
-            )}
-          </>
-        )}
-      </section>
-    </>
+      )}
+      {!isLoading && !error && entries.length === 0 && (
+        <p>No clinical activity recorded for this patient.</p>
+      )}
+      {!isLoading && !error && entries.length > 0 && (
+        <>
+          <ol className="patient-timeline-list">
+            {entries.map((entry) => (
+              <li className="patient-timeline-row" key={entry.kind + '-' + entry.record_id}>
+                <time dateTime={entry.occurred_on}>{entry.occurred_on}</time>
+                <div className="patient-timeline-detail">
+                  <span className="patient-timeline-kind">{activityLabels[entry.kind]}</span>
+                  <strong>{entry.title}</strong>
+                  <span className="patient-timeline-status">{entry.status.replaceAll('_', ' ')}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+          {entries.length === 50 && (
+            <p className="patient-timeline-help">Showing the 50 most recent records.</p>
+          )}
+        </>
+      )}
+    </section>
   )
 }
 
