@@ -1,7 +1,7 @@
 """Administrative archival preserves records and closes existing portal sessions."""
 
 import unittest
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -12,8 +12,8 @@ from sqlalchemy.pool import StaticPool
 from backend.account_auth import create_user_account
 from backend.main import app
 from backend.models import (
-    Appointment, AuditEvent, Base, CareGoal, CareGoalProgress, Patient,
-    PatientLifecycleEvent, UserSession,
+    Appointment, AuditEvent, Base, CareGoal, CareGoalProgress, Encounter,
+    LabOrder, LabResult, Patient, PatientLifecycleEvent, UserSession,
 )
 
 
@@ -412,6 +412,129 @@ class PatientArchiveLifecycleTests(unittest.TestCase):
             self.assertEqual(
                 len(client.get(task + "/due-date-changes", headers=admin).json()), 2,
             )
+
+    def test_archived_lab_orders_preserve_history_and_leave_worklists(self):
+        visit_date = date(2024, 1, 2)
+        with Session(self.engine) as session:
+            draft = Encounter(
+                patient_id=self.first_id, visit_date=visit_date,
+                reason_for_visit="Synthetic draft",
+            )
+            finalized = Encounter(
+                patient_id=self.first_id, visit_date=visit_date,
+                reason_for_visit="Synthetic finalized visit",
+                finalized_at=datetime(2024, 1, 3, tzinfo=timezone.utc),
+            )
+            other = Encounter(
+                patient_id=self.second_id, visit_date=visit_date,
+                reason_for_visit="Other synthetic visit",
+                finalized_at=datetime(2024, 1, 3, tzinfo=timezone.utc),
+            )
+            session.add_all([draft, finalized, other])
+            session.flush()
+            draft_id = draft.id
+            orders = [
+                LabOrder(encounter_id=visit.id, test_name=name,
+                         priority="routine", status=status)
+                for visit, name, status in (
+                    (finalized, "Synthetic cancellation", "ordered"),
+                    (finalized, "Synthetic collection", "ordered"),
+                    (finalized, "Synthetic unreleased result", "resulted"),
+                    (other, "Other pending test", "ordered"),
+                    (other, "Other unreleased result", "resulted"),
+                )
+            ]
+            session.add_all(orders)
+            session.flush()
+            cancel_id, record_id, release_id, other_pending, other_release = (
+                order.id for order in orders
+            )
+            for order_id in (release_id, other_release):
+                session.add(LabResult(
+                    lab_order_id=order_id, collected_on=visit_date,
+                    result_text="Synthetic result",
+                ))
+            session.commit()
+
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "clinic.admin")
+            chart = f"/patients/{self.first_id}/lab-orders"
+            history = client.get(chart, headers=admin)
+            self.assertEqual(history.status_code, 200, history.text)
+            before = history.json()
+            self.assertEqual(len(before), 3)
+            result_path = f"/lab-orders/{release_id}/result"
+            original_result = client.get(result_path, headers=admin)
+            self.assertEqual(original_result.status_code, 200, original_result.text)
+            pending_path = "/worklists/pending-lab-orders"
+            unreleased_path = "/worklists/unreleased-lab-results"
+
+            def queue_ids(path, key):
+                response = client.get(path, headers=admin)
+                self.assertEqual(response.status_code, 200, response.text)
+                return {row[key] for row in response.json()}
+
+            self.assertEqual(
+                queue_ids(pending_path, "id"), {cancel_id, record_id, other_pending},
+            )
+            self.assertEqual(
+                queue_ids(unreleased_path, "order_id"), {release_id, other_release},
+            )
+            archived = client.post(
+                f"/patients/{self.first_id}/archive", headers=admin,
+            )
+            self.assertEqual(archived.status_code, 200, archived.text)
+            writes = [
+                (f"/encounters/{draft_id}/lab-orders",
+                 {"test_name": "Synthetic new order"}, 201),
+                (f"/lab-orders/{cancel_id}/cancel",
+                 {"reason": "Synthetic cancellation"}, 200),
+                (f"/lab-orders/{record_id}/result",
+                 {"collected_on": visit_date.isoformat(),
+                  "result_text": "Synthetic collection"}, 201),
+                (result_path + "/release", None, 200),
+            ]
+            for path, payload, _ in writes:
+                with self.subTest(path=path):
+                    kwargs = {"headers": admin}
+                    if payload is not None:
+                        kwargs["json"] = payload
+                    response = client.post(path, **kwargs)
+                    self.assertEqual(response.status_code, 409, response.text)
+                    self.assertIn("Archived", response.json()["detail"])
+
+            saved = client.get(chart, headers=admin)
+            self.assertEqual(saved.status_code, 200, saved.text)
+            self.assertEqual(saved.json(), before)
+            saved_result = client.get(result_path, headers=admin)
+            self.assertEqual(saved_result.status_code, 200, saved_result.text)
+            self.assertEqual(saved_result.json(), original_result.json())
+            self.assertEqual(queue_ids(pending_path, "id"), {other_pending})
+            self.assertEqual(queue_ids(unreleased_path, "order_id"), {other_release})
+
+            active_write = client.post(
+                f"/lab-orders/{other_pending}/cancel", headers=admin,
+                json={"reason": "Synthetic active chart cancellation"},
+            )
+            self.assertEqual(active_write.status_code, 200, active_write.text)
+            active_release = client.post(
+                f"/lab-orders/{other_release}/result/release", headers=admin,
+            )
+            self.assertEqual(active_release.status_code, 200, active_release.text)
+
+            resumed = client.post(
+                f"/patients/{self.first_id}/reactivate", headers=admin,
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            self.assertEqual(queue_ids(pending_path, "id"), {cancel_id, record_id})
+            self.assertEqual(queue_ids(unreleased_path, "order_id"), {release_id})
+            for path, payload, status in writes:
+                with self.subTest(reactivated=path):
+                    kwargs = {"headers": admin}
+                    if payload is not None:
+                        kwargs["json"] = payload
+                    response = client.post(path, **kwargs)
+                    self.assertEqual(response.status_code, status, response.text)
 
     def test_only_admin_can_change_or_read_lifecycle(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:

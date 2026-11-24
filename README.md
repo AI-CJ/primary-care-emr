@@ -235,8 +235,11 @@ archived charts. Archived care goals are hidden from the active-goals worklist,
 while their historical chart and progress reads remain available. Follow-up task
 creation, completion, cancellation, and due-date changes also reject archived
 charts; the open follow-up worklist excludes archived patients without altering
-task history or due-date change records. Other clinical
-mutation paths and active worklists still require archive enforcement; staff UI
+task history or due-date change records. Lab order creation, cancellation, result
+recording and result release also reject archived charts. Pending orders and
+unreleased results for archived charts are hidden from their active worklists;
+historical orders and results remain readable and reactivation restores access.
+Other clinical mutation paths and active worklists still require archive enforcement; staff UI
 controls and browser regression tests also remain open. This initial lifecycle API should not
 be treated as a complete clinical-record retention policy.
 

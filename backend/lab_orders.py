@@ -7,6 +7,7 @@ from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, LabOrder, LabResult, Patient
+from backend.patient_lifecycle import lock_active_patient
 from backend.schemas import (
     LabOrderCancel, LabOrderCreate, LabResultCreate,
     PortalLabOrderSummary, PortalLabResultSummary,
@@ -105,7 +106,7 @@ def list_pending_lab_orders(
         select(LabOrder, Encounter.visit_date, Patient)
         .join(Encounter, LabOrder.encounter_id == Encounter.id)
         .join(Patient, Encounter.patient_id == Patient.id)
-        .where(LabOrder.status == "ordered")
+        .where(LabOrder.status == "ordered", Patient.archived_at.is_(None))
         .order_by(
             case((LabOrder.priority == "urgent", 0), else_=1),
             LabOrder.ordered_at,
@@ -128,6 +129,7 @@ def list_unreleased_lab_results(
             LabOrder.status == "resulted",
             LabResult.released_at.is_(None),
             Encounter.finalized_at.is_not(None),
+            Patient.archived_at.is_(None),
         )
         .order_by(
             case((LabOrder.priority == "urgent", 0), else_=1),
@@ -141,6 +143,13 @@ def list_unreleased_lab_results(
 def create_lab_order(
     session: Session, encounter_id: int, order_data: LabOrderCreate
 ) -> LabOrder:
+    # Lock the patient before the encounter to coordinate with archival.
+    patient_id = session.scalar(
+        select(Encounter.patient_id).where(Encounter.id == encounter_id)
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Visit note not found")
+    lock_active_patient(session, patient_id)
     # Serializes order placement with note finalization.
     encounter = session.scalar(
         select(Encounter).where(Encounter.id == encounter_id).with_for_update()
@@ -163,14 +172,28 @@ def create_lab_order(
     return order
 
 
-def cancel_lab_order(
-    session: Session, order_id: int, cancellation: LabOrderCancel
-) -> LabOrder:
+def _lock_active_lab_order(session: Session, order_id: int) -> LabOrder:
+    """Resolve the owning chart, then acquire patient and order locks in order."""
+    patient_id = session.scalar(
+        select(Encounter.patient_id)
+        .join(LabOrder, LabOrder.encounter_id == Encounter.id)
+        .where(LabOrder.id == order_id)
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Lab request not found")
+    lock_active_patient(session, patient_id)
     order = session.scalar(
         select(LabOrder).where(LabOrder.id == order_id).with_for_update()
     )
     if order is None:
         raise HTTPException(status_code=404, detail="Lab request not found")
+    return order
+
+
+def cancel_lab_order(
+    session: Session, order_id: int, cancellation: LabOrderCancel
+) -> LabOrder:
+    order = _lock_active_lab_order(session, order_id)
     if order.status != "ordered":
         raise HTTPException(
             status_code=409, detail="Only pending lab requests can be cancelled."
@@ -197,11 +220,7 @@ def read_lab_result(session: Session, order_id: int) -> LabResult:
 
 def release_lab_result(session: Session, order_id: int) -> LabResult:
     # Use the same order lock as result recording.
-    order = session.scalar(
-        select(LabOrder).where(LabOrder.id == order_id).with_for_update()
-    )
-    if order is None:
-        raise HTTPException(status_code=404, detail="Lab request not found")
+    order = _lock_active_lab_order(session, order_id)
 
     result = session.scalar(
         select(LabResult).where(LabResult.lab_order_id == order_id)
@@ -226,11 +245,7 @@ def record_lab_result(
     session: Session, order_id: int, result_data: LabResultCreate
 ) -> LabResult:
     # One result per request; the row lock also prevents duplicate concurrent entries.
-    order = session.scalar(
-        select(LabOrder).where(LabOrder.id == order_id).with_for_update()
-    )
-    if order is None:
-        raise HTTPException(status_code=404, detail="Lab request not found")
+    order = _lock_active_lab_order(session, order_id)
     if order.status != "ordered":
         raise HTTPException(status_code=409, detail="Lab request already has a result.")
 
