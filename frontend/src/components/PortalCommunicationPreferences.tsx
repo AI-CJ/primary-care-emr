@@ -56,7 +56,7 @@ export default function PortalCommunicationPreferences() {
       if (!response.ok) throw new Error(await getApiErrorMessage(response))
       const saved: Preferences = await response.json()
       setPreferences(saved)
-      setNotice('Your demo communication preferences were saved.')
+      setNotice('Your communication preferences were saved.')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to save preferences.')
     } finally {
@@ -68,7 +68,7 @@ export default function PortalCommunicationPreferences() {
     <section className="portal-card" aria-labelledby="portal-communication">
       <h2 id="portal-communication">Communication preferences</h2>
       <p className="portal-help">
-        Choose how you would prefer clinic updates in this fictional demo.
+        Choose how you prefer to receive clinic updates.
         These choices do not send messages or schedule reminders.
       </p>
       {loading && <p role="status">Loading communication preferences...</p>}

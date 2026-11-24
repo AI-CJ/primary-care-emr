@@ -66,7 +66,7 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
       <section className="sign-in-panel" aria-labelledby="sign-in-title">
         <p className="sign-in-eyebrow">Primary Care EMR</p>
         <h1 id="sign-in-title">{mode === 'patient' ? 'Patient sign in' : 'Staff sign in'}</h1>
-        <p>Use a synthetic {mode} account for this portfolio demo.</p>
+        <p>Enter your {mode} account credentials.</p>
         <form onSubmit={(event) => void handleSubmit(event)}>
           <label htmlFor="account-username">Username</label>
           <input

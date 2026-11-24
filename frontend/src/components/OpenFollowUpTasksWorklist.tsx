@@ -157,7 +157,7 @@ function OpenFollowUpTasksWorklist({
           </>
         )}
         <p className="pending-lab-disclaimer">
-          Synthetic-data demonstration. These tasks do not send notifications.
+          These tasks do not send notifications.
         </p>
       </section>
     </main>

@@ -56,7 +56,7 @@ export default function PortalAllergies({ allergies }: PortalAllergiesProps) {
     <section className="portal-card" aria-labelledby="portal-allergies">
       <h2 id="portal-allergies">My allergies</h2>
       <p className="portal-help">
-        Allergies recorded in this fictional chart. An empty list does not mean
+        Allergies recorded in your chart. An empty list does not mean
         you have no allergies.
       </p>
 

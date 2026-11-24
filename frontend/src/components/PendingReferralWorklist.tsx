@@ -160,9 +160,6 @@ function PendingReferralWorklist({
             )}
           </>
         )}
-        <p className="pending-lab-disclaimer">
-          Synthetic-data demonstration. No referrals are sent to specialists.
-        </p>
       </section>
     </main>
   )

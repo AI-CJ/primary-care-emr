@@ -85,10 +85,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
           <h1>Welcome, {displayName}</h1>
           <p>Here's a summary of the information on your chart.</p>
         </header>
-        <p className="portal-disclaimer" role="note">
-          This is a staff preview using fictional patient data. It is not a patient login
-          or a secure portal. Do not use it with real medical information.
-        </p>
+        <p className="portal-help">Staff preview of the patient view. You remain signed in as staff.</p>
 
         {isLoading && <p role="status">Loading health summary...</p>}
         {error && (

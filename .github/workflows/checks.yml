@@ -75,8 +75,9 @@ jobs:
           test -s demo/index.html
           test -s demo/styles.css
           test -s demo/app.js
-          grep -q "Synthetic portfolio demo" demo/index.html
-          grep -q "not approved for clinical use" demo/index.html
+          grep -q 'aria-label="Legal notice"' demo/index.html
+          grep -q "Not approved for clinical use" demo/index.html
+          grep -q "Do not enter real patient information" demo/index.html
       - name: Check public demo palette contrast
         run: python scripts/check_demo_contrast.py
       - name: Serve and request public demo

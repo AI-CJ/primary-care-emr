@@ -52,3 +52,21 @@ button,
 input {
   font: inherit;
 }
+
+.legal-notice {
+  padding: 0.45rem clamp(0.75rem, 3vw, 2.5rem);
+  color: #293239;
+  background: #eef3f1;
+  border-bottom: 1px solid #d8e0dd;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.legal-notice p { margin: 0; }
+.legal-notice strong { font-weight: 700; }
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

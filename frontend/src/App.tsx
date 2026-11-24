@@ -258,8 +258,7 @@ function StaffApp() {
               <h1>Add Patient</h1>
 
               <p className="patient-meta">
-                Create a new synthetic patient
-                record.
+                Create a new patient record.
               </p>
             </div>
           </header>

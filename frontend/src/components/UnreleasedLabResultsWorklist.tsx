@@ -326,9 +326,6 @@ function UnreleasedLabResultsWorklist({
             )}
           </>
         )}
-        <p className="pending-lab-disclaimer">
-          Synthetic-data demonstration. Results are not transmitted to patients or laboratories.
-        </p>
       </section>
     </main>
   )

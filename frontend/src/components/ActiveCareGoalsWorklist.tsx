@@ -156,9 +156,6 @@ function ActiveCareGoalsWorklist({
             )}
           </>
         )}
-        <p className="pending-lab-disclaimer">
-          Synthetic-data demonstration. Care goals are not clinical recommendations.
-        </p>
       </section>
     </main>
   )

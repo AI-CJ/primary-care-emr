@@ -78,7 +78,7 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
     <section className="portal-card" aria-labelledby="portal-lab-results">
       <h2 id="portal-lab-results">My lab requests and results</h2>
       <p className="portal-help">
-        Recent lab requests, reported results, and cancelled requests from finalized visits in this fictional chart.
+        Recent lab requests, reported results, and cancelled requests from finalized visits in your chart.
         A recorded request does not confirm that a test has been scheduled or collected.
         Result details appear only after a clinic staff member releases them to the patient portal.
       </p>

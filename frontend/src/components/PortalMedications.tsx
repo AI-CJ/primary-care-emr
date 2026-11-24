@@ -56,7 +56,7 @@ export default function PortalMedications({ medications }: PortalMedicationsProp
     <section className="portal-card" aria-labelledby="portal-medications">
       <h2 id="portal-medications">My medications</h2>
       <p className="portal-help">
-        Medications recorded in this fictional chart. Check with the clinic before changing
+        Medications recorded in your chart. Check with the clinic before changing
         how you take any medication.
       </p>
 

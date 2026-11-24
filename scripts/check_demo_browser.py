@@ -1,5 +1,6 @@
 """Browser smoke checks for the public synthetic demo, not the clinical API."""
 from pathlib import Path
+import re
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,8 +18,20 @@ with sync_playwright() as p:
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(url)
         expect(page.get_by_role("heading", name="Good morning, Dr. Rivera")).to_be_visible()
-        expect(page.get_by_text("Synthetic portfolio demo", exact=True)).to_be_attached()
-        expect(page.get_by_text("not approved for clinical use", exact=False).first).to_be_visible()
+        notice = page.get_by_role("note", name="Legal notice")
+        expect(notice).to_have_count(1)
+        expect(notice).to_be_visible()
+        expect(notice).to_contain_text("All provided patient records are fictional.")
+        expect(notice).to_contain_text("Do not enter real patient information.")
+        for mode in ("staff", "patient"):
+            page.locator(f'[data-mode-target="{mode}"]').click()
+            for button in page.locator(f'[data-mode-nav="{mode}"] button').all():
+                button.click()
+                expect(notice).to_be_visible()
+                assert page.evaluate("document.querySelector('.legal-notice').getBoundingClientRect().top >= 0 && document.querySelector('.legal-notice').getBoundingClientRect().top < 1")
+                body = page.locator("body").inner_text().replace(notice.inner_text(), "", 1)
+                assert not re.search(r"\b(synthetic|mock|fake|fictional|demo|portfolio|simulat\w*)\b", body, re.I), body
+        page.locator('[data-mode-target="staff"]').click()
         page.get_by_role("button", name="Open today’s schedule").click()
         page.get_by_role("searchbox").fill("Jordan")
         expect(page.locator("#schedule-body tr:visible")).to_have_count(1)
@@ -30,7 +43,7 @@ with sync_playwright() as p:
         expect(page.get_by_role("tab", name="Medications")).to_have_attribute("aria-selected", "true")
         expect(page.get_by_role("tabpanel", name="Medications")).to_be_visible()
         page.get_by_role("button", name="Audit & lifecycle").click()
-        page.get_by_role("button", name="Simulate reactivation").click()
+        page.get_by_role("button", name="Reactivate chart").click()
         expect(page.locator("#lifecycle-chip")).to_have_text("Active")
         page.get_by_role("button", name="Patient portal", exact=True).click()
         page.get_by_role("button", name="Appointments", exact=True).click()
@@ -43,7 +56,7 @@ with sync_playwright() as p:
         expect(page.locator("#request-status")).to_contain_text("Nothing was sent")
         page.get_by_role("button", name="Preferences", exact=True).click()
         page.get_by_role("radio", name="Email").check()
-        page.get_by_role("button", name="Save demo preferences").click()
+        page.get_by_role("button", name="Save preferences").click()
         expect(page.locator("#preferences-status")).to_contain_text("No message will be sent")
         page.reload()
         page.get_by_role("button", name="Patient portal", exact=True).click()

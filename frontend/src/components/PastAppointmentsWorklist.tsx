@@ -270,7 +270,7 @@ function PastAppointmentsWorklist({
           </>
         )}
         <p className="pending-lab-disclaimer">
-          Synthetic-data demonstration. Appointment status changes require staff confirmation and are recorded in status history.
+          Appointment status changes require staff confirmation and are recorded in status history.
         </p>
       </section>
     </main>

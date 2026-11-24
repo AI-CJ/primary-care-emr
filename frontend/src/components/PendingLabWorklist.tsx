@@ -151,9 +151,6 @@ function PendingLabWorklist({
             )}
           </>
         )}
-        <p className="pending-lab-disclaimer">
-          Synthetic-data demonstration. No requests are transmitted to laboratories.
-        </p>
       </section>
     </main>
   )

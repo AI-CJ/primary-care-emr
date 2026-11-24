@@ -171,10 +171,6 @@ function EncounterForm({
 
   return (
     <form className="encounter-form" onSubmit={handleSubmit}>
-      <p className="encounter-help">
-        Development only: enter fictional patient information, never real records.
-      </p>
-
       {!encounter && (
         <>
           <label className="form-field">
