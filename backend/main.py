@@ -1,4 +1,5 @@
 from datetime import date
+import os
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
@@ -10,6 +11,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.settings import cors_origins
 from backend.patient_lifecycle import (
     PatientLifecycleEventRead, archive_patient, reactivate_patient,
     list_patient_lifecycle_events, lock_active_patient,
@@ -197,10 +199,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=cors_origins(os.environ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

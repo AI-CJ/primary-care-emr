@@ -51,6 +51,22 @@ npm run build
 
 The GitHub Actions `Checks` workflow repeats the migration check, backend suite, frontend lint, frontend tests, and production build on pull requests and pushes to `main`.
 
+## Configuration for a hosted synthetic instance
+
+The local defaults are unchanged, but the API and frontend can be configured without editing source code:
+
+| Variable | Where | Meaning |
+| --- | --- | --- |
+| POSTGRES_HOST | Backend | Database hostname (default localhost) |
+| POSTGRES_PORT | Backend | Database port (default 5432) |
+| POSTGRES_SSLMODE | Backend | Optional PostgreSQL TLS mode; prefer verify-full with a trusted CA for remote databases |
+| EMR_CORS_ORIGINS | Backend | Comma-separated explicit HTTP(S) frontend origins; empty disables cross-origin access |
+| VITE_API_BASE_URL | Frontend build | API origin or path prefix; empty supports a same-origin reverse proxy |
+
+Continue to supply POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD through private environment settings. Never put credentials in VITE_ variables, which are exposed in the frontend bundle. The local Compose database binds to loopback only. Run migrations as a separate release step before starting the API. For a hosted synthetic instance, configure HTTPS, restrict database networking, and use dedicated fictional accounts. The GitHub Pages demo remains independent of these settings.
+
+These settings do not constitute a production deployment or a clinical security review.
+
 ## Synthetic account setup
 
 Create local-only demo accounts after seeding:
