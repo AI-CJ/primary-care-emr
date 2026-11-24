@@ -1,4 +1,3 @@
-
 """Patient appointment change requests are an administrative queue, not schedule edits."""
 
 from datetime import date, datetime, timezone
@@ -10,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.models import Appointment, AppointmentChangeRequest
+from backend.models import Appointment, AppointmentChangeRequest, Patient
+from backend.patient_lifecycle import lock_active_patient
 
 
 class AppointmentChangeRequestCreate(BaseModel):
@@ -36,7 +36,8 @@ class StaffAppointmentChangeRequestRead(AppointmentChangeRequestRead):
 def submit_appointment_change_request(
     session: Session, patient_id: int, payload: AppointmentChangeRequestCreate,
 ) -> AppointmentChangeRequest:
-    # Serialize requests for one appointment with the same row lock as scheduling.
+    # Match archival lock ordering before the appointment-level scheduling lock.
+    lock_active_patient(session, patient_id)
     appointment = session.scalar(
         select(Appointment).where(Appointment.id == payload.appointment_id).with_for_update()
     )
@@ -86,13 +87,27 @@ def list_patient_change_requests(
 def list_pending_change_requests(session: Session) -> list[AppointmentChangeRequest]:
     return list(session.scalars(
         select(AppointmentChangeRequest)
-        .where(AppointmentChangeRequest.status == "pending")
+        .join(Patient, Patient.id == AppointmentChangeRequest.patient_id)
+        .where(
+            AppointmentChangeRequest.status == "pending",
+            Patient.archived_at.is_(None),
+        )
         .order_by(AppointmentChangeRequest.created_at, AppointmentChangeRequest.id)
         .limit(100)
     ))
 
 
 def review_change_request(session: Session, request_id: int) -> AppointmentChangeRequest:
+    patient_id = session.scalar(
+        select(AppointmentChangeRequest.patient_id).where(
+            AppointmentChangeRequest.id == request_id,
+        )
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    # Lock the chart before the queue row so review cannot race archival.
+    lock_active_patient(session, patient_id)
     record = session.scalar(
         select(AppointmentChangeRequest)
         .where(AppointmentChangeRequest.id == request_id)
