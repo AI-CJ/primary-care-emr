@@ -242,6 +242,9 @@ historical orders and results remain readable and reactivation restores access.
 Referral creation, cancellation, and completion likewise reject archived charts;
 pending referrals from archived patients are excluded from the worklist while
 historical referral reads remain available. Reactivation restores referral writes.
+Patient-level problem, medication, allergy, and vital creation and updates also
+reject archived charts with HTTP 409 using the same patient-row lock. Historical
+reads remain available, and reactivation restores these writes.
 Other clinical mutation paths and active worklists still require archive enforcement; staff UI
 controls and browser regression tests also remain open. This initial lifecycle API should not
 be treated as a complete clinical-record retention policy.

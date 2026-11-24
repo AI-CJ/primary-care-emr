@@ -821,13 +821,7 @@ def create_patient_problem(
     problem_data: ProblemCreate,
 ):
     with Session(engine) as session:
-        patient = session.get(Patient, patient_id)
-
-        if patient is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Patient not found",
-            )
+        lock_active_patient(session, patient_id)
 
         problem = Problem(
             patient_id=patient_id,
@@ -856,6 +850,8 @@ def update_problem(
                 status_code=404,
                 detail="Problem not found",
             )
+
+        lock_active_patient(session, problem.patient_id)
 
         for field, value in problem_data.model_dump().items():
             setattr(problem, field, value)
@@ -915,13 +911,7 @@ def create_patient_medication(
     medication_data: MedicationCreate,
 ):
     with Session(engine) as session:
-        patient = session.get(Patient, patient_id)
-
-        if patient is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Patient not found",
-            )
+        lock_active_patient(session, patient_id)
 
         medication = Medication(
             patient_id=patient_id,
@@ -950,6 +940,8 @@ def update_medication(
                 status_code=404,
                 detail="Medication not found",
             )
+
+        lock_active_patient(session, medication.patient_id)
 
         for field, value in medication_data.model_dump().items():
             setattr(medication, field, value)
@@ -1008,13 +1000,7 @@ def create_patient_allergy(
     allergy_data: AllergyCreate,
 ):
     with Session(engine) as session:
-        patient = session.get(Patient, patient_id)
-
-        if patient is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Patient not found",
-            )
+        lock_active_patient(session, patient_id)
 
         allergy = Allergy(
             patient_id=patient_id,
@@ -1043,6 +1029,8 @@ def update_allergy(
                 status_code=404,
                 detail="Allergy not found",
             )
+
+        lock_active_patient(session, allergy.patient_id)
 
         for field, value in allergy_data.model_dump().items():
             setattr(allergy, field, value)
@@ -1093,9 +1081,7 @@ def read_patient_vitals(patient_id: int):
 )
 def create_patient_vital(patient_id: int, vital_data: VitalCreate):
     with Session(engine) as session:
-        patient = session.get(Patient, patient_id)
-        if patient is None:
-            raise HTTPException(status_code=404, detail="Patient not found")
+        lock_active_patient(session, patient_id)
 
         vital = Vital(patient_id=patient_id, **vital_data.model_dump())
         session.add(vital)
@@ -1113,6 +1099,8 @@ def update_vital(vital_id: int, vital_data: VitalCreate):
         vital = session.get(Vital, vital_id)
         if vital is None:
             raise HTTPException(status_code=404, detail="Vitals record not found")
+
+        lock_active_patient(session, vital.patient_id)
 
         for field, value in vital_data.model_dump().items():
             setattr(vital, field, value)
