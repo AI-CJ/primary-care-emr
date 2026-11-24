@@ -36,6 +36,7 @@ import VitalList from './components/VitalList'
 import type { Patient } from './types'
 import SignIn, { type SignedInAccount } from './components/SignIn'
 import PatientPortal from './components/PatientPortal'
+import AuditReview from './components/AuditReview'
 
 
 const sexAtBirthLabels: Record<
@@ -808,10 +809,11 @@ function StaffApp() {
 
 function App() {
   const [account, setAccount] = useState<SignedInAccount | null>(null)
+  const [showAudit, setShowAudit] = useState(false)
   const [signInMode, setSignInMode] = useState<'staff' | 'patient'>('staff')
 
   useEffect(() => {
-    const sessionEnded = () => setAccount(null)
+    const sessionEnded = () => { setAccount(null); setShowAudit(false) }
     window.addEventListener('emr:session-ended', sessionEnded)
     return () => window.removeEventListener('emr:session-ended', sessionEnded)
   }, [])
@@ -822,6 +824,7 @@ function App() {
     } finally {
       setAccessToken(null)
       setAccount(null)
+      setShowAudit(false)
     }
   }
 
@@ -840,11 +843,17 @@ function App() {
     <>
       <header className="session-bar">
         <span>Signed in as {account.username}</span>
+        {account.staff_role === 'admin' && (
+          <button type="button" onClick={() => setShowAudit((value) => !value)}>
+            {showAudit ? 'Back to clinical workspace' : 'Audit activity'}
+          </button>
+        )}
         <button type="button" onClick={() => void signOut()}>
           Sign out
         </button>
       </header>
-      {account.account_type === 'patient' ? <PatientPortal /> : <StaffApp />}
+      {account.account_type === 'patient' ? <PatientPortal />
+        : showAudit && account.staff_role === 'admin' ? <AuditReview /> : <StaffApp />}
     </>
   )
 }

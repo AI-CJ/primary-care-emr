@@ -97,6 +97,16 @@ def run():
         sign_in(page, "Administrator")
         search(page, "Avery")
         expect(page.get_by_role("button", name="Reed, Avery", exact=False)).to_be_visible()
+        page.get_by_role("button", name="Audit activity", exact=True).click()
+        expect(page.get_by_role("heading", name="Audit activity")).to_be_visible()
+        page.get_by_label("Event type").select_option("clinical_write")
+        expect(page.get_by_role("cell", name="POST /patients", exact=True)).to_be_visible()
+        with page.expect_download() as download:
+            page.get_by_role("button", name="Export CSV").click()
+        assert download.value.suggested_filename == "audit-events.csv"
+        page.get_by_role("button", name="Back to clinical workspace").click()
+        search(page, "Avery")
+        expect(page.get_by_role("button", name="Reed, Avery", exact=False)).to_be_visible()
 
         # Another browser context starts from the original records.
         other = browser.new_page(viewport={"width": 360, "height": 800})
@@ -104,6 +114,7 @@ def run():
         other.goto(URL)
         assert_notice(other)
         sign_in(other, "Clinician")
+        expect(other.get_by_role("button", name="Audit activity", exact=True)).to_have_count(0)
         search(other, "Avery")
         expect(other.get_by_text("No patients found.")).to_be_visible()
         assert other.evaluate("document.documentElement.scrollWidth <= innerWidth")

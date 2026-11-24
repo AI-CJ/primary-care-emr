@@ -280,3 +280,11 @@ npm run preview
 ```
 
 The Pages workflow publishes this build after all Checks jobs pass. The original presentation in `demo/` is retained as a historical design preview and is not the current deployed application. See [the V1 release boundary](docs/V1_RELEASE.md) for the original release scope and known limitations.
+
+Live e prescribing, real insurance claims, outside EHR connections, and real patient data are outside the scope of this project.
+
+## Why I built it
+
+I started this project because I wanted to learn how a larger software system is built from the ground up.
+
+Small coding exercises are useful, but they do not show what happens when data models, workflows, migrations, validation, tests, and user screens all depend on each other. This project gives me a place to work through those problems in one system and document what I learn along the way.

@@ -21,7 +21,11 @@ from backend.main import app
 self.onmessage = ({ data: { id, request } }) => {
   queue = queue.then(async () => {
     try {
-      runtimePromise ??= initialize()
+      runtimePromise ??= initialize().catch((error) => {
+        // Startup errors contain no user-entered records.
+        console.error('Workspace initialization failed:', String(error))
+        throw error
+      })
       const pyodide = await runtimePromise
       pyodide.globals.set('request_json', JSON.stringify(request))
       const reply = JSON.parse(await pyodide.runPythonAsync('await browser_request(request_json)'))

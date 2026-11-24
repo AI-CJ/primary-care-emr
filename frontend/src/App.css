@@ -1697,3 +1697,45 @@
   outline: 3px solid var(--sea-glass);
   outline-offset: 2px;
 }
+
+.audit-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.audit-summary div {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 14px;
+}
+.audit-summary dt { color: var(--text-muted); font-size: 0.85rem; }
+.audit-summary dd { margin: 8px 0 0; font-size: 1.4rem; font-weight: 700; }
+.audit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.audit-toolbar label { flex: 1 1 170px; }
+.audit-toolbar select { max-width: 100%; }
+.audit-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.85rem;
+}
+.audit-table th, .audit-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.audit-table th { background: var(--pale-aqua); }
+.audit-pagination { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
