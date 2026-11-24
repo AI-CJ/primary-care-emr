@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import './App.css'
 
@@ -37,6 +37,9 @@ import type { Patient } from './types'
 import SignIn, { type SignedInAccount } from './components/SignIn'
 import PatientPortal from './components/PatientPortal'
 import AuditReview from './components/AuditReview'
+import WorkspaceNavigation from './components/WorkspaceNavigation'
+import { type StaffDestination, staffDestinationLabels } from './workspaceNavigation'
+import SectionNavigation, { type SectionOption } from './components/SectionNavigation'
 
 
 const sexAtBirthLabels: Record<
@@ -78,35 +81,27 @@ function patientPronouns(
 }
 
 
-function StaffApp() {
+type ChartSection = 'summary' | 'health' | 'appointments' | 'notes' | 'orders' | 'care'
+const chartSections: SectionOption<ChartSection>[] = [
+  { id: 'summary', label: 'Summary' },
+  { id: 'health', label: 'Health record' },
+  { id: 'appointments', label: 'Appointments' },
+  { id: 'notes', label: 'Visit notes' },
+  { id: 'orders', label: 'Labs & referrals' },
+  { id: 'care', label: 'Care plan' },
+]
+
+function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   const [search, setSearch] =
     useState('')
 
-  const [showSchedule, setShowSchedule] =
-    useState(false)
-
-  const [showPastAppointments, setShowPastAppointments] =
-    useState(false)
-
-  const [showAppointmentRequests, setShowAppointmentRequests] = useState(false)
-
-  const [showPortalPreview, setShowPortalPreview] =
-    useState(false)
-
-  const [showPendingLabs, setShowPendingLabs] =
-    useState(false)
-
-  const [showUnreleasedLabResults, setShowUnreleasedLabResults] =
-    useState(false)
-
-  const [showPendingReferrals, setShowPendingReferrals] =
-    useState(false)
-
-  const [showActiveCareGoals, setShowActiveCareGoals] =
-    useState(false)
-
-  const [showOpenFollowUpTasks, setShowOpenFollowUpTasks] =
-    useState(false)
+  const [destination, setDestination] = useState<StaffDestination>('patients')
+  const [chartSection, setChartSection] = useState<ChartSection>('summary')
+  const [showPortalPreview, setShowPortalPreview] = useState(false)
+  const dirtyForms = useRef(new WeakSet<HTMLFormElement>())
+  const workspaceRef = useRef<HTMLDivElement>(null)
+  const openRequest = useRef(0)
+  const searchRequest = useRef(0)
 
   const [scheduleDay, setScheduleDay] =
     useState(localDate)
@@ -147,16 +142,73 @@ function StaffApp() {
     useState<string | null>(null)
 
   const [isSearching, setIsSearching] =
-    useState(false)
+    useState(true)
 
-  const [hasSearched, setHasSearched] =
-    useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    const request = ++searchRequest.current
+    async function loadDirectory() {
+      try {
+        const response = await apiFetch(API_BASE_URL + '/patients', { signal: controller.signal })
+        if (!response.ok) throw new Error(await getApiErrorMessage(response))
+        const data: Patient[] = await response.json()
+        if (!controller.signal.aborted && request === searchRequest.current) setPatients(data)
+      } catch (reason) {
+        if (!controller.signal.aborted && request === searchRequest.current) setError(reason instanceof Error ? reason.message : 'Patient directory could not be loaded.')
+      } finally {
+        if (!controller.signal.aborted && request === searchRequest.current) setIsSearching(false)
+      }
+    }
+    void loadDirectory()
+    return () => controller.abort()
+  }, [])
+
+  function confirmNavigation() {
+    const forms = workspaceRef.current?.querySelectorAll<HTMLFormElement>('form:not(.search-form)')
+    if (forms && Array.from(forms).some((form) => dirtyForms.current.has(form) && form.getClientRects().length > 0)) {
+      return window.confirm('Leave this screen? Unsaved form changes will be discarded.')
+    }
+    return true
+  }
+
+  function navigate(next: StaffDestination) {
+    if (!confirmNavigation()) return
+    openRequest.current += 1
+    setDestination(next)
+    setSelectedPatient(null)
+    setIsAddingPatient(false)
+    setIsEditingPatient(false)
+    setShowPortalPreview(false)
+    setNoteToReview(null)
+    setNoteToStart(null)
+    setAppointmentToReview(null)
+    setError(null)
+    if (next === 'patients') void searchPatients()
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }
+
+  function selectChartSection(next: ChartSection) {
+    if (next === chartSection || !confirmNavigation()) return
+    setChartSection(next)
+    setNoteToReview(null)
+    setNoteToStart(null)
+    setAppointmentToReview(null)
+  }
+
+  function returnToDirectory() {
+    if (!confirmNavigation()) return
+    openRequest.current += 1
+    setSelectedPatient(null)
+    setShowPortalPreview(false)
+    setIsEditingPatient(false)
+    if (destination === 'patients') void searchPatients()
+  }
 
 
   async function searchPatients() {
     setError(null)
     setIsSearching(true)
-    setHasSearched(true)
+    const request = ++searchRequest.current
 
     try {
       const response = await apiFetch(
@@ -176,7 +228,7 @@ function StaffApp() {
       const data: Patient[] =
         await response.json()
 
-      setPatients(data)
+      if (request === searchRequest.current) setPatients(data)
     } catch (requestError) {
       console.error(requestError)
 
@@ -184,7 +236,7 @@ function StaffApp() {
         'The server could not be reached. Try again.'
       )
     } finally {
-      setIsSearching(false)
+      if (request === searchRequest.current) setIsSearching(false)
     }
   }
 
@@ -195,6 +247,8 @@ function StaffApp() {
     noteAction?: 'start' | 'open',
     noteId?: number,
   ) {
+    if (!confirmNavigation()) return
+    const request = ++openRequest.current
     setError(null)
 
     try {
@@ -202,18 +256,19 @@ function StaffApp() {
         `${API_BASE_URL}/patients/${patientId}`
       )
 
+      if (request !== openRequest.current) return
       if (!response.ok) {
-        setError(
-          await getApiErrorMessage(response)
-        )
-
+        setError(await getApiErrorMessage(response))
         return
       }
 
       const patient: Patient =
         await response.json()
+      if (request !== openRequest.current) return
 
       setSelectedPatient(patient)
+      setChartSection(noteAction ? 'notes' : appointmentId !== null ? 'appointments' : 'summary')
+      setShowPortalPreview(false)
       setAppointmentToReview(appointmentId)
       setNoteToReview(
         noteAction === 'open' && noteId !== undefined
@@ -226,6 +281,7 @@ function StaffApp() {
           : null
       )
     } catch (requestError) {
+      if (request !== openRequest.current) return
       console.error(requestError)
 
       setError(
@@ -235,6 +291,7 @@ function StaffApp() {
   }
 
 
+  function renderWorkspace() {
   if (isAddingPatient) {
     return (
       <main className="chart-page">
@@ -243,7 +300,7 @@ function StaffApp() {
             className="back-button"
             type="button"
             onClick={() =>
-              setIsAddingPatient(false)
+              confirmNavigation() && setIsAddingPatient(false)
             }
           >
             ← Back to patient search
@@ -267,8 +324,8 @@ function StaffApp() {
 
           <PatientForm
             onPatientSaved={(patientId) => {
+              dirtyForms.current = new WeakSet()
               setIsAddingPatient(false)
-
               void openPatient(patientId)
             }}
           />
@@ -289,7 +346,7 @@ function StaffApp() {
             className="back-button"
             type="button"
             onClick={() =>
-              setIsEditingPatient(false)
+              confirmNavigation() && setIsEditingPatient(false)
             }
           >
             ← Back to patient overview
@@ -314,8 +371,8 @@ function StaffApp() {
           <PatientForm
             patient={selectedPatient}
             onPatientSaved={(patientId) => {
+              dirtyForms.current = new WeakSet()
               setIsEditingPatient(false)
-
               void openPatient(patientId)
             }}
           />
@@ -341,18 +398,16 @@ function StaffApp() {
           <button
             className="back-button"
             type="button"
-            onClick={() =>
-              setSelectedPatient(null)
-            }
+            onClick={returnToDirectory}
           >
-            ← Back to {showAppointmentRequests ? 'appointment requests' : showOpenFollowUpTasks ? 'open follow-ups' : showActiveCareGoals ? 'active care goals' : showPendingReferrals ? 'pending referrals' : showUnreleasedLabResults ? 'results to release' : showPendingLabs ? 'pending labs' : showPastAppointments ? 'past appointments' : showSchedule ? 'clinic schedule' : 'patient search'}
+            ← Back to {destination === 'patients' ? 'patient search' : staffDestinationLabels[destination].toLowerCase()}
           </button>
 
 
-          <header className="patient-header">
+          <header className="patient-header chart-identity">
             <div>
               <p className="eyebrow">
-                Patient Overview
+                Patient chart
               </p>
 
 
@@ -373,6 +428,7 @@ function StaffApp() {
 
 
               <p className="patient-meta">
+                Chart #{String(selectedPatient.id).padStart(6, '0')}{' · '}
                 DOB{' '}
                 {selectedPatient.date_of_birth}
 
@@ -393,77 +449,74 @@ function StaffApp() {
               </p>
 
 
-              <button
-                className="add-patient-button"
-                type="button"
-                onClick={() =>
-                  setIsEditingPatient(true)
-                }
-              >
-                Edit Patient
-              </button>
-              <button
-                className="secondary-action-button"
-                type="button"
-                onClick={() => setShowPortalPreview(true)}
-              >
-                Preview Patient Portal
-              </button>
+            </div>
+            <div className="chart-identity-actions">
+              <span className={`chart-state ${selectedPatient.archived_at ? 'chart-state-archived' : ''}`}>
+                {selectedPatient.archived_at ? 'Archived' : 'Active'}
+              </span>
+              <button className="secondary-action-button" type="button"
+                disabled={Boolean(selectedPatient.archived_at)}
+                onClick={() => confirmNavigation() && setIsEditingPatient(true)}>Edit Patient</button>
+              <button className="secondary-action-button" type="button"
+                onClick={() => confirmNavigation() && setShowPortalPreview(true)}>Preview Patient Portal</button>
             </div>
           </header>
 
 
-          <div className="overview-grid">
-            <PatientLifecycleControls key={selectedPatient.id} patientId={selectedPatient.id} />
-            <PatientTimeline key={selectedPatient.id} patientId={selectedPatient.id} />
+          <SectionNavigation label="Patient chart sections" options={chartSections}
+            current={chartSection} onChange={selectChartSection} />
 
-            <ProblemList patientId={selectedPatient.id} />
-
-            <MedicationList patientId={selectedPatient.id} />
-
-            <AllergyList patientId={selectedPatient.id} />
-
-            <VitalList patientId={selectedPatient.id} />
-
-            <CareGoals key={selectedPatient.id} patientId={selectedPatient.id} />
-
-            <FollowUpTasks key={selectedPatient.id} patientId={selectedPatient.id} />
-
-            <PatientLabHistory
-              key={selectedPatient.id}
-              patientId={selectedPatient.id}
-            />
-
-            <PatientReferralHistory
-              key={selectedPatient.id}
-              patientId={selectedPatient.id}
-            />
-
-            <EncounterList
+          <div className="chart-section-heading">
+            <h2>{chartSections.find((item) => item.id === chartSection)?.label}</h2>
+          </div>
+          <div className="overview-grid" key={selectedPatient.id + ':' + chartSection}>
+            {chartSection === 'summary' && <>
+              <PatientTimeline key={selectedPatient.id} patientId={selectedPatient.id} />
+              <PatientLifecycleControls key={selectedPatient.id} patientId={selectedPatient.id}
+                onChanged={(patient) => {
+                  setSelectedPatient((current) => current?.id === patient.id ? patient : current)
+                  setPatients((current) => current.map((item) => item.id === patient.id ? patient : item))
+                }} />
+            </>}
+            {chartSection === 'health' && <>
+              <ProblemList patientId={selectedPatient.id} />
+              <MedicationList patientId={selectedPatient.id} />
+              <AllergyList patientId={selectedPatient.id} />
+              <VitalList patientId={selectedPatient.id} />
+            </>}
+            {chartSection === 'care' && <>
+              <CareGoals key={selectedPatient.id} patientId={selectedPatient.id} />
+              <FollowUpTasks key={selectedPatient.id} patientId={selectedPatient.id} />
+            </>}
+            {chartSection === 'orders' && <>
+              <PatientLabHistory key={selectedPatient.id} patientId={selectedPatient.id} />
+              <PatientReferralHistory key={selectedPatient.id} patientId={selectedPatient.id} />
+            </>}
+            {chartSection === 'notes' && <EncounterList
               key={selectedPatient.id}
               patientId={selectedPatient.id}
               noteToReview={noteToReview}
               noteToStart={noteToStart}
               onNoteSaved={() => setNotesRefreshCount((count) => count + 1)}
-            />
-
-            <AppointmentList
+            />}
+            {chartSection === 'appointments' && <AppointmentList
               key={selectedPatient.id}
               patientId={selectedPatient.id}
               highlightAppointmentId={appointmentToReview}
               notesRefreshCount={notesRefreshCount}
-              onOpenVisitNote={(id) => setNoteToReview((current) => ({
-                id,
-                request: (current?.request ?? 0) + 1,
-              }))}
-              onStartVisitNote={(appointmentId) => {
-                setNoteToReview(null)
-                setNoteToStart((current) => ({
-                  appointmentId,
-                  request: (current?.request ?? 0) + 1,
-                }))
+              onOpenVisitNote={(id) => {
+                if (!confirmNavigation()) return
+                setNoteToStart(null)
+                setNoteToReview((current) => ({ id, request: (current?.request ?? 0) + 1 }))
+                setChartSection('notes')
               }}
-            />
+              onStartVisitNote={(appointmentId) => {
+                if (!confirmNavigation()) return
+                setNoteToReview(null)
+                setNoteToStart((current) => ({ appointmentId, request: (current?.request ?? 0) + 1 }))
+                setChartSection('notes')
+              }}
+            />}
           </div>
         </section>
       </main>
@@ -471,10 +524,10 @@ function StaffApp() {
   }
 
 
-  if (showAppointmentRequests) {
+  if (destination === 'requests') {
     return (
       <AppointmentChangeRequestsWorklist
-        onBack={() => { setError(null); setShowAppointmentRequests(false) }}
+        onBack={() => { setError(null); setDestination('patients') }}
         onOpenPatient={(patientId, appointmentId) => {
           void openPatient(patientId, appointmentId)
         }}
@@ -483,12 +536,12 @@ function StaffApp() {
     )
   }
 
-  if (showOpenFollowUpTasks) {
+  if (destination === 'followups') {
     return (
       <OpenFollowUpTasksWorklist
         onBack={() => {
           setError(null)
-          setShowOpenFollowUpTasks(false)
+          setDestination('patients')
         }}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
@@ -498,12 +551,12 @@ function StaffApp() {
     )
   }
 
-  if (showActiveCareGoals) {
+  if (destination === 'goals') {
     return (
       <ActiveCareGoalsWorklist
         onBack={() => {
           setError(null)
-          setShowActiveCareGoals(false)
+          setDestination('patients')
         }}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
@@ -513,12 +566,12 @@ function StaffApp() {
     )
   }
 
-  if (showPendingReferrals) {
+  if (destination === 'referrals') {
     return (
       <PendingReferralWorklist
         onBack={() => {
           setError(null)
-          setShowPendingReferrals(false)
+          setDestination('patients')
         }}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
@@ -528,12 +581,12 @@ function StaffApp() {
     )
   }
 
-  if (showUnreleasedLabResults) {
+  if (destination === 'results') {
     return (
       <UnreleasedLabResultsWorklist
         onBack={() => {
           setError(null)
-          setShowUnreleasedLabResults(false)
+          setDestination('patients')
         }}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
@@ -543,12 +596,12 @@ function StaffApp() {
     )
   }
 
-  if (showPendingLabs) {
+  if (destination === 'labs') {
     return (
       <PendingLabWorklist
         onBack={() => {
           setError(null)
-          setShowPendingLabs(false)
+          setDestination('patients')
         }}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
@@ -559,12 +612,12 @@ function StaffApp() {
   }
 
 
-  if (showPastAppointments) {
+  if (destination === 'past') {
     return (
       <PastAppointmentsWorklist
         onBack={() => {
           setError(null)
-          setShowPastAppointments(false)
+          setDestination('patients')
         }}
         onOpenPatient={(patientId, appointmentId) => {
           void openPatient(patientId, appointmentId)
@@ -580,14 +633,14 @@ function StaffApp() {
     )
   }
 
-  if (showSchedule) {
+  if (destination === 'schedule') {
     return (
       <ClinicSchedule
         day={scheduleDay}
         onDayChange={setScheduleDay}
         onBack={() => {
           setError(null)
-          setShowSchedule(false)
+          setDestination('patients')
         }}
         onOpenPatient={(patientId, appointmentId) => {
           void openPatient(patientId, appointmentId)
@@ -604,122 +657,17 @@ function StaffApp() {
   }
 
 
-  return (
-    <main className="search-page">
-      <section className="search-panel">
-        <div className="search-panel-header">
-          <h1>Patient Search</h1>
+  if (destination === 'audit' && isAdmin) return <AuditReview />
 
-          <div className="search-header-actions">
-            <button
-              className="secondary-action-button"
-              type="button"
-              onClick={() => {
-                setError(null)
-                setShowPendingLabs(false)
-                setShowPendingReferrals(false)
-                setShowActiveCareGoals(false)
-                setShowOpenFollowUpTasks(false)
-                setShowSchedule(true)
-              }}
-            >
-              Clinic Schedule
-            </button>
-            <button
-              className="secondary-action-button"
-              type="button"
-              onClick={() => {
-                setError(null)
-                setShowPastAppointments(true)
-              }}
-            >
-              Past Appointments
-            </button>
-            <button className="secondary-action-button" type="button"
-              onClick={() => { setError(null); setShowAppointmentRequests(true) }}>
-              Appointment Requests
-            </button>
-            <button
-              className="secondary-action-button"
-              type="button"
-              onClick={() => {
-                setError(null)
-                setShowSchedule(false)
-                setShowPendingReferrals(false)
-                setShowActiveCareGoals(false)
-                setShowOpenFollowUpTasks(false)
-                setShowPendingLabs(true)
-              }}
-            >
-              Pending Labs
-            </button>
-            <button
-              className="secondary-action-button"
-              type="button"
-              onClick={() => {
-                setError(null)
-                setShowSchedule(false)
-                setShowPendingLabs(false)
-                setShowPendingReferrals(false)
-                setShowActiveCareGoals(false)
-                setShowOpenFollowUpTasks(false)
-                setShowUnreleasedLabResults(true)
-              }}
-            >
-              Results to Release
-            </button>
-            <button
-              className="secondary-action-button"
-              type="button"
-              onClick={() => {
-                setError(null)
-                setShowSchedule(false)
-                setShowPendingLabs(false)
-                setShowActiveCareGoals(false)
-                setShowOpenFollowUpTasks(false)
-                setShowPendingReferrals(true)
-              }}
-            >
-              Pending Referrals
-            </button>
-            <button
-              className="secondary-action-button"
-              type="button"
-              onClick={() => {
-                setError(null)
-                setShowSchedule(false)
-                setShowPendingLabs(false)
-                setShowPendingReferrals(false)
-                setShowOpenFollowUpTasks(false)
-                setShowActiveCareGoals(true)
-              }}
-            >
-              Active Care Goals
-            </button>
-            <button
-              className="secondary-action-button"
-              type="button"
-              onClick={() => {
-                setError(null)
-                setShowSchedule(false)
-                setShowPendingLabs(false)
-                setShowPendingReferrals(false)
-                setShowActiveCareGoals(false)
-                setShowOpenFollowUpTasks(true)
-              }}
-            >
-              Open Follow-ups
-            </button>
-            <button
-              className="add-patient-button"
-              type="button"
-              onClick={() =>
-                setIsAddingPatient(true)
-              }
-            >
-              + Add Patient
-            </button>
-          </div>
+  return (
+    <main className="search-page directory-page">
+      <section className="search-panel directory-panel">
+        <div className="search-panel-header">
+          <div><p className="workspace-eyebrow">Patient registry</p><h1>Patient Search</h1><p className="workspace-description">Find a patient by name or open their chart from the directory.</p></div>
+
+          <button className="add-patient-button" type="button" onClick={() => setIsAddingPatient(true)}>
+            + Add Patient
+          </button>
         </div>
 
 
@@ -764,8 +712,7 @@ function StaffApp() {
         )}
 
 
-        {hasSearched &&
-          !isSearching &&
+        {!isSearching &&
           !error &&
           patients.length === 0 && (
             <p className="empty-message">
@@ -774,7 +721,11 @@ function StaffApp() {
           )}
 
 
-        <ul className="patient-list">
+        {isSearching && <p role="status" className="directory-status">Loading patients…</p>}
+        {!isSearching && !error && patients.length > 0 && <div className="directory-list-heading" aria-hidden="true">
+          <span>Patient</span><span>Date of birth</span><span>Chart status</span><span></span>
+        </div>}
+        <ul className="patient-list" aria-label="Patient directory">
           {patients.map((patient) => (
             <li key={patient.id}>
               <button
@@ -794,26 +745,42 @@ function StaffApp() {
                     ` (${patient.preferred_name})`}
                 </span>
 
-                <span className="patient-dob">
-                  DOB {patient.date_of_birth}
-                </span>
+                <span className="patient-dob">DOB {patient.date_of_birth}</span>
+                <span className={`chart-state ${patient.archived_at ? 'chart-state-archived' : ''}`}>{patient.archived_at ? 'Archived' : 'Active'}</span>
+                <span className="directory-chevron" aria-hidden="true">›</span>
               </button>
             </li>
           ))}
         </ul>
+        {!isSearching && !error && <p className="directory-status" role="status">{patients.length} {patients.length === 1 ? 'patient' : 'patients'} found</p>}
       </section>
     </main>
   )
-}
+  }
 
+  return (
+    <div className="staff-workspace">
+      <WorkspaceNavigation current={selectedPatient || isAddingPatient ? 'patients' : destination}
+        isAdmin={isAdmin} onNavigate={navigate} />
+      <div className="workspace-content" ref={workspaceRef}
+        onChangeCapture={(event) => {
+          if (event.target instanceof HTMLElement) {
+            const form = event.target.closest('form')
+            if (form && !form.classList.contains('search-form')) dirtyForms.current.add(form)
+          }
+        }}>
+        {renderWorkspace()}
+      </div>
+    </div>
+  )
+}
 
 function App() {
   const [account, setAccount] = useState<SignedInAccount | null>(null)
-  const [showAudit, setShowAudit] = useState(false)
   const [signInMode, setSignInMode] = useState<'staff' | 'patient'>('staff')
 
   useEffect(() => {
-    const sessionEnded = () => { setAccount(null); setShowAudit(false) }
+    const sessionEnded = () => setAccount(null)
     window.addEventListener('emr:session-ended', sessionEnded)
     return () => window.removeEventListener('emr:session-ended', sessionEnded)
   }, [])
@@ -824,7 +791,6 @@ function App() {
     } finally {
       setAccessToken(null)
       setAccount(null)
-      setShowAudit(false)
     }
   }
 
@@ -842,18 +808,13 @@ function App() {
   return (
     <>
       <header className="session-bar">
-        <span>Signed in as {account.username}</span>
-        {account.staff_role === 'admin' && (
-          <button type="button" onClick={() => setShowAudit((value) => !value)}>
-            {showAudit ? 'Back to clinical workspace' : 'Audit activity'}
-          </button>
-        )}
+        <div className="workspace-brand"><span className="workspace-mark" aria-hidden="true">+</span><strong>Primary Care EMR</strong><span className="workspace-product">{account.account_type === 'patient' ? 'Patient portal' : 'Clinical workspace'}</span></div>
+        <div className="session-account"><strong>{account.username}</strong><span>{account.account_type === 'patient' ? 'Patient' : account.staff_role === 'admin' ? 'Administrator' : 'Clinician'}</span></div>
         <button type="button" onClick={() => void signOut()}>
           Sign out
         </button>
       </header>
-      {account.account_type === 'patient' ? <PatientPortal />
-        : showAudit && account.staff_role === 'admin' ? <AuditReview /> : <StaffApp />}
+      {account.account_type === 'patient' ? <PatientPortal /> : <StaffApp isAdmin={account.staff_role === 'admin'} />}
     </>
   )
 }
