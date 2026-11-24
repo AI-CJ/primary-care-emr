@@ -70,3 +70,30 @@ input {
   display: flex;
   flex-direction: column;
 }
+
+.legal-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.legal-notice button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0.35rem 0.7rem;
+  color: #293239;
+  background: white;
+  border: 1px solid #758985;
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.legal-notice button:focus-visible {
+  outline: 3px solid #087477;
+  outline-offset: 2px;
+}
+@media (max-width: 540px) {
+  .legal-notice { flex-wrap: wrap; }
+  .legal-notice button { min-height: 44px; }
+}

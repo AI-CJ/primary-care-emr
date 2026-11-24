@@ -1,5 +1,9 @@
+// The browser build never sends API requests over the network.
+export const BROWSER_MODE = import.meta.env?.VITE_EMR_BROWSER === '1'
 // An explicit empty value supports a same-origin reverse proxy.
-export const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000').replace(/\/+$/, '')
+export const API_BASE_URL = BROWSER_MODE
+  ? 'http://emr.local'
+  : (import.meta.env?.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000').replace(/\/+$/, '')
 
 type ApiValidationError = {
   msg?: string
@@ -50,7 +54,9 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   if (accessToken) {
     headers.set('Authorization', `Bearer ${accessToken}`)
   }
-  const response = await fetch(input, { ...init, headers })
+  const response = BROWSER_MODE
+    ? await (await import('./browserApi')).browserFetch(input, { ...init, headers })
+    : await fetch(input, { ...init, headers })
   if (response.status === 401 && accessToken) {
     accessToken = null
     window.dispatchEvent(new Event('emr:session-ended'))

@@ -261,16 +261,25 @@ These lifecycle safeguards are not a complete clinical-record retention policy.
 
 ## Project status
 
-The main staff EMR is close to the planned portfolio V1. Recent work has focused on tightening appointment and visit workflows, limiting what the patient portal can see, and adding tests around clinical rules.
+The portfolio V1 is released. The public website runs the same React application and clinical API in an isolated browser worker rather than the earlier static preview.
 
-See [Portfolio V1 release boundary](docs/V1_RELEASE.md) for the acceptance checklist,
-verification commands, and known limitations. A separate static, read-only synthetic
-demo is prepared in `demo/`. GitHub Pages deployment requires enabling the repository's
-Pages source: open [Settings → Pages](https://github.com/AI-CJ/primary-care-emr/settings/pages)
-and select **GitHub Actions** under Build and deployment → Source. Once enabled,
-run the [Deploy public demo workflow](https://github.com/AI-CJ/primary-care-emr/actions/workflows/pages.yml).
-The intended site is https://ai-cj.github.io/primary-care-emr/; it is not a verified
-live deployment until it is reachable. The static site does not connect to the clinical API.
+### Interactive public workspace
+
+[Open Primary Care EMR](https://ai-cj.github.io/primary-care-emr/). Choose Administrator, Clinician, or a patient account on the sign-in page. Changes to charts, appointments, visit notes, results, referrals, care goals, follow-ups, and portal preferences are processed by the existing Python API using a private in-memory SQLite database per tab. The **Demo reset** button discards that database and restores the initial records and accounts. Refreshing or closing the tab also discards changes; sign-out alone does not.
+
+The browser build uses a pinned Pyodide runtime and queues requests in a single worker. No clinical data is sent to an external service, and no shared PostgreSQL database is exposed. The locally installed application still uses FastAPI, PostgreSQL and the Alembic migration chain. The browser database uses ORM metadata and serialized operations rather than PostgreSQL-specific migration and concurrency guarantees. Neither version is a clinical system or a HIPAA compliance claim.
+
+To reproduce the interactive build:
+
+```bash
+python scripts/build_browser_runtime.py
+cd frontend
+npm ci
+VITE_EMR_BROWSER=1 npm run build
+npm run preview
+```
+
+The Pages workflow publishes this build after all Checks jobs pass. The original presentation in `demo/` is retained as a historical design preview and is not the current deployed application. See [the V1 release boundary](docs/V1_RELEASE.md) for the original release scope and known limitations.
 
 Live e prescribing, real insurance claims, outside EHR connections, and real patient data are outside the scope of this project.
 

@@ -171,3 +171,43 @@ jobs:
             curl --fail --silent --show-error "$url" > /dev/null
           done
           python -m scripts.check_app_browser
+
+  interactive-browser-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VITE_EMR_BROWSER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Prepare self-hosted Python runtime
+        run: python scripts/build_browser_runtime.py
+      - name: Build interactive application
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Install Chromium
+        run: |
+          python -m pip install playwright==1.51.0
+          python -m playwright install --with-deps chromium
+      - name: Test browser-only clinical workflows and reset
+        run: |
+          mkdir -p /tmp/emr-pages
+          ln -s "$PWD/frontend/dist" /tmp/emr-pages/primary-care-emr
+          python -m http.server 4174 --bind 127.0.0.1 --directory /tmp/emr-pages > /tmp/emr-browser.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:4174/primary-care-emr/ > /dev/null; then break; fi
+            sleep 1
+          done
+          python scripts/check_browser_emr.py
+          python scripts/check_browser_clinical_api.py

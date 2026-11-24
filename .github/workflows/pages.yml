@@ -18,7 +18,7 @@ concurrency:
 jobs:
   deploy:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main')
     environment:
@@ -34,10 +34,27 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Upload static demo
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Prepare browser runtime
+        run: python scripts/build_browser_runtime.py
+      - name: Build public application
+        working-directory: frontend
+        env:
+          VITE_EMR_BROWSER: "1"
+        run: |
+          npm ci
+          npm run build
+      - name: Upload public application
         uses: actions/upload-pages-artifact@v3
         with:
-          path: demo
+          path: frontend/dist
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
@@ -57,7 +74,7 @@ jobs:
 
           **Public demo:** ${PAGE_URL}
 
-          The deployed site is a static, read-only presentation using fictional records. The full React, FastAPI, SQLAlchemy, PostgreSQL, and Alembic application remains in this repository for local execution and technical review.
+          The original V1 release uses fictional records. See the repository documentation for the current public application's execution model and the PostgreSQL-backed local application.
 
           Verification includes the PostgreSQL migration chain, backend tests, frontend lint and unit tests, production build, Chromium checks for the public demo, and a disposable-database full-stack browser workflow covering staff permissions, archive/reactivation, patient access, preference persistence, keyboard operation, and mobile layout.
 

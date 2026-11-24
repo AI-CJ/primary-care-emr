@@ -43,7 +43,8 @@ def assert_legal_notice(page):
     expect(notice).to_have_count(1)
     expect(notice).to_be_visible()
     expect(notice).to_contain_text("All provided patient records are fictional.")
-    expect(notice).to_contain_text("Do not enter real patient information.")
+    expect(notice).to_contain_text("Do not enter real patient information")
+    expect(page.get_by_role("button", name="Demo reset")).to_have_count(0)
     body = page.locator("body").inner_text().replace(notice.inner_text(), "", 1)
     assert not re.search(r"\b(synthetic|mock|fake|fictional|demo|portfolio|simulat\w*)\b", body, re.I), body
 
