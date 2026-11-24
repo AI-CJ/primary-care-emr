@@ -61,7 +61,10 @@ class ArchivedEncounterLinkTests(unittest.TestCase):
                 for name in ("Synthetic medication one", "Synthetic medication two")
             ]
             allergies = [
-                Allergy(patient_id=patient.id, allergen=name, status="active")
+                Allergy(
+                    patient_id=patient.id, allergen=name,
+                    severity="unknown", status="active",
+                )
                 for name in ("Synthetic allergen one", "Synthetic allergen two")
             ]
             vitals = [
