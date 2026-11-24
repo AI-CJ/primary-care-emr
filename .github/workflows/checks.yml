@@ -91,3 +91,19 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:4173/styles.css > /dev/null
           curl --fail --silent --show-error http://127.0.0.1:4173/app.js > /dev/null
           grep -q "Primary Care EMR" /tmp/emr-demo.html
+
+      - name: Install browser smoke dependencies
+        run: |
+          python3 -m venv /tmp/emr-demo-venv
+          /tmp/emr-demo-venv/bin/pip install playwright==1.51.0
+          /tmp/emr-demo-venv/bin/python -m playwright install --with-deps chromium
+      - name: Exercise public demo in Chromium
+        run: |
+          python3 -m http.server 4173 --directory demo > /tmp/emr-demo-browser.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          EMR_DEMO_URL=http://127.0.0.1:4173/ /tmp/emr-demo-venv/bin/python scripts/check_demo_browser.py

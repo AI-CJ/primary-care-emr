@@ -16,12 +16,15 @@ function showView(viewName, focus = true) {
   })
 
   navButtons.forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.viewTarget === viewName)
+    const active = button.dataset.viewTarget === viewName
+    button.classList.toggle('is-active', active)
+    if (active) button.setAttribute('aria-current', 'page')
+    else button.removeAttribute('aria-current')
   })
 
   if (focus) {
     document.querySelector('#main-content')?.focus({ preventScroll: true })
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: 'auto' })
   }
 }
 
@@ -58,14 +61,29 @@ document.querySelectorAll('[data-go-view]').forEach((button) => {
 
 const chartTabs = [...document.querySelectorAll('[data-chart-tab]')]
 const chartPanels = [...document.querySelectorAll('[data-chart-panel]')]
-chartTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    chartTabs.forEach((candidate) => {
-      candidate.setAttribute('aria-selected', String(candidate === tab))
-    })
-    chartPanels.forEach((panel) => {
-      panel.hidden = panel.dataset.chartPanel !== tab.dataset.chartTab
-    })
+function selectChartTab(tab, focus = false) {
+  chartTabs.forEach((candidate) => {
+    const selected = candidate === tab
+    candidate.setAttribute('aria-selected', String(selected))
+    candidate.tabIndex = selected ? 0 : -1
+  })
+  chartPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.chartPanel !== tab.dataset.chartTab
+  })
+  if (focus) tab.focus()
+}
+
+chartTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectChartTab(tab))
+  tab.addEventListener('keydown', (event) => {
+    let next
+    if (event.key === 'ArrowRight') next = (index + 1) % chartTabs.length
+    else if (event.key === 'ArrowLeft') next = (index - 1 + chartTabs.length) % chartTabs.length
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = chartTabs.length - 1
+    else return
+    event.preventDefault()
+    selectChartTab(chartTabs[next], true)
   })
 })
 
@@ -84,6 +102,13 @@ let lifecycleActive = false
 lifecycleButton?.addEventListener('click', () => {
   lifecycleActive = !lifecycleActive
   lifecycleButton.textContent = lifecycleActive ? 'Simulate archive' : 'Simulate reactivation'
+  const chip = document.querySelector('#lifecycle-chip')
+  chip.textContent = lifecycleActive ? 'Active' : 'Archived'
+  chip.classList.toggle('active', lifecycleActive)
+  chip.classList.toggle('resolved', !lifecycleActive)
+  document.querySelector('#lifecycle-detail').textContent = lifecycleActive
+    ? 'Reactivated in this demo only'
+    : 'Archived in this demo only'
   lifecycleStatus.textContent = lifecycleActive
     ? 'Demo chart reactivated. Historical records remain intact.'
     : 'Demo chart archived. New clinical writes would now be blocked.'
@@ -100,8 +125,10 @@ requestButton?.addEventListener('click', () => {
 document.querySelectorAll('[data-request-kind]').forEach((button) => {
   button.addEventListener('click', () => {
     const label = button.dataset.requestKind === 'cancel' ? 'cancellation' : 'rescheduling'
-    requestStatus.textContent = `Synthetic ${label} request queued for staff review. The appointment was not changed.`
+    requestStatus.textContent = `Synthetic ${label} request simulated. Nothing was sent and the appointment was not changed.`
     requestPanel.hidden = true
+    requestButton.setAttribute('aria-expanded', 'false')
+    requestButton.focus()
   })
 })
 
@@ -113,14 +140,14 @@ function restorePreferences() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey))
     if (!saved) return
-    const contact = preferencesForm?.querySelector(`input[name="contact"][value="${saved.contact}"]`)
+    const contact = [...preferencesForm.querySelectorAll('input[name="contact"]')].find((input) => input.value === saved.contact)
     if (contact) contact.checked = true
     const appointments = preferencesForm?.querySelector('input[name="appointments"]')
     const care = preferencesForm?.querySelector('input[name="care"]')
     if (appointments) appointments.checked = Boolean(saved.appointments)
     if (care) care.checked = Boolean(saved.care)
   } catch {
-    localStorage.removeItem(storageKey)
+    // Storage can be unavailable or contain invalid data; retain the defaults.
   }
 }
 
@@ -132,8 +159,12 @@ preferencesForm?.addEventListener('submit', (event) => {
     appointments: formData.has('appointments'),
     care: formData.has('care'),
   }
-  localStorage.setItem(storageKey, JSON.stringify(preferences))
-  preferencesStatus.textContent = 'Demo preferences saved in this browser. No message will be sent.'
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(preferences))
+    preferencesStatus.textContent = 'Demo preferences saved in this browser. No message will be sent.'
+  } catch {
+    preferencesStatus.textContent = 'Browser storage is unavailable. Preferences were not saved or sent.'
+  }
 })
 
 restorePreferences()
