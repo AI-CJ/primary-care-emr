@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import re
 import secrets
+import sys
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -27,6 +28,20 @@ def normalize_username(value: str) -> str:
     return username
 
 
+def _derive_password(raw: bytes, salt: bytes) -> bytes:
+    # Pyodide does not bundle OpenSSL-backed hashlib.pbkdf2_hmac.
+    # Use the same algorithm and work factor in the browser.
+    if sys.platform == "emscripten" and not hasattr(hashlib, "pbkdf2_hmac"):
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+        return PBKDF2HMAC(
+            algorithm=hashes.SHA256(), length=32, salt=salt,
+            iterations=_PASSWORD_ITERATIONS,
+        ).derive(raw)
+    return hashlib.pbkdf2_hmac("sha256", raw, salt, _PASSWORD_ITERATIONS)
+
+
 def hash_password(password: str) -> str:
     if not isinstance(password, str) or not 12 <= len(password) <= 128:
         raise ValueError("Password must be 12–128 characters")
@@ -34,7 +49,7 @@ def hash_password(password: str) -> str:
     if len(raw) > 1024:
         raise ValueError("Password is too long")
     salt = secrets.token_bytes(16)
-    digest = hashlib.pbkdf2_hmac("sha256", raw, salt, _PASSWORD_ITERATIONS)
+    digest = _derive_password(raw, salt)
     salt_text = base64.urlsafe_b64encode(salt).decode("ascii")
     digest_text = base64.urlsafe_b64encode(digest).decode("ascii")
     return f"{_PASSWORD_SCHEME}${_PASSWORD_ITERATIONS}${salt_text}${digest_text}"
@@ -56,7 +71,7 @@ def verify_password(password: str, stored_hash: str) -> bool:
             return False
     except (ValueError, TypeError):
         return False
-    actual = hashlib.pbkdf2_hmac("sha256", raw, salt, _PASSWORD_ITERATIONS)
+    actual = _derive_password(raw, salt)
     return hmac.compare_digest(actual, expected)
 
 
