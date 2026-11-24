@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from backend.encounters import lock_active_encounter
 from backend.models import Encounter, EncounterAllergy, Allergy
 from backend.schemas import EncounterAllergyLinkCreate
 
@@ -28,11 +29,7 @@ def list_encounter_allergies(session: Session, encounter_id: int) -> list[Encoun
 def link_encounter_allergy(
     session: Session, encounter_id: int, link_data: EncounterAllergyLinkCreate
 ) -> EncounterAllergy:
-    encounter = session.scalar(
-        select(Encounter).where(Encounter.id == encounter_id).with_for_update()
-    )
-    if encounter is None:
-        raise HTTPException(status_code=404, detail="Visit note not found")
+    encounter = lock_active_encounter(session, encounter_id)
     if encounter.finalized_at is not None:
         raise HTTPException(
             status_code=409, detail="Finalized visit notes cannot change their allergy links."
@@ -65,11 +62,7 @@ def link_encounter_allergy(
 
 
 def unlink_encounter_allergy(session: Session, encounter_id: int, allergy_id: int) -> None:
-    encounter = session.scalar(
-        select(Encounter).where(Encounter.id == encounter_id).with_for_update()
-    )
-    if encounter is None:
-        raise HTTPException(status_code=404, detail="Visit note not found")
+    encounter = lock_active_encounter(session, encounter_id)
     if encounter.finalized_at is not None:
         raise HTTPException(
             status_code=409, detail="Finalized visit notes cannot change their allergy links."
