@@ -7,6 +7,7 @@ from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from backend.models import Encounter, Patient, Referral
+from backend.patient_lifecycle import lock_active_patient
 from backend.schemas import PortalReferralSummary, ReferralCancel, ReferralComplete, ReferralCreate
 
 
@@ -85,7 +86,7 @@ def list_pending_referrals(
         select(Referral, Encounter.visit_date, Patient)
         .join(Encounter, Referral.encounter_id == Encounter.id)
         .join(Patient, Encounter.patient_id == Patient.id)
-        .where(Referral.status == "requested")
+        .where(Referral.status == "requested", Patient.archived_at.is_(None))
         .order_by(
             case((Referral.priority == "urgent", 0), else_=1),
             Referral.requested_at,
@@ -98,6 +99,13 @@ def list_pending_referrals(
 def create_referral(
     session: Session, encounter_id: int, referral_data: ReferralCreate
 ) -> Referral:
+    # Coordinate with archive/reactivation before locking the visit.
+    patient_id = session.scalar(
+        select(Encounter.patient_id).where(Encounter.id == encounter_id)
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Visit note not found")
+    lock_active_patient(session, patient_id)
     # Prevent a referral from being added while the visit is being finalized.
     encounter = session.scalar(
         select(Encounter).where(Encounter.id == encounter_id).with_for_update()
@@ -120,14 +128,28 @@ def create_referral(
     return referral
 
 
-def cancel_referral(
-    session: Session, referral_id: int, cancellation: ReferralCancel
-) -> Referral:
+def _lock_active_referral(session: Session, referral_id: int) -> Referral:
+    """Lock the owning patient before the referral to serialize clinical writes."""
+    patient_id = session.scalar(
+        select(Encounter.patient_id)
+        .join(Referral, Referral.encounter_id == Encounter.id)
+        .where(Referral.id == referral_id)
+    )
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail="Referral request not found")
+    lock_active_patient(session, patient_id)
     referral = session.scalar(
         select(Referral).where(Referral.id == referral_id).with_for_update()
     )
     if referral is None:
         raise HTTPException(status_code=404, detail="Referral request not found")
+    return referral
+
+
+def cancel_referral(
+    session: Session, referral_id: int, cancellation: ReferralCancel
+) -> Referral:
+    referral = _lock_active_referral(session, referral_id)
     if referral.status != "requested":
         raise HTTPException(
             status_code=409, detail="Only pending referral requests can be cancelled."
@@ -144,11 +166,7 @@ def cancel_referral(
 def complete_referral(
     session: Session, referral_id: int, follow_up: ReferralComplete
 ) -> Referral:
-    referral = session.scalar(
-        select(Referral).where(Referral.id == referral_id).with_for_update()
-    )
-    if referral is None:
-        raise HTTPException(status_code=404, detail="Referral request not found")
+    referral = _lock_active_referral(session, referral_id)
     if referral.status != "requested":
         raise HTTPException(
             status_code=409, detail="Only pending referrals can be completed."

@@ -13,7 +13,7 @@ from backend.account_auth import create_user_account
 from backend.main import app
 from backend.models import (
     Appointment, AuditEvent, Base, CareGoal, CareGoalProgress, Encounter,
-    LabOrder, LabResult, Patient, PatientLifecycleEvent, UserSession,
+    LabOrder, LabResult, Patient, PatientLifecycleEvent, Referral, UserSession,
 )
 
 
@@ -535,6 +535,102 @@ class PatientArchiveLifecycleTests(unittest.TestCase):
                         kwargs["json"] = payload
                     response = client.post(path, **kwargs)
                     self.assertEqual(response.status_code, status, response.text)
+
+
+    def test_archived_referrals_preserve_history_and_leave_worklist(self):
+        visit_date = date(2024, 1, 2)
+        with Session(self.engine) as session:
+            draft = Encounter(
+                patient_id=self.first_id, visit_date=visit_date,
+                reason_for_visit="Synthetic draft",
+            )
+            finalized = Encounter(
+                patient_id=self.first_id, visit_date=visit_date,
+                reason_for_visit="Synthetic finalized visit",
+                finalized_at=datetime(2024, 1, 3, tzinfo=timezone.utc),
+            )
+            other = Encounter(
+                patient_id=self.second_id, visit_date=visit_date,
+                reason_for_visit="Other synthetic visit",
+                finalized_at=datetime(2024, 1, 3, tzinfo=timezone.utc),
+            )
+            session.add_all([draft, finalized, other])
+            session.flush()
+            draft_id = draft.id
+            referrals = [
+                Referral(
+                    encounter_id=visit.id, specialty=specialty,
+                    reason="Synthetic referral", priority="routine", status="requested",
+                )
+                for visit, specialty in (
+                    (finalized, "Synthetic cancellation"),
+                    (finalized, "Synthetic completion"),
+                    (other, "Other pending referral"),
+                )
+            ]
+            session.add_all(referrals)
+            session.flush()
+            cancel_id, complete_id, other_id = (row.id for row in referrals)
+            session.commit()
+
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "clinic.admin")
+            chart = f"/patients/{self.first_id}/referrals"
+            queue_path = "/worklists/pending-referrals"
+
+            def queue_ids():
+                response = client.get(queue_path, headers=admin)
+                self.assertEqual(response.status_code, 200, response.text)
+                return {row["id"] for row in response.json()}
+
+            history = client.get(chart, headers=admin)
+            self.assertEqual(history.status_code, 200, history.text)
+            before = history.json()
+            self.assertEqual(len(before), 2)
+            self.assertEqual(queue_ids(), {cancel_id, complete_id, other_id})
+
+            archived = client.post(
+                f"/patients/{self.first_id}/archive", headers=admin,
+            )
+            self.assertEqual(archived.status_code, 200, archived.text)
+            writes = [
+                (f"/encounters/{draft_id}/referrals",
+                 {"specialty": "Synthetic new referral", "reason": "Synthetic reason"}, 201),
+                (f"/referrals/{cancel_id}/cancel",
+                 {"reason": "Synthetic cancellation"}, 200),
+                (f"/referrals/{complete_id}/complete",
+                 {"seen_on": visit_date.isoformat(),
+                  "follow_up_summary": "Synthetic outcome"}, 200),
+            ]
+            for path, payload, _ in writes:
+                with self.subTest(path=path):
+                    result = client.post(path, headers=admin, json=payload)
+                    self.assertEqual(result.status_code, 409, result.text)
+                    self.assertIn("Archived", result.json()["detail"])
+
+            saved = client.get(chart, headers=admin)
+            self.assertEqual(saved.status_code, 200, saved.text)
+            self.assertEqual(saved.json(), before)
+            self.assertEqual(queue_ids(), {other_id})
+            active_write = client.post(
+                f"/referrals/{other_id}/complete", headers=admin,
+                json={"seen_on": visit_date.isoformat(),
+                      "follow_up_summary": "Other synthetic outcome"},
+            )
+            self.assertEqual(active_write.status_code, 200, active_write.text)
+
+            resumed = client.post(
+                f"/patients/{self.first_id}/reactivate", headers=admin,
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            self.assertEqual(queue_ids(), {cancel_id, complete_id})
+            for path, payload, status in writes:
+                with self.subTest(reactivated=path):
+                    result = client.post(path, headers=admin, json=payload)
+                    self.assertEqual(result.status_code, status, result.text)
+            with Session(self.engine) as session:
+                self.assertEqual(session.get(Referral, cancel_id).status, "cancelled")
+                self.assertEqual(session.get(Referral, complete_id).status, "completed")
 
     def test_only_admin_can_change_or_read_lifecycle(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:
