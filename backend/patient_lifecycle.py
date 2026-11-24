@@ -25,6 +25,7 @@ class PatientLifecycleEventRead(BaseModel):
 def _lock_patient(session: Session, patient_id: int) -> Patient:
     patient = session.scalar(
         select(Patient).where(Patient.id == patient_id).with_for_update()
+        .execution_options(populate_existing=True)
     )
     if patient is None:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -32,7 +33,7 @@ def _lock_patient(session: Session, patient_id: int) -> Patient:
 
 
 def lock_active_patient(session: Session, patient_id: int) -> Patient:
-    """Lock the chart against concurrent archival before a staff write.
+    """Lock the chart against concurrent archival before a chart or portal write.
 
     The caller must keep this session and its transaction open until commit.
     Both archival and appointment writes take this same parent-row lock.

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from backend.models import PatientCommunicationPreference
+from backend.patient_lifecycle import lock_active_patient
 
 
 class CommunicationPreferencesPayload(BaseModel):
@@ -36,6 +37,7 @@ def replace_communication_preferences(
     session: Session, patient_id: int, values: CommunicationPreferencesPayload,
 ) -> CommunicationPreferencesPayload:
     """Replace only the authenticated patient's row; never modify chart history."""
+    lock_active_patient(session, patient_id)
     record = session.get(PatientCommunicationPreference, patient_id)
     if record is None:
         record = PatientCommunicationPreference(patient_id=patient_id)
