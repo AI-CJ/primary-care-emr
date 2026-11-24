@@ -37,7 +37,7 @@ def staff_section(page, name):
 
 
 def patient_mode(page):
-    page.get_by_role("button", name="Go to patient sign in").click()
+    page.get_by_role("button", name="Switch to patient sign-in").click()
 
 
 def sign_out(page):
@@ -134,7 +134,7 @@ def run():
         expect(page.get_by_label("Preferred contact method")).to_have_value("email")
         assert_notice(page)
         sign_out(page)
-        page.get_by_role("button", name="Go to staff sign in").click()
+        page.get_by_role("button", name="Switch to staff sign-in").click()
         sign_in(page, "Administrator")
         search(page, "Avery")
         expect(page.get_by_role("button", name="Reed, Avery", exact=False)).to_be_visible()

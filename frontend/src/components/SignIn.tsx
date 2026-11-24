@@ -125,7 +125,7 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
           className="sign-in-switch"
           onClick={() => onModeChange(mode === 'staff' ? 'patient' : 'staff')}
         >
-          {mode === 'staff' ? 'Go to patient sign in' : 'Go to staff sign in'}
+          {mode === 'staff' ? 'Switch to patient sign-in' : 'Switch to staff sign-in'}
         </button>
       </section>
       </div>

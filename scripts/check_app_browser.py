@@ -97,11 +97,11 @@ def run():
         expect(desktop.get_by_role("heading", name="Archived chart", exact=True)).to_be_visible()
         sign_out(desktop, "Staff")
 
-        desktop.get_by_role("button", name="Go to patient sign in").click()
+        desktop.get_by_role("button", name="Switch to patient sign-in").click()
         sign_in(desktop, "smoke.patient")
         expect(desktop.get_by_role("alert")).to_be_visible()
         expect(desktop.get_by_role("heading", name="Patient sign in", exact=True)).to_be_visible()
-        desktop.get_by_role("button", name="Go to staff sign in").click()
+        desktop.get_by_role("button", name="Switch to staff sign-in").click()
         sign_in(desktop, "smoke.admin")
         open_chart(desktop)
         expect(desktop.get_by_role("heading", name="Archived chart", exact=True)).to_be_visible()
@@ -120,7 +120,7 @@ def run():
         assert_legal_notice(mobile)
         assert_no_overflow(mobile)
         # Use the keyboard to activate the labeled account-mode control.
-        switch = mobile.get_by_role("button", name="Go to patient sign in")
+        switch = mobile.get_by_role("button", name="Switch to patient sign-in")
         switch.focus()
         switch.press("Enter")
         sign_in(mobile, "smoke.patient")
