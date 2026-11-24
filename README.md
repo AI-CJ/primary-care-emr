@@ -245,6 +245,10 @@ historical referral reads remain available. Reactivation restores referral write
 Patient-level problem, medication, allergy, and vital creation and updates also
 reject archived charts with HTTP 409 using the same patient-row lock. Historical
 reads remain available, and reactivation restores these writes.
+Standalone and appointment-linked visit note creation, draft edits,
+finalization and addendum creation also reject archived charts. These writes
+lock the patient before the visit row, preserve historical reads and retain
+finalized-note immutability after reactivation.
 Other clinical mutation paths and active worklists still require archive enforcement; staff UI
 controls and browser regression tests also remain open. This initial lifecycle API should not
 be treated as a complete clinical-record retention policy.
