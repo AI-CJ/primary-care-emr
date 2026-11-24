@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from backend.encounters import lock_active_encounter
 from backend.models import Encounter, EncounterMedication, Medication
 from backend.schemas import EncounterMedicationLinkCreate
 
@@ -29,11 +30,7 @@ def list_encounter_medications(session: Session, encounter_id: int) -> list[Enco
 def link_encounter_medication(
     session: Session, encounter_id: int, link_data: EncounterMedicationLinkCreate
 ) -> EncounterMedication:
-    encounter = session.scalar(
-        select(Encounter).where(Encounter.id == encounter_id).with_for_update()
-    )
-    if encounter is None:
-        raise HTTPException(status_code=404, detail="Visit note not found")
+    encounter = lock_active_encounter(session, encounter_id)
     if encounter.finalized_at is not None:
         raise HTTPException(
             status_code=409, detail="Finalized visit notes cannot change their medication links."
@@ -66,11 +63,7 @@ def link_encounter_medication(
 
 
 def unlink_encounter_medication(session: Session, encounter_id: int, medication_id: int) -> None:
-    encounter = session.scalar(
-        select(Encounter).where(Encounter.id == encounter_id).with_for_update()
-    )
-    if encounter is None:
-        raise HTTPException(status_code=404, detail="Visit note not found")
+    encounter = lock_active_encounter(session, encounter_id)
     if encounter.finalized_at is not None:
         raise HTTPException(
             status_code=409, detail="Finalized visit notes cannot change their medication links."
