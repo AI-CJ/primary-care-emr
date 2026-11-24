@@ -716,6 +716,110 @@ class PatientArchiveLifecycleTests(unittest.TestCase):
                     self.assertEqual(created.status_code, 201, created.text)
                     self.assertEqual(len(read_chart(self.first_id, kind)), 2)
 
+    def test_archived_visit_notes_and_addenda_preserve_history(self):
+        note = {
+            "visit_date": "2024-01-02",
+            "reason_for_visit": "Synthetic visit",
+            "assessment": "Synthetic assessment",
+            "plan": "Synthetic plan",
+        }
+        changed = {**note, "assessment": "Revised synthetic assessment"}
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "clinic.admin")
+            doctor = self.login(client, "clinic.doctor")
+
+            def create(patient_id, payload):
+                result = client.post(
+                    f"/patients/{patient_id}/encounters", headers=doctor, json=payload,
+                )
+                self.assertEqual(result.status_code, 201, result.text)
+                return result.json()["id"]
+
+            def read(path):
+                result = client.get(path, headers=doctor)
+                self.assertEqual(result.status_code, 200, result.text)
+                return result.json()
+
+            with Session(self.engine) as session:
+                appointment_id = session.scalar(select(Appointment.id).where(
+                    Appointment.patient_id == self.first_id,
+                ))
+            draft_id = create(self.first_id, note)
+            final_id = create(self.first_id, note)
+            self.assertEqual(client.post(
+                f"/encounters/{final_id}/finalize", headers=doctor,
+            ).status_code, 200)
+            addenda = f"/encounters/{final_id}/addenda"
+            self.assertEqual(client.post(
+                addenda, headers=doctor, json={"content": "Original synthetic addendum"},
+            ).status_code, 201)
+            chart = f"/patients/{self.first_id}/encounters"
+            before_notes = read(chart)
+            before_addenda = read(addenda)
+            self.assertEqual(len(before_notes), 2)
+            self.assertEqual(len(before_addenda), 1)
+
+            archived = client.post(f"/patients/{self.first_id}/archive", headers=admin)
+            self.assertEqual(archived.status_code, 200, archived.text)
+
+            writes = (
+                ("post", chart, note, 201),
+                ("post", chart, {**note, "appointment_id": appointment_id}, 201),
+                ("put", f"/encounters/{draft_id}", changed, 200),
+                ("post", f"/encounters/{draft_id}/finalize", None, 200),
+                ("post", addenda, {"content": "Second synthetic addendum"}, 201),
+            )
+
+            def write(case, headers):
+                method, path, payload, _ = case
+                kwargs = {"headers": headers}
+                if payload is not None:
+                    kwargs["json"] = payload
+                return getattr(client, method)(path, **kwargs)
+
+            for headers in (doctor, admin):
+                for case in writes:
+                    with self.subTest(archived=case[1], payload=case[2]):
+                        denied = write(case, headers)
+                        self.assertEqual(denied.status_code, 409, denied.text)
+                        self.assertIn("Archived", denied.json()["detail"])
+            self.assertEqual(read(chart), before_notes)
+            self.assertEqual(read(addenda), before_addenda)
+
+            # Archiving one chart does not prevent another chart's visit workflow.
+            other_id = create(self.second_id, note)
+            for case in (
+                ("put", f"/encounters/{other_id}", changed, 200),
+                ("post", f"/encounters/{other_id}/finalize", None, 200),
+                ("post", f"/encounters/{other_id}/addenda",
+                 {"content": "Other synthetic addendum"}, 201),
+            ):
+                result = write(case, doctor)
+                self.assertEqual(result.status_code, case[3], result.text)
+
+            resumed = client.post(
+                f"/patients/{self.first_id}/reactivate", headers=admin,
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            for case in writes:
+                with self.subTest(reactivated=case[1], payload=case[2]):
+                    result = write(case, doctor)
+                    self.assertEqual(result.status_code, case[3], result.text)
+            # Reactivation does not make a finalized note editable.
+            result = client.put(
+                f"/encounters/{final_id}", headers=doctor, json=changed,
+            )
+            self.assertEqual(result.status_code, 409, result.text)
+            self.assertIn("Finalized", result.json()["detail"])
+            after = {row["id"]: row for row in read(chart)}
+            self.assertEqual(len(after), 4)
+            original_final = next(row for row in before_notes if row["id"] == final_id)
+            self.assertEqual(after[final_id], original_final)
+            self.assertEqual(after[draft_id]["assessment"], changed["assessment"])
+            self.assertIsNotNone(after[draft_id]["finalized_at"])
+            self.assertEqual(read(addenda)[:1], before_addenda)
+            self.assertEqual(len(read(addenda)), 2)
+
     def test_only_admin_can_change_or_read_lifecycle(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:
             doctor = self.login(client, "clinic.doctor")
