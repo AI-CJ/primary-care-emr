@@ -15,6 +15,27 @@ def search(page, name):
     page.get_by_role("button", name="Search", exact=True).click()
 
 
+def chart_section(page, name):
+    nav = page.get_by_role("navigation", name="Patient chart sections")
+    button = nav.get_by_role("button", name=name, exact=True)
+    button.click()
+    expect(button).to_have_attribute("aria-current", "page")
+
+
+def portal_section(page, name):
+    nav = page.get_by_role("navigation", name="Patient portal sections")
+    button = nav.get_by_role("button", name=name, exact=True)
+    button.click()
+    expect(button).to_have_attribute("aria-current", "page")
+
+
+def staff_section(page, name):
+    nav = page.get_by_role("navigation", name="Staff workspace")
+    button = nav.get_by_role("button", name=name, exact=True)
+    button.click()
+    expect(button).to_have_attribute("aria-current", "page")
+
+
 def patient_mode(page):
     page.get_by_role("button", name="Go to patient sign in").click()
 
@@ -46,13 +67,25 @@ def run():
         page.goto(URL)
         assert_notice(page)
         sign_in(page, "Administrator")
+        # The directory is populated without an initial search.
+        expect(page.get_by_role("button", name="Lee, Jordan", exact=False)).to_be_visible(timeout=TIMEOUT)
+        staff_section(page, "Clinic Schedule")
+        expect(page.get_by_role("heading", name="Clinic Schedule", exact=True)).to_be_visible()
+        page.get_by_role("button", name="Jordan Lee", exact=True).click()
+        expect(page.get_by_role("navigation", name="Patient chart sections").get_by_role("button", name="Appointments", exact=True)).to_have_attribute("aria-current", "page")
+        page.get_by_role("button", name="Back to clinic schedule", exact=False).click()
+        staff_section(page, "Patients")
         search(page, "Jordan")
         page.get_by_role("button", name="Lee, Jordan", exact=False).click()
         expect(page.get_by_role("heading", name="Jordan Lee", exact=True)).to_be_visible()
+        chart_section(page, "Health record")
         expect(page.get_by_text("Essential hypertension", exact=True).first).to_be_visible()
         expect(page.get_by_text("Lisinopril 20 mg", exact=True).first).to_be_visible()
         page.get_by_role("button", name="+ Add Problem", exact=True).click()
         page.get_by_label("Problem *").fill("Seasonal allergies")
+        page.once("dialog", lambda dialog: dialog.dismiss())
+        page.get_by_role("navigation", name="Patient chart sections").get_by_role("button", name="Summary", exact=True).click()
+        expect(page.get_by_label("Problem *")).to_have_value("Seasonal allergies")
         page.get_by_role("button", name="Add Problem", exact=True).click()
         expect(page.get_by_text("Seasonal allergies", exact=True).first).to_be_visible()
         page.get_by_role("button", name="Edit Patient").click()
@@ -82,11 +115,13 @@ def run():
         expect(page.get_by_role("heading", name="My health summary")).to_be_visible()
         expect(page.get_by_text("Essential hypertension", exact=True).first).to_be_visible()
         expect(page.get_by_text("Seasonal allergies", exact=True).first).to_be_visible()
+        portal_section(page, "Preferences")
         channel = page.get_by_label("Preferred contact method")
         expect(channel).to_have_value("portal")
         channel.select_option("email")
         page.get_by_role("button", name="Save preferences", exact=True).click()
         expect(page.get_by_text("Your communication preferences were saved.")).to_be_visible()
+        portal_section(page, "Appointments & visits")
         appointment = page.get_by_label("Scheduled visit")
         expect(appointment.locator("option")).not_to_have_count(1)
         appointment.select_option(index=1)
@@ -95,6 +130,7 @@ def run():
         expect(page.get_by_text("Awaiting staff review", exact=True)).to_be_visible()
         sign_out(page)
         sign_in(page, "Jordan Lee")
+        portal_section(page, "Preferences")
         expect(page.get_by_label("Preferred contact method")).to_have_value("email")
         assert_notice(page)
         sign_out(page)
@@ -109,7 +145,7 @@ def run():
         with page.expect_download() as download:
             page.get_by_role("button", name="Export CSV").click()
         assert download.value.suggested_filename == "audit-events.csv"
-        page.get_by_role("button", name="Back to clinical workspace").click()
+        staff_section(page, "Patients")
         search(page, "Avery")
         expect(page.get_by_role("button", name="Reed, Avery", exact=False)).to_be_visible()
 
@@ -120,6 +156,11 @@ def run():
         assert_notice(other)
         sign_in(other, "Clinician")
         expect(other.get_by_role("button", name="Audit activity", exact=True)).to_have_count(0)
+        mobile_nav = other.get_by_label("Staff workspace", exact=True)
+        expect(mobile_nav).to_be_visible()
+        mobile_nav.select_option("schedule")
+        expect(other.get_by_role("heading", name="Clinic Schedule", exact=True)).to_be_visible()
+        mobile_nav.select_option("patients")
         search(other, "Avery")
         expect(other.get_by_text("No patients found.")).to_be_visible()
         assert other.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -141,8 +182,11 @@ def run():
         sign_out(page)
         patient_mode(page)
         sign_in(page, "Jordan Lee")
+        expect(page.get_by_text("Essential hypertension", exact=True).first).to_be_visible()
         expect(page.get_by_text("Seasonal allergies", exact=True)).to_have_count(0)
+        portal_section(page, "Preferences")
         expect(page.get_by_label("Preferred contact method")).to_have_value("portal")
+        portal_section(page, "Appointments & visits")
         expect(page.get_by_text("No requests submitted yet.")).to_be_visible()
         assert not errors, errors
         browser.close()

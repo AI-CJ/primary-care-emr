@@ -184,7 +184,10 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
     setNoteToStart(null)
     setAppointmentToReview(null)
     setError(null)
-    if (next === 'patients') void searchPatients()
+    if (next === 'patients') {
+      setSearch('')
+      void searchPatients('')
+    }
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
 
@@ -206,7 +209,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   }
 
 
-  async function searchPatients() {
+  async function searchPatients(query = search) {
     setError(null)
     setIsSearching(true)
     const request = ++searchRequest.current
@@ -214,7 +217,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
     try {
       const response = await apiFetch(
         `${API_BASE_URL}/patients?search=${encodeURIComponent(
-          search
+          query
         )}`
       )
 
@@ -269,7 +272,12 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
       if (request !== openRequest.current) return
 
       setSelectedPatient(patient)
-      setChartSection(noteAction ? 'notes' : appointmentId !== null ? 'appointments' : 'summary')
+      setPatients((current) => current.map((item) => item.id === patient.id ? patient : item))
+      setChartSection(noteAction ? 'notes'
+        : appointmentId !== null ? 'appointments'
+        : ['labs', 'results', 'referrals'].includes(destination) ? 'orders'
+        : ['goals', 'followups'].includes(destination) ? 'care'
+        : 'summary')
       setShowPortalPreview(false)
       setAppointmentToReview(appointmentId)
       setNoteToReview(
@@ -294,7 +302,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
 
 
   function renderWorkspace() {
-  if (isAddingPatient) {
+    if (isAddingPatient) {
     return (
       <main className="chart-page">
         <section className="patient-chart">
