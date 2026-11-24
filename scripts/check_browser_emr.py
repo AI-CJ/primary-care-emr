@@ -156,7 +156,7 @@ def run():
         assert_notice(other)
         sign_in(other, "Clinician")
         expect(other.get_by_role("button", name="Audit activity", exact=True)).to_have_count(0)
-        mobile_nav = other.get_by_label("Staff workspace", exact=True)
+        mobile_nav = other.get_by_role("combobox", name="Staff workspace", exact=True)
         expect(mobile_nav).to_be_visible()
         mobile_nav.select_option("schedule")
         expect(other.get_by_role("heading", name="Clinic Schedule", exact=True)).to_be_visible()
