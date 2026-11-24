@@ -1,5 +1,7 @@
 # Portfolio V1 Release
 
+> This document records the original V1.0.0 release boundary. The subsequent interactive Pages workspace is described in the [README](../README.md); it reuses the React and Python API code with a per-tab in-memory SQLite database and reset control. The local PostgreSQL application remains separate.
+
 Primary Care EMR V1 is a synthetic-data portfolio release that demonstrates the day-to-day workflows of a small outpatient primary care clinic. It is not approved for clinical use and must not receive real patient information.
 
 ## Release boundary
