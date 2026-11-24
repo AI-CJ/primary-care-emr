@@ -632,6 +632,90 @@ class PatientArchiveLifecycleTests(unittest.TestCase):
                 self.assertEqual(session.get(Referral, cancel_id).status, "cancelled")
                 self.assertEqual(session.get(Referral, complete_id).status, "completed")
 
+    def test_archived_patient_clinical_records_preserve_history(self):
+        cases = (
+            ("problems", {"name": "Synthetic condition"},
+             {"name": "Synthetic revised condition", "status": "resolved"}),
+            ("medications", {"name": "Synthetic medication"},
+             {"name": "Synthetic revised medication", "status": "discontinued"}),
+            ("allergies", {"allergen": "Synthetic allergen"},
+             {"allergen": "Synthetic revised allergen", "status": "inactive"}),
+            ("vitals", {"recorded_on": "2024-01-02", "heart_rate": 72},
+             {"recorded_on": "2024-01-02", "heart_rate": 80}),
+        )
+        with patch("backend.main.engine", self.engine), TestClient(app) as client:
+            admin = self.login(client, "clinic.admin")
+            doctor = self.login(client, "clinic.doctor")
+
+            def chart_path(patient_id, kind):
+                return f"/patients/{patient_id}/{kind}"
+
+            def read_chart(patient_id, kind):
+                result = client.get(chart_path(patient_id, kind), headers=doctor)
+                self.assertEqual(result.status_code, 200, result.text)
+                return result.json()
+
+            first_ids, other_ids, before = {}, {}, {}
+            for kind, initial, _ in cases:
+                for patient_id, ids in (
+                    (self.first_id, first_ids), (self.second_id, other_ids),
+                ):
+                    result = client.post(
+                        chart_path(patient_id, kind), headers=doctor, json=initial,
+                    )
+                    self.assertEqual(result.status_code, 201, result.text)
+                    ids[kind] = result.json()["id"]
+                before[kind] = read_chart(self.first_id, kind)
+                self.assertEqual(len(before[kind]), 1)
+
+            archived = client.post(
+                f"/patients/{self.first_id}/archive", headers=admin,
+            )
+            self.assertEqual(archived.status_code, 200, archived.text)
+
+            for kind, initial, changed in cases:
+                with self.subTest(kind=kind):
+                    path = chart_path(self.first_id, kind)
+                    resource = f"/{kind}/{first_ids[kind]}"
+                    for headers in (doctor, admin):
+                        for result in (
+                            client.post(path, headers=headers, json=initial),
+                            client.put(resource, headers=headers, json=changed),
+                        ):
+                            self.assertEqual(result.status_code, 409, result.text)
+                            self.assertIn("Archived", result.json()["detail"])
+                    self.assertEqual(read_chart(self.first_id, kind), before[kind])
+
+                    other_update = client.put(
+                        f"/{kind}/{other_ids[kind]}", headers=doctor, json=changed,
+                    )
+                    self.assertEqual(other_update.status_code, 200, other_update.text)
+                    for field, value in changed.items():
+                        self.assertEqual(other_update.json()[field], value)
+                    other_create = client.post(
+                        chart_path(self.second_id, kind), headers=doctor, json=initial,
+                    )
+                    self.assertEqual(other_create.status_code, 201, other_create.text)
+
+            resumed = client.post(
+                f"/patients/{self.first_id}/reactivate", headers=admin,
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            for kind, initial, changed in cases:
+                with self.subTest(reactivated=kind):
+                    updated = client.put(
+                        f"/{kind}/{first_ids[kind]}", headers=doctor, json=changed,
+                    )
+                    self.assertEqual(updated.status_code, 200, updated.text)
+                    self.assertEqual(updated.json()["id"], first_ids[kind])
+                    for field, value in changed.items():
+                        self.assertEqual(updated.json()[field], value)
+                    created = client.post(
+                        chart_path(self.first_id, kind), headers=doctor, json=initial,
+                    )
+                    self.assertEqual(created.status_code, 201, created.text)
+                    self.assertEqual(len(read_chart(self.first_id, kind)), 2)
+
     def test_only_admin_can_change_or_read_lifecycle(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:
             doctor = self.login(client, "clinic.doctor")
