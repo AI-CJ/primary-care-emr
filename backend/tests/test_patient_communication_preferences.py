@@ -1,15 +1,19 @@
 """Patient communication choices stay scoped to the authenticated identity."""
 
 import unittest
-from datetime import date
+from datetime import date, datetime, timezone
 from unittest.mock import patch
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from backend.account_auth import create_user_account
+from backend.communication_preferences import (
+    CommunicationPreferencesPayload, replace_communication_preferences,
+)
 from backend.main import app
 from backend.models import AuditEvent, Base, Patient, PatientCommunicationPreference
 
@@ -111,6 +115,37 @@ class PatientCommunicationPreferencesTests(unittest.TestCase):
                 self.assertEqual(len(rows), 1)
                 self.assertEqual(rows[0].patient_id, self.first_id)
                 self.assertEqual(rows[0].preferred_channel, "email")
+
+    def test_archived_chart_blocks_preference_write_after_authorization(self):
+        # Exercise the write service directly to model an archive occurring
+        # after the HTTP authorization check but before the write transaction.
+        initial = CommunicationPreferencesPayload(
+            preferred_channel="portal", appointment_reminders=False, care_updates=False,
+        )
+        changed = CommunicationPreferencesPayload(
+            preferred_channel="email", appointment_reminders=True, care_updates=True,
+        )
+        with Session(self.engine) as session:
+            replace_communication_preferences(session, self.first_id, initial)
+            patient = session.get(Patient, self.first_id)
+            patient.archived_at = datetime.now(timezone.utc)
+            session.commit()
+        with Session(self.engine) as session:
+            with self.assertRaises(HTTPException) as denied:
+                replace_communication_preferences(session, self.first_id, changed)
+            self.assertEqual(denied.exception.status_code, 409)
+            session.rollback()
+            saved = session.get(PatientCommunicationPreference, self.first_id)
+            self.assertEqual(saved.preferred_channel, "portal")
+            self.assertFalse(saved.appointment_reminders)
+            self.assertFalse(saved.care_updates)
+            replace_communication_preferences(session, self.second_id, changed)
+            patient = session.get(Patient, self.first_id)
+            patient.archived_at = None
+            session.commit()
+            self.assertEqual(
+                replace_communication_preferences(session, self.first_id, changed), changed,
+            )
 
     def test_bad_payloads_do_not_replace_saved_choices(self):
         with patch("backend.main.engine", self.engine), TestClient(app) as client:

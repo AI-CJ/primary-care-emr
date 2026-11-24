@@ -249,15 +249,28 @@ Standalone and appointment-linked visit note creation, draft edits,
 finalization and addendum creation also reject archived charts. These writes
 lock the patient before the visit row, preserve historical reads and retain
 finalized-note immutability after reactivation.
-Other clinical mutation paths and active worklists still require archive enforcement; staff UI
-controls and browser regression tests also remain open. This initial lifecycle API should not
-be treated as a complete clinical-record retention policy.
+Clinical-record links and unlinks for problems, medications, allergies, and vitals
+also reject archived charts. Patient appointment change submissions and staff review
+take the chart lock, preserve request history, and exclude archived charts from the
+pending queue. The staff overview exposes chart status and explicit administrator-only
+archive/reactivation confirmation controls.
+Patient portal account creation, successful login, and preference writes coordinate
+with archival using the same patient-row lock. Preference writes are refused for
+archived charts even if authorization was checked earlier in the request.
+These lifecycle safeguards are not a complete clinical-record retention policy.
 
 ## Project status
 
 The main staff EMR is close to the planned portfolio V1. Recent work has focused on tightening appointment and visit workflows, limiting what the patient portal can see, and adding tests around clinical rules.
 
-The remaining work is mostly release work. That includes access and audit controls, final portal work, deployment, accessibility checks, mobile cleanup, visual polish, and documentation.
+See [Portfolio V1 release boundary](docs/V1_RELEASE.md) for the acceptance checklist,
+verification commands, and known limitations. A separate static, read-only synthetic
+demo is prepared in `demo/`. GitHub Pages deployment requires enabling the repository's
+Pages source: open [Settings → Pages](https://github.com/AI-CJ/primary-care-emr/settings/pages)
+and select **GitHub Actions** under Build and deployment → Source. Once enabled,
+run the [Deploy public demo workflow](https://github.com/AI-CJ/primary-care-emr/actions/workflows/pages.yml).
+The intended site is https://ai-cj.github.io/primary-care-emr/; it is not a verified
+live deployment until it is reachable. The static site does not connect to the clinical API.
 
 Live e prescribing, real insurance claims, outside EHR connections, and real patient data are outside the scope of this project.
 
