@@ -40,6 +40,7 @@ import AuditReview from './components/AuditReview'
 import WorkspaceNavigation from './components/WorkspaceNavigation'
 import { type StaffDestination, staffDestinationLabels } from './workspaceNavigation'
 import SectionNavigation, { type SectionOption } from './components/SectionNavigation'
+import './ClinicalWorkspace.css'
 
 
 const sexAtBirthLabels: Record<
@@ -230,6 +231,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
 
       if (request === searchRequest.current) setPatients(data)
     } catch (requestError) {
+      if (request !== searchRequest.current) return
       console.error(requestError)
 
       setError(
@@ -725,7 +727,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
         {!isSearching && !error && patients.length > 0 && <div className="directory-list-heading" aria-hidden="true">
           <span>Patient</span><span>Date of birth</span><span>Chart status</span><span></span>
         </div>}
-        <ul className="patient-list" aria-label="Patient directory">
+        <ul className="patient-list" aria-label="Patient directory" hidden={isSearching || Boolean(error)}>
           {patients.map((patient) => (
             <li key={patient.id}>
               <button
