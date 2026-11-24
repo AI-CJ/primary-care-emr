@@ -210,3 +210,4 @@ jobs:
             sleep 1
           done
           python scripts/check_browser_emr.py
+          python scripts/check_browser_clinical_api.py
