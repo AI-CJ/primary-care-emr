@@ -75,7 +75,7 @@ def run():
         order = request("POST", visit + "/lab-orders", {"test_name": "Follow-up panel"}, admin)
         referral = request("POST", visit + "/referrals", {"specialty": "Cardiology", "reason": "Follow-up"}, admin)
         request("POST", visit + "/finalize", token=admin)
-        request("PUT", visit, {"visit_date": day, "reason_for_visit": "Altered"}, admin, expected=409)
+        request("PUT", visit, {"visit_date": day, "reason_for_visit": "Altered", "assessment": "Attempted change."}, admin, expected=409)
         request("POST", visit + "/addenda", {"content": "Reviewed after finalization."}, admin)
         request("POST", f"/appointments/{appointment['id']}/complete", token=admin)
         request("POST", f"/lab-orders/{order['id']}/result", {
