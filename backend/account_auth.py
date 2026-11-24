@@ -60,6 +60,14 @@ def verify_password(password: str, stored_hash: str) -> bool:
     return hmac.compare_digest(actual, expected)
 
 
+def _lock_portal_patient(session: Session, patient_id: int) -> Patient | None:
+    # Coordinate account creation and successful login with chart archival.
+    return session.scalar(
+        select(Patient).where(Patient.id == patient_id).with_for_update()
+        .execution_options(populate_existing=True)
+    )
+
+
 def create_user_account(
     session: Session,
     *,
@@ -78,7 +86,7 @@ def create_user_account(
     elif account_type == "patient":
         if staff_role is not None or patient_id is None:
             raise ValueError("Patient accounts need one patient link and no staff role")
-        patient = session.get(Patient, patient_id)
+        patient = _lock_portal_patient(session, patient_id)
         if patient is None:
             raise ValueError("Patient does not exist")
         if patient.archived_at is not None:
@@ -109,10 +117,11 @@ def authenticate_user(session: Session, username: str, password: str) -> UserAcc
     account = session.scalar(select(UserAccount).where(UserAccount.username == username))
     if account is None or not account.is_active:
         return None
-    if account.account_type == "patient":
-        patient = session.get(Patient, account.patient_id)
-        if patient is None or patient.archived_at is not None:
-            return None
     if not verify_password(password, account.password_hash):
         return None
+    if account.account_type == "patient":
+        # The login route commits the new session while this lock is held.
+        patient = _lock_portal_patient(session, account.patient_id)
+        if patient is None or patient.archived_at is not None:
+            return None
     return account
