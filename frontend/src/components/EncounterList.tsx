@@ -288,7 +288,7 @@ function EncounterList({
               >
                 <div className="encounter-row-header">
                   <div>
-                    <strong>{encounter.reason_for_visit}</strong>
+                    <div className="encounter-title-line"><strong>{encounter.reason_for_visit}</strong><span className={encounter.finalized_at ? 'note-state note-state-final' : 'note-state'}>{encounter.finalized_at ? 'Finalized' : 'Draft'}</span></div>
                     <p className="encounter-meta">
                       Visit date: <time dateTime={encounter.visit_date}>
                         {encounter.visit_date}

@@ -325,3 +325,51 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .portal-task small { color: #46665a; font-size: .95rem; line-height: 1.45; margin-top: 5px; }
 .portal-task-arrow { font-size: 1.5rem; color: #216b56; }
 @media(max-width: 480px) { .portal-next-visit { gap: 14px; } .next-visit-action { width: 100%; text-align: left; } .portal-task { padding: 14px; gap: 10px; } }
+
+/* Chart context is independent of section content. Empty or unavailable allergy data is never a clearance. */
+.chart-allergy-context { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; padding:14px 18px; margin-top:10px; border:1px solid #c8d5d4; border-left:4px solid #758d8d; border-radius:7px; background:#f7faf9; color:#263c3b; }
+.chart-allergy-recorded { border-color:#e1b9a8; border-left-color:#a54c34; background:#fff5ef; color:#743624; }
+.chart-allergy-content { flex:1 1 240px; min-width:0; overflow-wrap:anywhere; }
+.chart-allergy-content h2 { font-size:.8rem; font-weight:700; margin:0 0 3px; }
+.chart-allergy-content p, .chart-allergy-content ul { margin:0; font-size:.87rem; }
+.chart-allergy-content ul { padding-left:19px; }
+.chart-allergy-content li + li { margin-top:3px; }
+.chart-allergy-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+@media (min-width:1001px) and (min-height:720px) {
+  .chart-identity { position:sticky; top:0; z-index:3; padding:12px 20px; box-shadow:0 4px 12px #1c292e12; }
+  .chart-identity h1 { font-size:1.45rem; }
+  .chart-identity .eyebrow { margin-bottom:4px; }
+  .chart-identity .patient-meta { margin-top:4px; }
+  .patient-chart :where(button, input, select, textarea, summary):focus { scroll-margin-top:170px; }
+}
+
+/* Overview: compact current-state summary above the longitudinal record. */
+.clinical-snapshot { grid-column:1 / -1; min-width:0; margin-bottom:4px; }
+.clinical-snapshot-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin:0 0 12px; }
+.clinical-snapshot-heading h3 { margin:0; font-size:1rem; color:var(--onyx); }
+.clinical-snapshot-heading p { margin:3px 0 0; color:var(--text-muted); font-size:.84rem; }
+.clinical-snapshot-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:start; }
+.snapshot-card { padding:16px; min-width:0; overflow-wrap:anywhere; }
+.snapshot-card h4 { color:var(--onyx); margin:0 0 9px; font-size:.93rem; }
+.snapshot-card p { margin:7px 0; font-size:.84rem; }
+.snapshot-card .snapshot-count { color:#245e52; font-size:.8rem; font-weight:650; }
+.snapshot-card ul { margin:8px 0 0; list-style:none; padding:0; }
+.snapshot-card li { border-top:1px solid var(--border); padding:8px 0; font-size:.85rem; }
+.snapshot-card li strong { font-weight:650; }
+.snapshot-card li small { display:block; margin-top:3px; color:var(--text-muted); font-size:.78rem; }
+.snapshot-card .snapshot-overflow { font-size:.78rem; color:var(--text-muted); }
+@media(max-width:1100px) { .clinical-snapshot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:650px) { .clinical-snapshot-grid { grid-template-columns:minmax(0,1fr); } }
+
+/* Encounter editing: keep clinical notes and patient-facing instructions distinct. */
+.encounter-note-group { border:1px solid #cbd7da; border-radius:8px; padding:16px; margin:0; min-width:0; }
+.encounter-note-group legend { padding:0 8px; font-weight:650; color:var(--onyx); }
+.encounter-note-group > .encounter-help { margin:0 0 12px; }
+.encounter-note-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.encounter-note-fields textarea { width:100%; min-width:0; resize:vertical; }
+.encounter-patient-instructions { border-color:#a4c6b9; background:#f3f9f5; }
+.encounter-patient-instructions > .encounter-help { margin:10px 0 0; }
+.encounter-title-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.note-state { border:1px solid #d6c6a7; border-radius:4px; padding:2px 7px; background:#faf2e0; color:#6e4b16; font-size:.75rem; font-weight:650; }
+.note-state-final { border-color:#b3d4c5; background:#e6f3eb; color:#245e49; }
+@media(max-width:650px) { .encounter-note-fields { grid-template-columns:minmax(0,1fr); } .encounter-note-group { padding:12px; } }

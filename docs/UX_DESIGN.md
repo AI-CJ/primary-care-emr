@@ -9,3 +9,9 @@ The initial redesign is informed by [NIST health IT interface guidance](https://
 ## Validation
 
 Exercise actual sign-in, chart access, appointment navigation, patient home, preferences and reset in both browser modes. Distinguish automated regression checks from actual clinician and patient usability studies. No claim of clinical approval, certification, or representative-user validation is made.
+
+## Clinical chart context
+
+The summary presents active conditions, active medications and the latest dated vital record above existing clinical activity and lifecycle controls. Each panel loads independently and distinguishes missing records from request failure. The latest vital record is selected by recorded date (ID breaks same-date ties); values are not combined across dates or interpreted. The chart header stays visible on larger screens, and an allergy context panel displays recorded active allergies and distinguishes historical, empty and unavailable records. Empty records are not evidence of confirmed absence. The existing detailed chart sections remain the authoritative editing surfaces. These original components use existing patient-scoped endpoints and do not add dependencies or change authorization.
+
+Visit documentation groups the editable clinical note separately from patient-facing instructions, shows a clear draft/finalized status, and retains existing explicit review and finalization controls. The browser regression exercises saving and finalizing a standalone note with patient instructions; appointment-linked notes continue to use existing safeguards.

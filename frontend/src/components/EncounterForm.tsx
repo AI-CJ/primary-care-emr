@@ -245,8 +245,10 @@ function EncounterForm({
         />
       </label>
 
-      <p className="encounter-help">Complete at least one note section.</p>
-
+      <fieldset className="encounter-note-group">
+        <legend>Clinical documentation</legend>
+        <p className="encounter-help">Staff-only note content. Complete at least one note section to save a draft.</p>
+        <div className="encounter-note-fields">
       <label className="form-field">
         <span>Subjective</span>
         <textarea
@@ -287,6 +289,10 @@ function EncounterForm({
         />
       </label>
 
+        </div>
+      </fieldset>
+      <fieldset className="encounter-note-group encounter-patient-instructions">
+        <legend>Patient-facing instructions</legend>
       <label className="form-field">
         <span>Instructions for patient (optional)</span>
         <textarea
@@ -300,14 +306,16 @@ function EncounterForm({
         After finalization, the visit date, reason, and these instructions appear in the
         patient portal preview. Do not copy private clinical notes into patient instructions.
       </p>
+      </fieldset>
 
       {error && <p className="form-error" role="alert">{error}</p>}
 
+      <p className="encounter-help">Saving keeps the note editable. Review and finalization are separate steps.</p>
       <div className="encounter-form-actions">
         <button
           className="save-patient-button"
           type="submit"
-          disabled={isSaving}
+          disabled={isSaving || (selectedAppointmentId !== '' && isLoadingAppointments)}
         >
           {isSaving ? 'Saving...' : encounter ? 'Save Changes' : 'Save Visit Note'}
         </button>

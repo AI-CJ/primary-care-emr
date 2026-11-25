@@ -5,6 +5,7 @@ import AllergyForm from './AllergyForm'
 
 type AllergyListProps = {
   patientId: number
+  onChanged?: () => void
 }
 
 function severityLabel(severity: Allergy['severity']): string {
@@ -23,7 +24,7 @@ function severityLabel(severity: Allergy['severity']): string {
   return 'Severity unknown'
 }
 
-function AllergyList({ patientId }: AllergyListProps) {
+function AllergyList({ patientId, onChanged }: AllergyListProps) {
   const [allergies, setAllergies] = useState<Allergy[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +66,7 @@ function AllergyList({ patientId }: AllergyListProps) {
   function finishEditing() {
     setIsAdding(false)
     setEditingAllergy(null)
+    onChanged?.()
     void loadAllergies()
   }
 
