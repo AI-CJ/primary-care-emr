@@ -33,7 +33,7 @@ function ImmunizationForm({ patientId, onSaved, onCancel }: { patientId: number;
   const available = vaccine && (source !== 'clinic' || vaccine.kind === 'Active')
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!available || busy || (manufacturerName.trim() && !manufacturer)) return
+    if (!vaccine || !available || busy || (manufacturerName.trim() && !manufacturer)) return
     setBusy(true)
     setError('')
     const form = new FormData(event.currentTarget)
