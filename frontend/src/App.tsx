@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
 import './App.css'
 
@@ -96,7 +96,7 @@ const chartSections: SectionOption<ChartSection>[] = [
   { id: 'care', label: 'Care plan' },
 ]
 
-function StaffApp({ isAdmin }: { isAdmin: boolean }) {
+function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: RefObject<(() => boolean) | null> }) {
   const [search, setSearch] =
     useState('')
 
@@ -106,6 +106,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   const [showPortalPreview, setShowPortalPreview] = useState(false)
   const dirtyForms = useRef(new WeakSet<HTMLFormElement>())
   const workspaceRef = useRef<HTMLDivElement>(null)
+  const [focusRequest, setFocusRequest] = useState<{ target: 'page' | 'section'; revision: number }>({ target: 'page', revision: 0 })
   const openRequest = useRef(0)
   const searchRequest = useRef(0)
 
@@ -151,35 +152,36 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
     useState(true)
 
   useEffect(() => {
-    const controller = new AbortController()
-    const request = ++searchRequest.current
-    async function loadDirectory() {
-      try {
-        const response = await apiFetch(API_BASE_URL + '/patients', { signal: controller.signal })
-        if (!response.ok) throw new Error(await getApiErrorMessage(response))
-        const data: Patient[] = await response.json()
-        if (!controller.signal.aborted && request === searchRequest.current) setPatients(data)
-      } catch (reason) {
-        if (!controller.signal.aborted && request === searchRequest.current) setError(reason instanceof Error ? reason.message : 'Patient directory could not be loaded.')
-      } finally {
-        if (!controller.signal.aborted && request === searchRequest.current) setIsSearching(false)
-      }
+    if (focusRequest.revision === 0) return
+    const selector = focusRequest.target === 'section' ? '.chart-section-heading h2' : 'main h1'
+    const heading = workspaceRef.current?.querySelector<HTMLElement>(selector)
+    if (heading) {
+      heading.tabIndex = -1
+      heading.focus()
     }
-    void loadDirectory()
-    return () => controller.abort()
-  }, [])
+  }, [focusRequest])
 
-  function confirmNavigation() {
+  function requestFocus(target: 'page' | 'section' = 'page') {
+    setFocusRequest(current => ({ target, revision: current.revision + 1 }))
+  }
+
+  const confirmNavigation = useCallback(() => {
     const forms = workspaceRef.current?.querySelectorAll<HTMLFormElement>('form:not(.search-form)')
     if (forms && Array.from(forms).some((form) => dirtyForms.current.has(form) && form.getClientRects().length > 0)) {
       return window.confirm('Leave this screen? Unsaved form changes will be discarded.')
     }
     return true
-  }
+  }, [])
+
+  useEffect(() => {
+    signOutGuard.current = confirmNavigation
+    return () => { if (signOutGuard.current === confirmNavigation) signOutGuard.current = null }
+  }, [confirmNavigation, signOutGuard])
 
   function navigate(next: StaffDestination) {
     if (!confirmNavigation()) return
     openRequest.current += 1
+    searchRequest.current += 1
     setDestination(next)
     setSelectedPatient(null)
     setIsAddingPatient(false)
@@ -195,6 +197,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
       void searchPatients('')
     }
     window.scrollTo({ top: 0, behavior: 'auto' })
+    requestFocus()
   }
 
   function selectChartSection(next: ChartSection) {
@@ -203,6 +206,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
     setNoteToReview(null)
     setNoteToStart(null)
     setAppointmentToReview(null)
+    requestFocus('section')
   }
 
   function returnToDirectory() {
@@ -212,6 +216,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
     setShowPortalPreview(false)
     setIsEditingPatient(false)
     if (destination === 'patients') void searchPatients()
+    requestFocus()
   }
 
 
@@ -227,11 +232,10 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
         )}`
       )
 
+      if (request !== searchRequest.current) return
       if (!response.ok) {
-        setError(
-          await getApiErrorMessage(response)
-        )
-
+        const message = await getApiErrorMessage(response)
+        if (request === searchRequest.current) setError(message)
         return
       }
 
@@ -278,6 +282,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
       if (request !== openRequest.current) return
 
       setSelectedPatient(patient)
+      if (!noteAction && appointmentId === null) requestFocus()
       setPatients((current) => current.map((item) => item.id === patient.id ? patient : item))
       setChartSection(noteAction ? 'notes'
         : appointmentId !== null ? 'appointments'
@@ -316,7 +321,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
             className="back-button"
             type="button"
             onClick={() =>
-              confirmNavigation() && setIsAddingPatient(false)
+              confirmNavigation() && (setIsAddingPatient(false), requestFocus())
             }
           >
             ← Back to patient search
@@ -362,7 +367,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
             className="back-button"
             type="button"
             onClick={() =>
-              confirmNavigation() && setIsEditingPatient(false)
+              confirmNavigation() && (setIsEditingPatient(false), requestFocus())
             }
           >
             ← Back to patient overview
@@ -402,7 +407,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
     return (
       <PatientPortalPreview
         patient={selectedPatient}
-        onBack={() => setShowPortalPreview(false)}
+        onBack={() => { setShowPortalPreview(false); requestFocus() }}
       />
     )
   }
@@ -454,7 +459,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
                   selectedPatient
                 )}
 
-                {' · '}
+                {' · Sex at birth: '}
 
                 {
                   sexAtBirthLabels[
@@ -472,9 +477,9 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
               </span>
               <button className="secondary-action-button" type="button"
                 disabled={Boolean(selectedPatient.archived_at)}
-                onClick={() => confirmNavigation() && setIsEditingPatient(true)}>Edit Patient</button>
+                onClick={() => { if (confirmNavigation()) { setIsEditingPatient(true); requestFocus() } }}>Edit Patient</button>
               <button className="secondary-action-button" type="button"
-                onClick={() => confirmNavigation() && setShowPortalPreview(true)}>Preview Patient Portal</button>
+                onClick={() => { if (confirmNavigation()) { setShowPortalPreview(true); requestFocus() } }}>Preview Patient Portal</button>
             </div>
           </header>
 
@@ -548,7 +553,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   if (destination === 'requests') {
     return (
       <AppointmentChangeRequestsWorklist
-        onBack={() => { setError(null); setDestination('patients') }}
+        onBack={() => navigate('patients')}
         onOpenPatient={(patientId, appointmentId) => {
           void openPatient(patientId, appointmentId)
         }}
@@ -560,10 +565,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   if (destination === 'followups') {
     return (
       <OpenFollowUpTasksWorklist
-        onBack={() => {
-          setError(null)
-          setDestination('patients')
-        }}
+        onBack={() => navigate('patients')}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
         }}
@@ -575,10 +577,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   if (destination === 'goals') {
     return (
       <ActiveCareGoalsWorklist
-        onBack={() => {
-          setError(null)
-          setDestination('patients')
-        }}
+        onBack={() => navigate('patients')}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
         }}
@@ -590,10 +589,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   if (destination === 'referrals') {
     return (
       <PendingReferralWorklist
-        onBack={() => {
-          setError(null)
-          setDestination('patients')
-        }}
+        onBack={() => navigate('patients')}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
         }}
@@ -605,10 +601,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   if (destination === 'results') {
     return (
       <UnreleasedLabResultsWorklist
-        onBack={() => {
-          setError(null)
-          setDestination('patients')
-        }}
+        onBack={() => navigate('patients')}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
         }}
@@ -620,10 +613,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   if (destination === 'labs') {
     return (
       <PendingLabWorklist
-        onBack={() => {
-          setError(null)
-          setDestination('patients')
-        }}
+        onBack={() => navigate('patients')}
         onOpenPatient={(patientId) => {
           void openPatient(patientId)
         }}
@@ -636,10 +626,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   if (destination === 'past') {
     return (
       <PastAppointmentsWorklist
-        onBack={() => {
-          setError(null)
-          setDestination('patients')
-        }}
+        onBack={() => navigate('patients')}
         onOpenPatient={(patientId, appointmentId) => {
           void openPatient(patientId, appointmentId)
         }}
@@ -659,10 +646,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
       <ClinicSchedule
         day={scheduleDay}
         onDayChange={setScheduleDay}
-        onBack={() => {
-          setError(null)
-          setDestination('patients')
-        }}
+        onBack={() => navigate('patients')}
         onOpenPatient={(patientId, appointmentId) => {
           void openPatient(patientId, appointmentId)
         }}
@@ -686,7 +670,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
         <div className="search-panel-header">
           <div><p className="workspace-eyebrow">Patient registry</p><h1>Patient Search</h1><p className="workspace-description">Find a patient by name or open their chart from the directory.</p></div>
 
-          <button className="add-patient-button" type="button" onClick={() => setIsAddingPatient(true)}>
+          <button className="add-patient-button" type="button" onClick={() => { setIsAddingPatient(true); requestFocus() }}>
             + Add Patient
           </button>
         </div>
@@ -711,6 +695,8 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
             placeholder="Search patients"
           />
 
+          {search && <button className="secondary-action-button directory-clear" type="button"
+            onClick={() => { setSearch(''); void searchPatients('') }}>Clear search</button>}
           <button
             className="search-button"
             type="submit"
@@ -782,7 +768,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="staff-workspace">
       <WorkspaceNavigation current={selectedPatient || isAddingPatient ? 'patients' : destination}
-        isAdmin={isAdmin} onNavigate={navigate} />
+        chartOpen={Boolean(selectedPatient) || isAddingPatient} isAdmin={isAdmin} onNavigate={navigate} />
       <div className="workspace-content" ref={workspaceRef}
         onChangeCapture={(event) => {
           if (event.target instanceof HTMLElement) {
@@ -798,6 +784,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
 
 function App() {
   const [account, setAccount] = useState<SignedInAccount | null>(null)
+  const signOutGuard = useRef<(() => boolean) | null>(null)
   const [signInMode, setSignInMode] = useState<'staff' | 'patient'>('staff')
 
   useEffect(() => {
@@ -807,6 +794,9 @@ function App() {
   }, [])
 
   async function signOut() {
+    if (signOutGuard.current && !signOutGuard.current()) return
+    if (account?.account_type === 'patient' && document.querySelector('.patient-workspace form[data-unsaved="true"]') &&
+        !window.confirm('Sign out and discard unsaved changes?')) return
     try {
       await apiFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' })
     } finally {
@@ -835,7 +825,7 @@ function App() {
           Sign out
         </button>
       </header>
-      {account.account_type === 'patient' ? <PatientPortal /> : <StaffApp isAdmin={account.staff_role === 'admin'} />}
+      {account.account_type === 'patient' ? <PatientPortal /> : <StaffApp isAdmin={account.staff_role === 'admin'} signOutGuard={signOutGuard} />}
     </>
   )
 }

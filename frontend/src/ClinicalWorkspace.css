@@ -423,3 +423,11 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .portal-preferences-group legend { font-weight:650; color:#294b40; padding:0 6px; }
 .portal-preferences-group label + label { border-top:1px solid #d7e4dc; }
 .portal-preferences-group input { flex-shrink:0; accent-color:#1c6452; }
+
+/* Navigation focus and compact clinical history. */
+.workspace-content :is(h1,h2)[tabindex="-1"]:focus { outline:2px solid #287d91; outline-offset:5px; border-radius:3px; }
+.timeline-count { margin:10px 0 0; color:var(--text-muted); font-size:.85rem; }
+.timeline-expand { margin-top:12px; width:100%; min-height:40px; }
+.portal-card .portal-unsaved { margin:0; padding:8px 10px; background:#fbf1e6; color:#734b20; border-left:3px solid #bb8450; border-radius:4px; }
+.portal-home > .section-nav { margin-top:16px; }
+@media(max-width:540px) { .directory-clear { order:3; flex:0 0 100%; } .directory-page .search-form { flex-wrap:wrap; } }

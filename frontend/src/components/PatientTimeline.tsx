@@ -21,6 +21,9 @@ function PatientTimeline({ patientId }: PatientTimelineProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reloadCount, setReloadCount] = useState(0)
+  const [showAll, setShowAll] = useState(false)
+  const recentLimit = 5
+  const visibleEntries = showAll ? entries : entries.slice(0, recentLimit)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -72,7 +75,7 @@ function PatientTimeline({ patientId }: PatientTimelineProps) {
         </button>
       </div>
       <p className="patient-timeline-help">
-        A dated summary of chart records, not an audit trail. Refresh to see recent changes.
+        Recent chart activity. This is a clinical timeline, not an audit trail.
       </p>
 
       {isLoading && <p role="status">Loading clinical activity...</p>}
@@ -93,8 +96,9 @@ function PatientTimeline({ patientId }: PatientTimelineProps) {
       )}
       {!isLoading && !error && entries.length > 0 && (
         <>
-          <ol className="patient-timeline-list">
-            {entries.map((entry) => (
+          <p className="timeline-count" role="status">Showing {visibleEntries.length} of {entries.length} recent records.</p>
+          <ol className="patient-timeline-list" id="patient-timeline-records">
+            {visibleEntries.map((entry) => (
               <li className="patient-timeline-row" key={entry.kind + '-' + entry.record_id}>
                 <time dateTime={entry.occurred_on}>{entry.occurred_on}</time>
                 <div className="patient-timeline-detail">
@@ -105,9 +109,12 @@ function PatientTimeline({ patientId }: PatientTimelineProps) {
               </li>
             ))}
           </ol>
-          {entries.length === 50 && (
-            <p className="patient-timeline-help">Showing the 50 most recent records.</p>
-          )}
+          {entries.length > recentLimit && <button type="button" className="secondary-action-button timeline-expand"
+            aria-expanded={showAll} aria-controls="patient-timeline-records"
+            onClick={() => setShowAll(current => !current)}>
+            {showAll ? 'Show recent activity' : 'Show all ' + entries.length + ' recent records'}
+          </button>}
+          {entries.length === 50 && <p className="patient-timeline-help">The latest 50 records are loaded. Open the detailed chart sections for earlier records.</p>}
         </>
       )}
     </section>

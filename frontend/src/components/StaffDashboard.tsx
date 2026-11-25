@@ -6,6 +6,7 @@ import type { DailyScheduleEntry } from '../types'
 import { WorkspaceIcon } from './WorkspaceIcon'
 import { destinationIcon } from '../workspaceIcons'
 import { formatPortalDate } from '../portalAppointments'
+import { formatWorkQueueCount } from '../workQueueCount'
 
 const queues = [
   { id: 'requests', path: 'appointment-change-requests', title: 'Appointment requests', description: 'Review requested changes' },
@@ -89,8 +90,8 @@ export default function StaffDashboard({ onNavigate }: { onNavigate: (destinatio
         const count = counts[queue.id]
         return <button className="dashboard-queue" key={queue.id} type="button" onClick={() => onNavigate(queue.id)}>
           <span className="queue-heading"><span className="queue-icon"><WorkspaceIcon name={destinationIcon(queue.id)} size={22} /></span><span>{queue.title}</span><WorkspaceIcon name="arrow" size={15} /></span>
-          <strong className={count?.status === 'ready' ? 'queue-count' : 'queue-count queue-count-unavailable'}>{count?.status === 'ready' ? count.data : count?.status === 'error' ? 'Unavailable' : 'Loading…'}</strong>
-          <span>{count?.status === 'error' ? 'Open queue to retry' : queue.description}</span>
+          <strong className={count?.status === 'ready' ? 'queue-count' : 'queue-count queue-count-unavailable'}>{count?.status === 'ready' ? formatWorkQueueCount(count.data, queue.id === 'requests' ? 100 : undefined) : count?.status === 'error' ? 'Unavailable' : 'Loading…'}</strong>
+          <span>{count?.status === 'error' ? 'Open queue to retry' : queue.id === 'requests' && count?.status === 'ready' && count.data >= 100 ? 'At least 100 pending; review queue' : queue.description}</span>
         </button>
       })}
     </div>

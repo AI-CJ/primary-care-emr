@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { apiFetch, API_BASE_URL } from '../api'
 import { localDate } from '../date'
 import { groupPortalAppointments, formatPortalAppointment } from '../portalAppointments'
@@ -15,7 +15,7 @@ const actions: { section: PortalSection; title: string; description: string; ico
   { section: 'preferences', title: 'Communication preferences', description: 'Choose how you receive clinic updates', icon: 'settings' },
 ]
 
-export default function PortalHome({ onNavigate, patientId, active = true }: { onNavigate: (section: PortalSection) => void; patientId?: number; active?: boolean }) {
+export default function PortalHome({ onNavigate, patientId, active = true, navigation }: { onNavigate: (section: PortalSection) => void; patientId?: number; active?: boolean; navigation?: ReactNode }) {
   const [result, setResult] = useState<AppointmentState>({ status: 'loading' })
   const [refresh, setRefresh] = useState(0)
   useEffect(() => {
@@ -50,6 +50,7 @@ export default function PortalHome({ onNavigate, patientId, active = true }: { o
       </div>
       <button className="next-visit-action" type="button" onClick={() => onNavigate('visits')}>View appointments <span aria-hidden="true">→</span></button>
     </section>
+    {navigation}
     <h2 className="portal-home-heading">What would you like to do?</h2>
     <div className="portal-task-grid">{actions.filter(action => patientId === undefined || action.section !== 'preferences').map(action =>
       <button className="portal-task" type="button" key={action.section} onClick={() => onNavigate(action.section)}>

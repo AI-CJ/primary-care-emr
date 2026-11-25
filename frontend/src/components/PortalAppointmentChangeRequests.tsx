@@ -64,6 +64,7 @@ export default function PortalAppointmentChangeRequests() {
       const request: AppointmentChangeRequest = await response.json()
       setData((current) => current ? { ...current, requests: [request, ...current.requests] } : current)
       setAppointmentId('')
+      setKind('reschedule')
       setNotice('Request sent for staff review. Your scheduled visit has not changed.')
     } catch (reason) {
       setActionError(reason instanceof TypeError ? 'Unable to reach the server. Try again.'
@@ -91,7 +92,7 @@ export default function PortalAppointmentChangeRequests() {
           <p>No eligible appointments for a new request. An existing pending request
             also prevents another request for the same visit.</p>
         ) : (
-          <form className="portal-change-form" onSubmit={(event) => void submit(event)}>
+          <form className="portal-change-form" data-unsaved={(appointmentId !== '' || kind !== 'reschedule') || undefined} onSubmit={(event) => void submit(event)}>
             <label htmlFor="request-appointment">Scheduled visit</label>
             <select id="request-appointment" value={appointmentId} disabled={saving} required
               onChange={(event) => { setAppointmentId(event.target.value); setActionError(null) }}>
