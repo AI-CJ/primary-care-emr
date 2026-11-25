@@ -69,6 +69,9 @@ def verify_workspace(url, revision):
         print(f"Prepared clinician sign-in: {monotonic() - signin:.2f}s ({url})")
         expect(page.get_by_role("button", name="Audit activity", exact=True)).to_have_count(0)
         page.get_by_role("button", name=re.compile("Find a patient")).click()
+        expect(page.get_by_text("400 patients found", exact=False)).to_be_visible(timeout=TIMEOUT)
+        page.get_by_role("searchbox", name="Search patients").fill("Jordan")
+        page.get_by_role("button", name="Search", exact=True).click()
         page.get_by_role("button", name=re.compile("Lee, Jordan")).click()
         expect(page.get_by_role("heading", name="Jordan Lee", exact=True)).to_be_visible()
         expect(page.get_by_role("region", name="Active conditions")).to_contain_text(

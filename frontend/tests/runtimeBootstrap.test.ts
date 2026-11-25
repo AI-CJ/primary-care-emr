@@ -42,10 +42,12 @@ test('fetch the independent archive before Python core is ready, then initialize
   assert.equal(await initializing, runtime)
   assert.deepEqual(events, ['core', 'archive', 'packages', 'unpack',
     'from backend.browser_demo import initialize_browser, browser_request',
-    'initialize_browser()', 'from backend.main import app'])
+    'initialize_browser()',
+    'from backend.synthetic_population import extend_browser_population; extend_browser_population()',
+    'from backend.main import app'])
   assert.ok(report)
   assert.deepEqual(Object.keys(report).sort(), ['apiImportMs', 'archiveDownloadMs', 'coreMs',
-    'databaseSeedMs', 'packagesMs', 'pythonImportMs', 'totalMs', 'unpackMs'].sort())
+    'databaseSeedMs', 'packagesMs', 'populationSeedMs', 'pythonImportMs', 'totalMs', 'unpackMs'].sort())
   assert.ok(Object.values(report).every(value => Number.isFinite(value) && value >= 0))
 })
 
