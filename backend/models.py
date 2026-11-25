@@ -648,3 +648,35 @@ class UserSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+class PatientBackground(Base):
+    """Recorded longitudinal context, separate from demographic identity."""
+
+    __tablename__ = "patient_backgrounds"
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id", ondelete="RESTRICT"), primary_key=True)
+    reviewed_on: Mapped[date] = mapped_column(nullable=False)
+    medical_history: Mapped[str] = mapped_column(Text(), nullable=False)
+    surgical_history: Mapped[str] = mapped_column(Text(), nullable=False)
+    family_history: Mapped[str] = mapped_column(Text(), nullable=False)
+    social_history: Mapped[str] = mapped_column(Text(), nullable=False)
+    care_context: Mapped[str] = mapped_column(Text(), nullable=False)
+
+
+class ImagingReport(Base):
+    """Historical report text, not an imaging order or a stored DICOM study."""
+
+    __tablename__ = "imaging_reports"
+    __table_args__ = (
+        CheckConstraint("shared_on IS NULL OR shared_on >= reported_on", name="ck_imaging_report_share_date"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id", ondelete="RESTRICT"), index=True, nullable=False)
+    performed_on: Mapped[date] = mapped_column(nullable=False)
+    reported_on: Mapped[date] = mapped_column(nullable=False)
+    modality: Mapped[str] = mapped_column(String(40), nullable=False)
+    study: Mapped[str] = mapped_column(String(200), nullable=False)
+    indication: Mapped[str] = mapped_column(Text(), nullable=False)
+    findings: Mapped[str] = mapped_column(Text(), nullable=False)
+    impression: Mapped[str] = mapped_column(Text(), nullable=False)
+    source: Mapped[str] = mapped_column(String(200), nullable=False)
+    shared_on: Mapped[date | None] = mapped_column(nullable=True)
