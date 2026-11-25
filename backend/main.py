@@ -15,7 +15,8 @@ from backend.database import engine
 from backend.icd10_catalog import RELEASE, search_codes
 from backend.clinical_reference import medication_values, reference_search
 from backend.immunizations import (ImmunizationCreate, ImmunizationRead, ImmunizationVoid,
-    PortalImmunizationRead, list_immunizations, record_immunization, void_immunization)
+    PortalImmunizationRead, list_immunizations, record_immunization, void_immunization,
+    validate_birth_date_against_immunizations)
 from backend.diagnosis_indications import problem_values, select_indications, replace_indications
 from backend.settings import cors_origins
 from backend.patient_lifecycle import (
@@ -528,6 +529,7 @@ def update_patient(
 ):
     with Session(engine) as session:
         patient = lock_active_patient(session, patient_id)
+        validate_birth_date_against_immunizations(session, patient, patient_data.date_of_birth)
 
         for field, value in patient_data.model_dump().items():
             setattr(patient, field, value)
