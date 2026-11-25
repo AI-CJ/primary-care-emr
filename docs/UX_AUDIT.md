@@ -119,3 +119,29 @@ The application release evidence above is tied to its verified SHA. The document
 - The final main frontend installation reported **11 npm dependency advisories: nine moderate and two high**. See [frontend job 138976427559](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546235206/job/138976427559). The sprint introduced no new application dependencies. Advisory details, affected dependency paths, exploitability and remediation remain unverified; a separate dependency review is required.
 - Representative-user validation, screen-reader evaluation, complete accessibility/security audit, independent deployed-site screenshots and public-network latency benchmarks are not complete.
 - Future releases should pass the same automated gates and verify the deployed commit. Keep the last verified application available if a new build fails. Do not treat archived local CI captures as direct public-site verification.
+
+
+## Follow-up interface audit (November 25, 2026)
+
+**Baseline:** `b5b8abf5aaa6fd467fe9b5ff48903c6c1b2f8a04`  
+**Audited changes:** `0b2907d34d2fc89f48d5f746dd5fe1ebd11d20e2`  
+**Review:** [PR 79](https://github.com/AI-CJ/primary-care-emr/pull/79), [passing verification](https://github.com/AI-CJ/primary-care-emr/actions/runs/45559505198).
+
+The review used the six baseline Chromium screenshots from [Checks 45558339219](https://github.com/AI-CJ/primary-care-emr/actions/runs/45558339219) and seven new captures from the passing refinement build. The actual rendered screenshots were inspected, including both sign-in modes, staff dashboard, patient chart summary, patient home and mobile views. The captures were made using a locally served browser build with fictional starting records, not by independently accessing the public site.
+
+| Full-page capture | Baseline height | Refined height | Viewport width |
+| --- | ---: | ---: | ---: |
+| Staff sign-in | 950 px | 900 px | 1280 px |
+| Staff dashboard | 947 px | 902 px | 1280 px |
+| Patient chart summary | 2168 px | 1584 px | 1280 px |
+| Patient sign-in | 962 px | 900 px | 1280 px |
+| Patient home | 1033 px | 956 px | 1280 px |
+| Mobile patient home | 1795 px | 1666 px | 360 px |
+
+These are full-page screenshot dimensions from the specific test records and viewports, not representative-user task measurements. The more compact chart summary retains all returned timeline entries through an explicit expansion control; it does not delete or omit them from the API. The staff chart also has a new 360 px capture. Its clinical content still requires vertical scrolling on narrow screens.
+
+The visual pass introduced original shared SVG icons and adjusted spacing, card grids, typography and status feedback. The interaction pass corrected mobile chart-to-directory navigation, avoids loading the directory before it is visited, moves keyboard focus to staff destinations without overriding linked-appointment or note focus, preserves unsaved staff and patient edits when sign-out is cancelled, prioritizes the upcoming visit on patient home, and labels bounded request counts without implying an exact total.
+
+All five jobs passed at the audited revision. PostgreSQL migrations and 376 backend tests passed; frontend lint, 34 tests and production build passed. Browser tests exercised all six dashboard queue destinations, timeline expansion/collapse, staff focus, patient focus, mobile chart navigation, clearing search, unsaved staff sign-out cancellation, hidden patient preference draft cancellation, preference save state, clinical workflows and reset. The browser-only clinical API smoke also passed. The seven PNGs were uploaded as the `emr-workspace-screenshots` artifact (ID 14997770476, retained for 30 days).
+
+The browser run measured 7.01 seconds for preparation and 0.41 seconds for prepared sign-in on its local CI server. This is another observation, not a production benchmark. No application dependency, database migration, or clinical API contract changed. Existing npm installation warnings still report nine moderate and two high advisories; remediation and production exposure assessment remain outstanding. This pass does not establish complete accessibility, usability, security or clinical certification. Screen-reader, representative-user and independent public-network checks remain open. The audited branch and subsequent deployment must pass their release gates before the refinements are published.

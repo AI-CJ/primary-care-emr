@@ -1,4 +1,6 @@
 import { type StaffDestination, staffDestinationLabels } from '../workspaceNavigation'
+import { WorkspaceIcon } from './WorkspaceIcon'
+import { destinationIcon } from '../workspaceIcons'
 
 const groups: { label: string; destinations: StaffDestination[] }[] = [
   { label: 'Clinical', destinations: ['dashboard', 'patients', 'schedule', 'past'] },
@@ -8,11 +10,12 @@ const groups: { label: string; destinations: StaffDestination[] }[] = [
 
 type Props = {
   current: StaffDestination
+  chartOpen: boolean
   isAdmin: boolean
   onNavigate: (destination: StaffDestination) => void
 }
 
-export default function WorkspaceNavigation({ current, isAdmin, onNavigate }: Props) {
+export default function WorkspaceNavigation({ current, chartOpen, isAdmin, onNavigate }: Props) {
   const visible = groups.filter((group) => isAdmin || group.label !== 'Administration')
   return (
     <aside className="workspace-sidebar">
@@ -25,7 +28,8 @@ export default function WorkspaceNavigation({ current, isAdmin, onNavigate }: Pr
               <button key={destination} type="button"
                 aria-current={current === destination ? 'page' : undefined}
                 onClick={() => onNavigate(destination)}>
-                {staffDestinationLabels[destination]}
+                <WorkspaceIcon name={destinationIcon(destination)} size={18} />
+                <span>{staffDestinationLabels[destination]}</span>
               </button>
             ))}
           </div>
@@ -33,8 +37,9 @@ export default function WorkspaceNavigation({ current, isAdmin, onNavigate }: Pr
       </nav>
       <label className="workspace-mobile-nav">
         <span>Workspace</span>
-        <select aria-label="Staff workspace" value={current}
+        <select aria-label="Staff workspace" value={chartOpen ? 'chart' : current}
           onChange={(event) => onNavigate(event.target.value as StaffDestination)}>
+          {chartOpen && <option value="chart" disabled>Patient chart</option>}
           {visible.map((group) => (
             <optgroup key={group.label} label={group.label}>
               {group.destinations.map((destination) => <option key={destination} value={destination}>{staffDestinationLabels[destination]}</option>)}

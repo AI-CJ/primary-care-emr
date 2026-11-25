@@ -36,6 +36,8 @@ export default function PatientPortal() {
     setVisited((current) => current.includes(next) ? current : [...current, next])
   }
 
+  const navigation = <SectionNavigation label="Patient portal sections" options={portalSections} current={section} onChange={navigate} />
+
   return (
     <main className="portal-preview patient-workspace">
       <div className="portal-shell">
@@ -44,12 +46,12 @@ export default function PatientPortal() {
           <h1 ref={pageHeading} tabIndex={-1}>{section === 'health' ? 'My health summary' : 'Your patient portal'}</h1>
           <p>Access your health record and manage your appointments in one place.</p>
         </header>
-        <SectionNavigation label="Patient portal sections" options={portalSections} current={section} onChange={navigate} />
+        {section !== 'home' && navigation}
         {section !== 'home' && <div className="portal-section-heading">
           <h2 ref={sectionHeading} tabIndex={-1}>{portalSections.find((item) => item.id === section)?.label}</h2>
           <p>{portalSectionDescriptions[section]}</p>
         </div>}
-        {section === 'home' && <PortalHome onNavigate={navigate} />}
+        {section === 'home' && <PortalHome onNavigate={navigate} navigation={navigation} />}
         {section === 'health' && <div className="portal-grid">
           <PortalProblemList />
           <PortalMedications />

@@ -12,6 +12,7 @@ const ENDPOINT = API_BASE_URL + '/portal/communication-preferences'
 
 export default function PortalCommunicationPreferences() {
   const [preferences, setPreferences] = useState<Preferences | null>(null)
+  const [savedPreferences, setSavedPreferences] = useState<Preferences | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +29,7 @@ export default function PortalCommunicationPreferences() {
         const response = await apiFetch(ENDPOINT, { signal: controller.signal })
         if (!response.ok) throw new Error(await getApiErrorMessage(response))
         const data: Preferences = await response.json()
-        if (!controller.signal.aborted) setPreferences(data)
+        if (!controller.signal.aborted) { setPreferences(data); setSavedPreferences(data) }
       } catch (reason) {
         if (!controller.signal.aborted) {
           setError(reason instanceof Error ? reason.message : 'Unable to load preferences.')
@@ -56,6 +57,7 @@ export default function PortalCommunicationPreferences() {
       if (!response.ok) throw new Error(await getApiErrorMessage(response))
       const saved: Preferences = await response.json()
       setPreferences(saved)
+      setSavedPreferences(saved)
       setNotice('Your communication preferences were saved.')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to save preferences.')
@@ -63,6 +65,12 @@ export default function PortalCommunicationPreferences() {
       setSaving(false)
     }
   }
+
+  const changed = preferences !== null && savedPreferences !== null && (
+    preferences.preferred_channel !== savedPreferences.preferred_channel ||
+    preferences.appointment_reminders !== savedPreferences.appointment_reminders ||
+    preferences.care_updates !== savedPreferences.care_updates
+  )
 
   return (
     <section className="portal-card" aria-labelledby="portal-communication">
@@ -80,7 +88,7 @@ export default function PortalCommunicationPreferences() {
         </button>
       )}
       {!loading && preferences && (
-        <form className="portal-preferences-form" onSubmit={(event) => void save(event)}>
+        <form className="portal-preferences-form" data-unsaved={changed || undefined} onSubmit={(event) => void save(event)}>
           <label htmlFor="preferred-channel">Preferred contact method</label>
           <select id="preferred-channel" value={preferences.preferred_channel}
             disabled={saving}
@@ -113,7 +121,8 @@ export default function PortalCommunicationPreferences() {
             General care updates
           </label>
           </fieldset>
-          <button className="portal-primary-action" type="submit" disabled={saving}>
+          {changed && <p className="portal-unsaved" role="status">You have unsaved changes.</p>}
+          <button className="portal-primary-action" type="submit" disabled={saving || !changed}>
             {saving ? 'Saving...' : 'Save preferences'}
           </button>
           {notice && <p role="status" className="portal-confirmation">{notice}</p>}

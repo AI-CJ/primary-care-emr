@@ -29,3 +29,9 @@ The release audit records measured preparation and sign-in times. The initial ru
 ## Reference captures
 
 The interactive browser CI job can save screenshots of the built application at the actual staff and patient workflow states. The images are captured from the isolated local workspace, not a design mockup or a real patient system. Reproduction instructions are in the [frontend guide](../frontend/README.md#capture-reference-screenshots).
+
+## Interface refinement
+
+The follow-up visual pass uses actual desktop and mobile captures as its reference. A shared set of original SVG line icons identifies account roles, worklists and patient tasks without replacing text labels. The sign-in layout is more compact, preparation feedback has its own spacing and status indicator, staff queues form a balanced grid, and the legal notice retains its safety information in a shorter form. No external artwork, fonts or dependencies are introduced.
+
+The interaction pass places the next appointment before the patient home navigation, shows five recent timeline entries with the remaining returned history available on request, and labels a capped appointment-request count as 100+ rather than an exact total. Staff navigation transfers focus to the destination heading while retaining existing appointment- and note-specific focus behavior. Mobile chart navigation distinguishes the open chart from the patient directory; the directory loads when visited and can clear its search. Sign-out uses the existing staff draft protection and checks unsaved patient preference or appointment-request inputs, including forms retained when hidden. Preference saving is disabled until a value changes. These changes are verified through the actual browser workflow and focused frontend tests, not a claim of complete clinical usability validation.
