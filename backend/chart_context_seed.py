@@ -153,10 +153,10 @@ def daily_context(patient: Patient, as_of: date) -> tuple[str, str]:
 
 def _report(patient_id: int, performed: date, reviewed: date, modality: str,
             study: str, indication: str, findings: str, impression: str,
-            rng: Random) -> dict:
+            rng: Random, *, force_shared: bool = False) -> dict:
     reported = performed + timedelta(days=rng.choice([0, 0, 1, 2]))
     # Historical results are not automatically exposed to the portal.
-    shared = min(reviewed, reported + timedelta(days=rng.randint(1, 7))) if rng.random() < .86 else None
+    shared = min(reviewed, reported + timedelta(days=rng.randint(1, 7))) if force_shared or rng.random() < .86 else None
     return dict(patient_id=patient_id, performed_on=performed, reported_on=reported,
                 modality=modality, study=study, indication=indication,
                 findings=findings, impression=impression,
@@ -207,15 +207,17 @@ def seed_chart_backgrounds(session: Session, *, as_of: date) -> None:
         surgical = rng.choice(("No prior operations reported at this review.",
                                "Past surgical history not fully established.",
                                "No previous surgery documented in the available record."))
-        if rng.random() < .36:
+        reference_jordan = (patient.first_name, patient.last_name) == ("Jordan", "Lee")
+        if reference_jordan or rng.random() < .36:
             eligible = PRIOR_EVENTS if age >= 60 else PRIOR_EVENTS[:-1]
-            event, surgery, imaging = rng.choice(eligible)
+            event, surgery, imaging = PRIOR_EVENTS[2] if reference_jordan else rng.choice(eligible)
             # Keep the remote event after birth and before the reviewed encounter.
             performed = reviewed - timedelta(days=rng.randint(210, min(2200, max(210, (age - 15) * 365))))
             medical += " " + event + " Prior episode dated approximately " + str(performed.year) + "."
             surgical = surgery + " History obtained at the primary care review."
             if imaging:
-                reports.append(_report(patient.id, performed, reviewed, *imaging, rng))
+                reports.append(_report(patient.id, performed, reviewed, *imaging, rng,
+                                       force_shared=reference_jordan))
         if "M17.11" in codes and rng.random() < .78:
             study, indication, findings, impression = rng.choice(KNEE_REPORTS)
             onset = codes["M17.11"].onset_date or reviewed - timedelta(days=90)
