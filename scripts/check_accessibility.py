@@ -86,6 +86,43 @@ def keyboard_click(page, locator):
     page.keyboard.press("Enter")
 
 
+def contrast_ratio(foreground, background):
+    def luminance(rgb):
+        channels = [value / 255 for value in rgb]
+        values = [value / 12.92 if value <= .04045
+                  else ((value + .055) / 1.055) ** 2.4 for value in channels]
+        return sum(value * weight for value, weight in zip(values, (.2126, .7152, .0722)))
+
+    levels = sorted((luminance(foreground), luminance(background)))
+    return (levels[1] + .05) / (levels[0] + .05)
+
+
+def assert_field_boundary(locator):
+    """Check the solid border against the field fill, not the surrounding page."""
+    border, fill = locator.evaluate("""el => {
+      const style = getComputedStyle(el);
+      return [style.borderTopColor, style.backgroundColor];
+    }""")
+    def rgb(value):
+        return [float(channel) for channel in re.findall(r"[\d.]+", value)][:3]
+
+    ratio = contrast_ratio(rgb(border), rgb(fill))
+    assert ratio >= 3, f"Control border contrast {ratio:.2f}:1 below 3:1"
+    print(f"Computed field boundary contrast: {ratio:.2f}:1")
+
+
+def assert_visible_keyboard_focus(locator):
+    locator.focus()
+    expect(locator).to_be_focused()
+    result = locator.evaluate("""el => {
+      const style = getComputedStyle(el);
+      return [el.matches(':focus-visible'), style.outlineStyle, parseFloat(style.outlineWidth)];
+    }""")
+    assert result[0] and result[1] == "solid" and result[2] >= 2, (
+        f"Expected visible keyboard outline, got {result}"
+    )
+
+
 def assert_solid_contrast(locator, minimum=4.5):
     # Sample computed solid surfaces, not gradients or composited backgrounds.
     result = locator.evaluate("""el => {
@@ -107,14 +144,7 @@ def assert_solid_contrast(locator, minimum=4.5):
     foreground = [float(value) for value in re.findall(r"[\d.]+", result[0])][:3]
     background = result[1]
 
-    def luminance(rgb):
-        channels = [value / 255 for value in rgb]
-        values = [value / 12.92 if value <= .04045
-                  else ((value + .055) / 1.055) ** 2.4 for value in channels]
-        return sum(value * weight for value, weight in zip(values, (.2126, .7152, .0722)))
-
-    levels = sorted((luminance(foreground), luminance(background)))
-    ratio = (levels[1] + .05) / (levels[0] + .05)
+    ratio = contrast_ratio(foreground, background)
     assert ratio >= minimum, f"Computed contrast {ratio:.2f}:1 below {minimum}:1"
     print(f"Computed solid contrast: {ratio:.2f}:1")
 
@@ -144,6 +174,15 @@ def run():
         assert_exposed(page, "textbox", "Username")
         assert_exposed(page, "status")
         assert_solid_contrast(page.get_by_role("button", name="Sign in", exact=True))
+        username = page.get_by_role("textbox", name="Username")
+        assert_field_boundary(username)
+        assert_visible_keyboard_focus(username)
+        # Verify the sign-in page reflows without hiding the legal notice.
+        for width in (360, 320):
+            page.set_viewport_size({"width": width, "height": 800})
+            inspect_screen(page, f"Staff sign-in at {width}px")
+            assert page.get_by_role("button", name="Sign in as Administrator").bounding_box()["height"] >= 44
+        page.set_viewport_size({"width": 1280, "height": 900})
         keyboard_click(page, page.get_by_role("button", name="Sign in as Administrator"))
         expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_focused(timeout=TIMEOUT)
         inspect_screen(page, "Staff dashboard")
@@ -153,6 +192,8 @@ def run():
         keyboard_click(page, page.get_by_role("button", name=re.compile("Find a patient")))
         expect(page.get_by_role("heading", name="Patient Search", exact=True)).to_be_focused()
         search = page.get_by_role("searchbox", name="Search patients")
+        assert_field_boundary(search)
+        assert_visible_keyboard_focus(search)
         search.fill("Jordan")
         keyboard_click(page, page.get_by_role("button", name="Search", exact=True))
         keyboard_click(page, page.get_by_role("button", name=re.compile("Lee, Jordan")))
@@ -177,6 +218,8 @@ def run():
         expect(page.locator(".portal-section-heading h2")).to_be_focused()
         channel = page.get_by_role("combobox", name="Preferred contact method")
         expect(channel).to_have_value("portal")
+        assert_field_boundary(channel)
+        assert_visible_keyboard_focus(channel)
         inspect_screen(page, "Patient settings")
         assert_exposed(page, "form", "Communication preferences")
         assert_exposed(page, "group", "Types of updates")
