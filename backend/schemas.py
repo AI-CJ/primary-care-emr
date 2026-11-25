@@ -277,6 +277,879 @@ class MedicationBase(BaseModel):
 
 
 class MedicationCreate(MedicationBase):
+    rxnorm_cui: str | None = Field(default=None, pattern=r'^[0-9]{1,20}
+    # Missing on an older client means preserve recorded links during an edit.
+    problem_ids: list[ProblemId] | None = Field(default=None, max_length=20)
+
+
+class MedicationRead(MedicationBase):
+    rxnorm_cui: str | None = None
+    rxnorm_release: str | None = None
+    rxnorm_kind: str | None = None
+    id: int
+    patient_id: int
+    indications: list[DiagnosisIndicationRead] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PortalMedicationSummary(BaseModel):
+    id: int
+    name: str
+    strength: str | None
+    dose: str | None
+    frequency: str | None
+    status: MedicationStatus
+    start_date: date | None
+    end_date: date | None
+    instructions: str | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AllergyBase(BaseModel):
+    allergen: str = Field(max_length=200)
+    reaction: str | None = Field(default=None, max_length=300)
+    severity: AllergySeverity = "unknown"
+    status: AllergyStatus = "active"
+    onset_date: date | None = None
+    notes: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("allergen")
+    @classmethod
+    def allergen_must_not_be_blank(cls, value: str) -> str:
+        value = value.strip()
+
+        if not value:
+            raise ValueError("Allergen cannot be blank")
+
+        return value
+
+    @field_validator("reaction", "notes")
+    @classmethod
+    def clean_allergy_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        value = value.strip()
+        return value or None
+
+    @field_validator("onset_date")
+    @classmethod
+    def allergy_onset_cannot_be_future(
+        cls,
+        value: date | None,
+    ) -> date | None:
+        if value is not None and value > date.today():
+            raise ValueError("Allergy onset date cannot be in the future")
+
+        return value
+
+
+class AllergyCreate(AllergyBase):
+    pass
+
+
+class AllergyRead(AllergyBase):
+    id: int
+    patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PortalAllergySummary(BaseModel):
+    id: int
+    allergen: str
+    reaction: str | None
+    severity: AllergySeverity
+    status: AllergyStatus
+    onset_date: date | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class VitalBase(BaseModel):
+    recorded_on: date
+    systolic_bp: int | None = Field(default=None, ge=1, le=400)
+    diastolic_bp: int | None = Field(default=None, ge=1, le=300)
+    heart_rate: int | None = Field(default=None, ge=1, le=350)
+    respiratory_rate: int | None = Field(default=None, ge=1, le=150)
+    temperature_c: float | None = Field(
+        default=None, ge=0, le=60, allow_inf_nan=False
+    )
+    oxygen_saturation: int | None = Field(default=None, ge=0, le=100)
+    height_cm: float | None = Field(
+        default=None, gt=0, le=300, allow_inf_nan=False
+    )
+    weight_kg: float | None = Field(
+        default=None, gt=0, le=1000, allow_inf_nan=False
+    )
+    notes: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("recorded_on")
+    @classmethod
+    def recorded_on_cannot_be_future(cls, value: date) -> date:
+        if value > date.today():
+            raise ValueError("Recorded date cannot be in the future")
+        return value
+
+    @field_validator("notes")
+    @classmethod
+    def clean_vital_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+    @model_validator(mode="after")
+    def validate_measurements(self):
+        if (self.systolic_bp is None) != (self.diastolic_bp is None):
+            raise ValueError(
+                "Both systolic and diastolic blood pressure are required together"
+            )
+        if (
+            self.systolic_bp is not None
+            and self.diastolic_bp is not None
+            and self.systolic_bp < self.diastolic_bp
+        ):
+            raise ValueError(
+                "Systolic blood pressure cannot be below diastolic blood pressure"
+            )
+        measurements = (
+            self.systolic_bp, self.diastolic_bp, self.heart_rate,
+            self.respiratory_rate, self.temperature_c,
+            self.oxygen_saturation, self.height_cm, self.weight_kg,
+        )
+        if all(value is None for value in measurements):
+            raise ValueError("At least one vital measurement is required")
+        return self
+
+
+class VitalCreate(VitalBase):
+    pass
+
+
+class VitalRead(VitalBase):
+    id: int
+    patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PortalVitalSummary(BaseModel):
+    id: int
+    recorded_on: date
+    systolic_bp: int | None
+    diastolic_bp: int | None
+    heart_rate: int | None
+    respiratory_rate: int | None
+    temperature_c: float | None
+    oxygen_saturation: int | None
+    height_cm: float | None
+    weight_kg: float | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class EncounterBase(BaseModel):
+    visit_date: date
+    reason_for_visit: str = Field(max_length=200)
+    subjective: str | None = Field(default=None, max_length=4000)
+    objective: str | None = Field(default=None, max_length=4000)
+    assessment: str | None = Field(default=None, max_length=4000)
+    plan: str | None = Field(default=None, max_length=4000)
+    patient_instructions: str | None = Field(default=None, max_length=4000)
+
+    @field_validator("visit_date")
+    @classmethod
+    def visit_date_cannot_be_future(cls, value: date) -> date:
+        if value > date.today():
+            raise ValueError("Visit date cannot be in the future")
+        return value
+
+    @field_validator("reason_for_visit")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Reason for visit cannot be blank")
+        return value
+
+    @field_validator("subjective", "objective", "assessment", "plan", "patient_instructions")
+    @classmethod
+    def clean_note_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+    @model_validator(mode="after")
+    def at_least_one_note_section(self):
+        if not any(
+            (self.subjective, self.objective, self.assessment, self.plan)
+        ):
+            raise ValueError("Complete at least one visit note section")
+        return self
+
+
+class EncounterCreate(EncounterBase):
+    appointment_id: int | None = Field(default=None, gt=0)
+
+
+class EncounterUpdate(EncounterBase):
+    # The link between a visit note and its appointment is permanent.
+    model_config = ConfigDict(extra="forbid")
+
+
+class EncounterRead(EncounterBase):
+    id: int
+    patient_id: int
+    appointment_id: int | None
+    finalized_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PortalVisitSummary(BaseModel):
+    id: int
+    visit_date: date
+    reason_for_visit: str
+    patient_instructions: str | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class EncounterAddendumCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("content")
+    @classmethod
+    def content_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Addendum cannot be blank")
+        return value
+
+
+class EncounterAddendumRead(EncounterAddendumCreate):
+    id: int
+    encounter_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class EncounterProblemLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    problem_id: int = Field(gt=0)
+
+
+class EncounterProblemRead(EncounterProblemLinkCreate):
+    id: int
+    encounter_id: int
+    problem_name_at_link: str
+    problem_status_at_link: ProblemStatus
+    icd10_code_at_link: str | None = None
+    icd10_release_at_link: str | None = None
+    linked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+
+class EncounterVitalLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    vital_id: int = Field(gt=0)
+
+
+class EncounterVitalRead(EncounterVitalLinkCreate):
+    id: int
+    encounter_id: int
+    recorded_on_at_link: date
+    systolic_bp_at_link: int | None
+    diastolic_bp_at_link: int | None
+    heart_rate_at_link: int | None
+    respiratory_rate_at_link: int | None
+    temperature_c_at_link: float | None
+    oxygen_saturation_at_link: int | None
+    height_cm_at_link: float | None
+    weight_kg_at_link: float | None
+    notes_at_link: str | None
+    linked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class EncounterMedicationLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medication_id: int = Field(gt=0)
+
+
+class EncounterMedicationRead(EncounterMedicationLinkCreate):
+    rxnorm_cui_at_link: str | None = None
+    rxnorm_release_at_link: str | None = None
+    rxnorm_kind_at_link: str | None = None
+    id: int
+    encounter_id: int
+    name_at_link: str
+    strength_at_link: str | None
+    dose_at_link: str | None
+    route_at_link: str | None
+    frequency_at_link: str | None
+    status_at_link: MedicationStatus
+    start_date_at_link: date | None
+    end_date_at_link: date | None
+    instructions_at_link: str | None
+    indications_at_link: list[DiagnosisIndicationRead] = Field(default_factory=list)
+    linked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class EncounterAllergyLinkCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    allergy_id: int = Field(gt=0)
+
+
+class EncounterAllergyRead(EncounterAllergyLinkCreate):
+    id: int
+    encounter_id: int
+    allergen_at_link: str
+    reaction_at_link: str | None
+    severity_at_link: AllergySeverity
+    status_at_link: AllergyStatus
+    onset_date_at_link: date | None
+    notes_at_link: str | None
+    linked_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class LabOrderBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    test_name: str = Field(min_length=1, max_length=200)
+    priority: Literal["routine", "urgent"] = "routine"
+    clinical_reason: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("test_name")
+    @classmethod
+    def test_name_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Lab test name cannot be blank")
+        return value
+
+    @field_validator("clinical_reason")
+    @classmethod
+    def clean_clinical_reason(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class LabOrderCreate(LabOrderBase):
+    problem_ids: list[ProblemId] = Field(default_factory=list, max_length=20)
+
+
+class LabOrderCancel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Cancellation reason cannot be blank")
+        return value
+
+
+class LabOrderRead(LabOrderBase):
+    indications: list[DiagnosisIndicationRead] = Field(default_factory=list)
+    id: int
+    encounter_id: int
+    status: Literal["ordered", "resulted", "cancelled"]
+    ordered_at: datetime
+    cancelled_at: datetime | None
+    cancellation_reason: str | None
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class LabResultCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    collected_on: date
+    result_text: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("collected_on")
+    @classmethod
+    def collected_on_cannot_be_future(cls, value: date) -> date:
+        if value > date.today():
+            raise ValueError("Collection date cannot be in the future")
+        return value
+
+    @field_validator("result_text")
+    @classmethod
+    def result_text_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Lab result cannot be blank")
+        return value
+
+
+class LabResultRead(LabResultCreate):
+    id: int
+    lab_order_id: int
+    reported_at: datetime
+    released_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class PatientLabOrderRead(LabOrderRead):
+    visit_date: date
+    result: LabResultRead | None
+
+
+
+class PortalLabResultSummary(BaseModel):
+    collected_on: date
+    result_text: str
+    reported_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class PortalLabOrderSummary(BaseModel):
+    id: int
+    test_name: str
+    status: Literal["ordered", "resulted", "cancelled"]
+    ordered_at: datetime
+    cancelled_at: datetime | None
+    result: PortalLabResultSummary | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class UnreleasedLabResultRead(BaseModel):
+    indications: list[DiagnosisIndicationRead] = Field(default_factory=list)
+    order_id: int
+    patient_id: int
+    patient_name: str
+    test_name: str
+    priority: Literal["routine", "urgent"]
+    visit_date: date
+    ordered_at: datetime
+    reported_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class PendingLabOrderRead(LabOrderRead):
+    patient_id: int
+    patient_name: str
+    visit_date: date
+
+
+class ReferralCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    specialty: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=1000)
+    priority: Literal["routine", "urgent"] = "routine"
+
+    @field_validator("specialty", "reason")
+    @classmethod
+    def required_text_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field cannot be blank")
+        return value
+
+
+class ReferralCancel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Cancellation reason cannot be blank")
+        return value
+
+
+class ReferralComplete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    seen_on: date
+    follow_up_summary: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("seen_on")
+    @classmethod
+    def visit_date_cannot_be_future(cls, value: date) -> date:
+        if value > date.today():
+            raise ValueError("Specialist visit date cannot be in the future")
+        return value
+
+    @field_validator("follow_up_summary")
+    @classmethod
+    def follow_up_summary_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Follow-up summary cannot be blank")
+        return value
+
+
+class ReferralRead(ReferralCreate):
+    id: int
+    encounter_id: int
+    status: Literal["requested", "cancelled", "completed"]
+    requested_at: datetime
+    cancelled_at: datetime | None
+    cancellation_reason: str | None
+    completed_at: datetime | None
+    seen_on: date | None
+    follow_up_summary: str | None
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class PatientReferralRead(ReferralRead):
+    visit_date: date
+
+
+class PortalReferralSummary(BaseModel):
+    id: int
+    specialty: str
+    priority: Literal["routine", "urgent"]
+    status: Literal["requested", "cancelled", "completed"]
+    visit_date: date
+    seen_on: date | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class PendingReferralRead(ReferralRead):
+    patient_id: int
+    patient_name: str
+    visit_date: date
+
+
+class CareGoalCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=200)
+    target_date: date | None = None
+
+    @field_validator("title")
+    @classmethod
+    def title_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Care goal cannot be blank")
+        return value
+
+
+class CareGoalComplete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    completion_note: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("completion_note")
+    @classmethod
+    def completion_note_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Completion note cannot be blank")
+        return value
+
+
+class CareGoalDiscontinue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Discontinuation reason cannot be blank")
+        return value
+
+
+class CareGoalRead(CareGoalCreate):
+    id: int
+    patient_id: int
+    status: Literal["active", "completed", "discontinued"]
+    created_at: datetime
+    completed_at: datetime | None
+    completion_note: str | None
+    discontinued_at: datetime | None
+    discontinuation_reason: str | None
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class PortalCareGoalSummary(BaseModel):
+    id: int
+    title: str
+    target_date: date | None
+    status: Literal["active", "completed", "discontinued"]
+    created_at: datetime
+    completed_at: datetime | None
+    discontinued_at: datetime | None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ActiveCareGoalRead(CareGoalRead):
+    patient_name: str
+    is_overdue: bool
+
+
+class CareGoalProgressCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    note: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("note")
+    @classmethod
+    def note_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Progress note cannot be blank")
+        return value
+
+
+class CareGoalProgressRead(CareGoalProgressCreate):
+    id: int
+    goal_id: int
+    recorded_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class FollowUpTaskCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=200)
+    details: str | None = Field(default=None, max_length=2000)
+    due_date: date | None = None
+    care_goal_id: int | None = Field(default=None, gt=0)
+
+    @field_validator("title")
+    @classmethod
+    def title_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Task title cannot be blank")
+        return value
+
+    @field_validator("details")
+    @classmethod
+    def normalize_details(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+
+class FollowUpTaskComplete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    completion_note: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("completion_note")
+    @classmethod
+    def completion_note_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Completion note cannot be blank")
+        return value
+
+
+class FollowUpTaskCancel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Cancellation reason cannot be blank")
+        return value
+
+
+class FollowUpTaskReschedule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Required, including when explicitly clearing a deadline.
+    due_date: date | None
+    reason: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("reason")
+    @classmethod
+    def reason_cannot_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Rescheduling reason cannot be blank")
+        return value
+
+
+class FollowUpDueDateChangeRead(BaseModel):
+    id: int
+    task_id: int
+    previous_due_date: date | None
+    new_due_date: date | None
+    reason: str
+    changed_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class FollowUpTaskRead(FollowUpTaskCreate):
+    id: int
+    patient_id: int
+    status: Literal["open", "completed", "cancelled"]
+    created_at: datetime
+    completed_at: datetime | None
+    completion_note: str | None
+    cancelled_at: datetime | None
+    cancellation_reason: str | None
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+
+class OpenFollowUpTaskRead(FollowUpTaskRead):
+    patient_name: str
+    is_overdue: bool
+
+
+class AppointmentBase(BaseModel):
+    scheduled_date: date
+    start_time: time
+    duration_minutes: int = Field(default=30, ge=15, le=180, multiple_of=15)
+    reason_for_visit: str = Field(max_length=200)
+    status: AppointmentStatus = "scheduled"
+
+    @field_validator("reason_for_visit")
+    @classmethod
+    def reason_must_not_be_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Reason for visit cannot be blank")
+        return value
+
+    @field_validator("start_time")
+    @classmethod
+    def start_time_must_be_clinic_local(cls, value: time) -> time:
+        if value.tzinfo is not None:
+            raise ValueError("Start time must be clinic-local without a timezone offset")
+        return value
+
+
+class AppointmentCreate(AppointmentBase):
+    pass
+
+
+class AppointmentRead(AppointmentBase):
+    id: int
+    patient_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PatientAppointmentRead(AppointmentRead):
+    visit_note_id: int | None
+
+
+class PortalAppointmentSummary(BaseModel):
+    id: int
+    scheduled_date: date
+    start_time: time
+    reason_for_visit: str
+    status: AppointmentStatus
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AppointmentStatusChangeRead(BaseModel):
+    id: int
+    appointment_id: int
+    previous_status: AppointmentStatus | None
+    new_status: AppointmentStatus
+    changed_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SchedulePatientRead(BaseModel):
+    id: int
+    first_name: str
+    preferred_name: str | None
+    last_name: str
+    date_of_birth: date
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScheduleEntryRead(BaseModel):
+    appointment: AppointmentRead
+    patient: SchedulePatientRead
+
+
+class DailyScheduleEntryRead(ScheduleEntryRead):
+    appointment: PatientAppointmentRead
+
+
+
+class PatientTimelineEntry(BaseModel):
+    """A dated chart item with its current status, not an audit event."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal[
+        "visit", "vitals", "lab_order", "lab_result",
+        "referral", "care_goal", "follow_up",
+    ]
+    record_id: int = Field(gt=0)
+    occurred_on: date
+    title: str
+    status: str
+
+
+class AuthLoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1, max_length=1024)
+
+
+class AuthLoginResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_at: datetime
+
+
+class AuthAccountRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    account_type: Literal["staff", "patient"]
+    staff_role: Literal["admin", "clinician", "front_desk"] | None
+    patient_id: int | None
+)
     # Missing on an older client means preserve recorded links during an edit.
     problem_ids: list[ProblemId] | None = Field(default=None, max_length=20)
 
