@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { API_BASE_URL, BROWSER_MODE, apiFetch, getApiErrorMessage, setAccessToken } from '../api'
 import './StaffSignIn.css'
+import { BrandMark, CareIllustration } from './BrandArtwork'
 
 export type SignedInAccount = {
   id: number
@@ -68,15 +69,16 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
   }
 
   return (
-    <main className="sign-in-page">
+    <main className={`sign-in-page sign-in-${mode}`}>
       <div className="sign-in-layout">
       <div className="sign-in-intro">
-        <div className="sign-in-brand"><span aria-hidden="true">+</span> Primary Care EMR</div>
-        <p className="sign-in-kicker">Outpatient care workspace</p>
-        <h2>Connected care.<br />Clearer workflows.</h2>
-        <p>Patient records, clinical documentation, and care coordination in one workspace.</p>
+        <div className="sign-in-brand"><BrandMark /> Primary Care EMR</div>
+        <p className="sign-in-kicker">{mode === 'staff' ? 'Clinical workspace' : 'Your patient portal'}</p>
+        <h2>{mode === 'staff' ? <>Connected care.<br />Clearer workflows.</> : <>Your health.<br />All in one place.</>}</h2>
+        <p>{mode === 'staff' ? 'Patient records, clinical documentation, and care coordination in one workspace.' : 'Find your appointments, health records and care instructions whenever you need them.'}</p>
+        <CareIllustration patient={mode === 'patient'} />
         <div className="sign-in-intro-rule" />
-        <p className="sign-in-intro-detail">Staff and patient accounts use separate, role-based access.</p>
+        <p className="sign-in-intro-detail">{mode === 'staff' ? 'Clinical access is based on your account role.' : 'Sign in to see your own health information.'}</p>
       </div>
       <section className="sign-in-panel" aria-labelledby="sign-in-title">
         <p className="sign-in-eyebrow">{mode === 'patient' ? 'Patient portal' : 'Clinical workspace'}</p>
@@ -123,6 +125,7 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
         <button
           type="button"
           className="sign-in-switch"
+          disabled={busy}
           onClick={() => onModeChange(mode === 'staff' ? 'patient' : 'staff')}
         >
           {mode === 'staff' ? 'Switch to patient sign-in' : 'Switch to staff sign-in'}
