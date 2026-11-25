@@ -3,6 +3,9 @@ import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import { localDate } from '../date'
 import type { StaffDestination } from '../workspaceNavigation'
 import type { DailyScheduleEntry } from '../types'
+import { WorkspaceIcon } from './WorkspaceIcon'
+import { destinationIcon } from '../workspaceIcons'
+import { formatPortalDate } from '../portalAppointments'
 
 const queues = [
   { id: 'requests', path: 'appointment-change-requests', title: 'Appointment requests', description: 'Review requested changes' },
@@ -67,7 +70,7 @@ export default function StaffDashboard({ onNavigate }: { onNavigate: (destinatio
       <button type="button" className="secondary-action-button" onClick={refresh}>Refresh dashboard</button>
     </header>
     <section className="dashboard-schedule" aria-labelledby="dashboard-schedule-title">
-      <div><p className="dashboard-kicker">{day}</p><h2 id="dashboard-schedule-title">Today's schedule</h2>
+      <div><p className="dashboard-kicker"><WorkspaceIcon name="calendar" size={17} /> {formatPortalDate(day)}</p><h2 id="dashboard-schedule-title">Today's schedule</h2>
         {schedule.status === 'loading' && <p role="status">Loading schedule…</p>}
         {schedule.status === 'error' && <p role="alert">Schedule unavailable. {schedule.message}</p>}
         {schedule.status === 'ready' && <dl className="dashboard-metrics">
@@ -85,8 +88,8 @@ export default function StaffDashboard({ onNavigate }: { onNavigate: (destinatio
       {queues.map(queue => {
         const count = counts[queue.id]
         return <button className="dashboard-queue" key={queue.id} type="button" onClick={() => onNavigate(queue.id)}>
-          <span className="queue-heading">{queue.title}<span aria-hidden="true">↗</span></span>
-          <strong>{count?.status === 'ready' ? count.data : count?.status === 'error' ? 'Unavailable' : 'Loading…'}</strong>
+          <span className="queue-heading"><span className="queue-icon"><WorkspaceIcon name={destinationIcon(queue.id)} size={22} /></span><span>{queue.title}</span><WorkspaceIcon name="arrow" size={15} /></span>
+          <strong className={count?.status === 'ready' ? 'queue-count' : 'queue-count queue-count-unavailable'}>{count?.status === 'ready' ? count.data : count?.status === 'error' ? 'Unavailable' : 'Loading…'}</strong>
           <span>{count?.status === 'error' ? 'Open queue to retry' : queue.description}</span>
         </button>
       })}

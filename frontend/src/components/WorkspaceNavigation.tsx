@@ -1,4 +1,6 @@
 import { type StaffDestination, staffDestinationLabels } from '../workspaceNavigation'
+import { WorkspaceIcon } from './WorkspaceIcon'
+import { destinationIcon } from '../workspaceIcons'
 
 const groups: { label: string; destinations: StaffDestination[] }[] = [
   { label: 'Clinical', destinations: ['dashboard', 'patients', 'schedule', 'past'] },
@@ -25,7 +27,8 @@ export default function WorkspaceNavigation({ current, isAdmin, onNavigate }: Pr
               <button key={destination} type="button"
                 aria-current={current === destination ? 'page' : undefined}
                 onClick={() => onNavigate(destination)}>
-                {staffDestinationLabels[destination]}
+                <WorkspaceIcon name={destinationIcon(destination)} size={18} />
+                <span>{staffDestinationLabels[destination]}</span>
               </button>
             ))}
           </div>

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { API_BASE_URL, BROWSER_MODE, apiFetch, getApiErrorMessage, setAccessToken } from '../api'
 import './StaffSignIn.css'
 import { BrandMark, CareIllustration } from './BrandArtwork'
+import { WorkspaceIcon } from './WorkspaceIcon'
 
 export type SignedInAccount = {
   id: number
@@ -111,7 +112,9 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
             ).map((choice) => (
               <button key={choice.username} type="button" disabled={busy} aria-label={'Sign in as ' + choice.name}
                 onClick={() => void signIn(choice.username, 'Welcome-EMR-2026')}>
-                <span><strong>{choice.name}</strong><small>{choice.description}</small></span><span aria-hidden="true">›</span>
+                <span className="account-choice-icon"><WorkspaceIcon name={mode === 'patient' ? 'person' : choice.username === 'admin' ? 'audit' : 'clinician'} size={24} /></span>
+                <span className="account-choice-copy"><strong>{choice.name}</strong><small>{choice.description}</small></span>
+                <WorkspaceIcon name="arrow" size={18} />
               </button>
             ))}
           </div>
@@ -140,12 +143,12 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
             {busy ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
-        {BROWSER_MODE && !busy && <p className="sign-in-description" role="status">
+        {BROWSER_MODE && !busy && <p className={`sign-in-status sign-in-status-${preparation}`} role="status">
           {preparation === 'preparing' ? 'Preparing the workspace. You can sign in while it loads.'
             : preparation === 'ready' ? 'Workspace ready.'
               : 'Workspace preparation did not complete. If sign-in fails, use Demo reset.'}
         </p>}
-        {busy && <p role="status">{BROWSER_MODE && preparation === 'preparing'
+        {busy && <p className="sign-in-status sign-in-status-preparing" role="status">{BROWSER_MODE && preparation === 'preparing'
           ? 'Preparing the workspace and checking your account…' : 'Checking your account…'}</p>}
         <button
           type="button"
