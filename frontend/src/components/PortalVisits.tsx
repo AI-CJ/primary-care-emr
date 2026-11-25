@@ -83,7 +83,7 @@ function PortalVisits({ patientId }: PortalVisitsProps) {
               </span>
               {visit.patient_instructions && (
                 <span className="portal-patient-instructions">
-                  <strong>Instructions:</strong> {visit.patient_instructions}
+                  <strong>Your care instructions</strong>{'\n'}{visit.patient_instructions}
                 </span>
               )}
             </li>
