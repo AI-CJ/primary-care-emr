@@ -490,7 +490,15 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .patient-workspace .portal-card select {
   accent-color: var(--deep-sea);
 }
-.patient-workspace .portal-card select { border-color: var(--control-border); }
+.patient-workspace .portal-card select,
+.portal-preview .portal-card select,
+.schedule-date-field input { border-color: var(--control-border); }
+.schedule-date-field input { min-height: 44px; border-radius: var(--control-radius); }
+.audit-toolbar select { min-height: 40px; border: 1px solid var(--control-border); border-radius: var(--control-radius); padding: 6px 9px; background: var(--surface); color: var(--text); }
+.schedule-date-field input:focus-visible, .audit-toolbar select:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
 .patient-workspace .portal-task-icon { background: #e0f1e8; color: #225d51; }
 /* Terracotta is a decorative accent here, never a replacement for a status label. */
 .dashboard-kicker::before {
