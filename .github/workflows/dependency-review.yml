@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Review locked dependencies
+      - name: Audit locked dependencies
         run: |
           mkdir -p /tmp/emr-dependency-review
           npm audit --json > /tmp/emr-dependency-review/full.json || true
@@ -37,30 +37,6 @@ jobs:
               for key, value in report['vulnerabilities'].items():
                   print(json.dumps({'package': key, **value}))
           PY
-      - name: Prepare compatible update candidate for review
-        if: github.event_name == 'pull_request'
-        run: |
-          npm audit fix --package-lock-only --ignore-scripts --no-fund > /tmp/emr-dependency-review/candidate.log 2>&1 || true
-          cat /tmp/emr-dependency-review/candidate.log
-          npm audit --json > /tmp/emr-dependency-review/candidate-audit.json || true
-          cp package.json package-lock.json /tmp/emr-dependency-review/
-          git diff -- package.json package-lock.json > /tmp/emr-dependency-review/candidate.patch
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root = Path('/tmp/emr-dependency-review')
-          report = json.loads((root / 'candidate-audit.json').read_text())
-          if 'metadata' not in report:
-              raise SystemExit('Candidate audit unavailable')
-          print('Candidate: ' + json.dumps(report['metadata']['vulnerabilities']))
-          for key, value in report['vulnerabilities'].items():
-              print(json.dumps({'package': key, **value}))
-          patch = (root / 'candidate.patch').read_text()
-          if len(patch) <= 24000:
-              print(patch)
-          else:
-              print('Candidate patch is in the review artifact.')
-          PY
       - name: Archive dependency review
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,3 +45,14 @@ jobs:
           path: /tmp/emr-dependency-review/
           if-no-files-found: error
           retention-days: 30
+      - name: Enforce dependency advisory gate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ('full', 'production'):
+              report = json.loads(Path('/tmp/emr-dependency-review/' + name + '.json').read_text())
+              if report['metadata']['vulnerabilities']['total']:
+                  raise SystemExit('Unresolved npm advisories in ' + name + ' dependency tree')
+          print('No npm advisories in either dependency tree.')
+          PY
