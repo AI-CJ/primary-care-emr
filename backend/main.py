@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import engine
 from backend.icd10_catalog import RELEASE, search_codes
+from backend.diagnosis_indications import problem_values, select_indications, replace_indications
 from backend.settings import cors_origins
 from backend.patient_lifecycle import (
     PatientLifecycleEventRead, archive_patient, reactivate_patient,
@@ -34,7 +35,7 @@ from backend.audit_review import (
 )
 from backend.session_auth import create_session, get_session_account, revoke_session
 from backend.models import UserAccount
-from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse, DiagnosisCodeSearch
+from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse, DiagnosisCodeSearch, IndicationSelection
 from backend.patient_timeline import list_patient_timeline
 from backend.portal_medications import list_portal_preview_medications
 from backend.portal_problems import list_portal_preview_problems
@@ -98,6 +99,7 @@ from backend.lab_orders import (
     read_lab_result,
     record_lab_result,
     release_lab_result,
+    update_lab_order_indications,
 )
 from backend.referrals import (
     cancel_referral,
@@ -121,7 +123,7 @@ from backend.scheduling import (
 )
 from backend.models import (
     Allergy, Appointment, AppointmentStatusChange, Encounter,
-    EncounterAddendum, Medication, Patient, Problem, Vital,
+    EncounterAddendum, Medication, MedicationIndication, Patient, Problem, Vital,
 )
 from backend.schemas import (
     AllergyCreate,
@@ -831,7 +833,7 @@ def create_patient_problem(
 
         problem = Problem(
             patient_id=patient_id,
-            **problem_data.model_dump(),
+            **problem_values(problem_data),
         )
 
         session.add(problem)
@@ -859,7 +861,7 @@ def update_problem(
 
         lock_active_patient(session, problem.patient_id)
 
-        for field, value in problem_data.model_dump().items():
+        for field, value in problem_values(problem_data, problem).items():
             setattr(problem, field, value)
 
         session.commit()
@@ -921,7 +923,8 @@ def create_patient_medication(
 
         medication = Medication(
             patient_id=patient_id,
-            **medication_data.model_dump(),
+            **medication_data.model_dump(exclude={'problem_ids'}),
+            indications=select_indications(session, patient_id, medication_data.problem_ids or [], MedicationIndication),
         )
 
         session.add(medication)
@@ -949,7 +952,9 @@ def update_medication(
 
         lock_active_patient(session, medication.patient_id)
 
-        for field, value in medication_data.model_dump().items():
+        if medication_data.problem_ids is not None:
+            replace_indications(session, medication, medication.patient_id, medication_data.problem_ids, MedicationIndication)
+        for field, value in medication_data.model_dump(exclude={'problem_ids'}).items():
             setattr(medication, field, value)
 
         session.commit()
@@ -1375,6 +1380,7 @@ def read_unreleased_lab_results():
         return [
             UnreleasedLabResultRead(
                 order_id=order.id,
+                indications=order.indications,
                 patient_id=patient.id,
                 patient_name=f"{patient.preferred_name or patient.first_name} {patient.last_name}",
                 test_name=order.test_name,
@@ -1435,6 +1441,15 @@ def read_encounter_lab_orders(encounter_id: int):
 def add_encounter_lab_order(encounter_id: int, order_data: LabOrderCreate):
     with Session(engine) as session:
         order = create_lab_order(session, encounter_id, order_data)
+        session.commit()
+        session.refresh(order)
+        return order
+
+
+@app.put("/lab-orders/{order_id}/indications", response_model=LabOrderRead)
+def replace_order_indications(order_id: int, selection: IndicationSelection):
+    with Session(engine) as session:
+        order = update_lab_order_indications(session, order_id, selection.problem_ids)
         session.commit()
         session.refresh(order)
         return order

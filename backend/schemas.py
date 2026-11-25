@@ -133,7 +133,7 @@ class DiagnosisCodeSearch(BaseModel):
 
 
 class ProblemBase(BaseModel):
-    name: str = Field(max_length=200)
+    name: str = Field(max_length=512)
     status: ProblemStatus = "active"
     onset_date: date | None = None
     resolved_date: date | None = None
@@ -185,12 +185,15 @@ class ProblemBase(BaseModel):
 
 
 class ProblemCreate(ProblemBase):
-    pass
+    icd10_code: str | None = Field(default=None, max_length=8)
 
 
 class ProblemRead(ProblemBase):
     id: int
     patient_id: int
+    icd10_code: str | None = None
+    icd10_title: str | None = None
+    icd10_release: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -203,6 +206,20 @@ class PortalProblemSummary(BaseModel):
     resolved_date: date | None
 
     model_config = ConfigDict(extra="forbid")
+
+
+class DiagnosisIndicationRead(BaseModel):
+    problem_id: int
+    problem_name: str
+    icd10_code: str | None
+    icd10_release: str | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class IndicationSelection(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    problem_ids: list[int] = Field(default_factory=list, max_length=20)
 
 
 class MedicationBase(BaseModel):
@@ -257,12 +274,14 @@ class MedicationBase(BaseModel):
 
 
 class MedicationCreate(MedicationBase):
-    pass
+    # Missing on an older client means preserve recorded links during an edit.
+    problem_ids: list[int] | None = Field(default=None, max_length=20)
 
 
 class MedicationRead(MedicationBase):
     id: int
     patient_id: int
+    indications: list[DiagnosisIndicationRead] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -524,6 +543,8 @@ class EncounterProblemRead(EncounterProblemLinkCreate):
     encounter_id: int
     problem_name_at_link: str
     problem_status_at_link: ProblemStatus
+    icd10_code_at_link: str | None = None
+    icd10_release_at_link: str | None = None
     linked_at: datetime
 
     model_config = ConfigDict(from_attributes=True, extra="forbid")
@@ -572,6 +593,7 @@ class EncounterMedicationRead(EncounterMedicationLinkCreate):
     start_date_at_link: date | None
     end_date_at_link: date | None
     instructions_at_link: str | None
+    indications_at_link: list[DiagnosisIndicationRead] = Field(default_factory=list)
     linked_at: datetime
 
     model_config = ConfigDict(from_attributes=True, extra="forbid")
@@ -597,7 +619,7 @@ class EncounterAllergyRead(EncounterAllergyLinkCreate):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
-class LabOrderCreate(BaseModel):
+class LabOrderBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     test_name: str = Field(min_length=1, max_length=200)
@@ -620,6 +642,10 @@ class LabOrderCreate(BaseModel):
         return value.strip() or None
 
 
+class LabOrderCreate(LabOrderBase):
+    problem_ids: list[int] = Field(default_factory=list, max_length=20)
+
+
 class LabOrderCancel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -634,7 +660,8 @@ class LabOrderCancel(BaseModel):
         return value
 
 
-class LabOrderRead(LabOrderCreate):
+class LabOrderRead(LabOrderBase):
+    indications: list[DiagnosisIndicationRead] = Field(default_factory=list)
     id: int
     encounter_id: int
     status: Literal["ordered", "resulted", "cancelled"]
@@ -702,6 +729,7 @@ class PortalLabOrderSummary(BaseModel):
 
 
 class UnreleasedLabResultRead(BaseModel):
+    indications: list[DiagnosisIndicationRead] = Field(default_factory=list)
     order_id: int
     patient_id: int
     patient_name: str

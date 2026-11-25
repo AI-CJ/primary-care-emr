@@ -12,10 +12,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from backend.account_auth import create_user_account
+from backend.diagnosis_indications import diagnosis_snapshot
 from backend.models import (
     Allergy, Appointment, AppointmentStatusChange, Base, CareGoal,
     CareGoalProgress, Encounter, FollowUpTask, LabOrder, LabResult,
-    Medication, Patient, Problem, Referral, Vital,
+    Medication, MedicationIndication, LabOrderIndication, Patient, Problem, Referral, Vital,
 )
 
 BROWSER_PASSWORD = "Welcome-EMR-2026"
@@ -63,17 +64,25 @@ def seed_browser_database(engine: Engine) -> None:
             create_user_account(session, username=username, password=BROWSER_PASSWORD,
                                 account_type="patient", patient_id=patient.id)
 
+        hypertension = Problem(patient_id=jordan.id, name="Essential hypertension", status="active",
+                               onset_date=today - timedelta(days=180), icd10_code="I10",
+                               icd10_title="Essential (primary) hypertension", icd10_release="FY2027")
+        lipids = Problem(patient_id=jordan.id, name="Hyperlipidemia", status="active",
+                         onset_date=previous, icd10_code="E78.5",
+                         icd10_title="Hyperlipidemia, unspecified", icd10_release="FY2027")
+        screening = Problem(patient_id=jordan.id, name="Screening for blood disorders", status="resolved",
+                            onset_date=previous, resolved_date=previous, icd10_code="Z13.0",
+                            icd10_title="Encounter for screening for diseases of the blood and blood-forming organs and certain disorders involving the immune mechanism",
+                            icd10_release="FY2027")
+        session.add_all([hypertension, lipids, screening])
+        session.flush()
         session.add_all([
-            Problem(patient_id=jordan.id, name="Essential hypertension", status="active",
-                    onset_date=today - timedelta(days=180)),
-            Problem(patient_id=jordan.id, name="Hyperlipidemia", status="active",
-                    onset_date=previous),
             Medication(patient_id=jordan.id, name="Lisinopril", strength="20 mg",
                        dose="20 mg", route="oral", frequency="Daily", status="active",
-                       start_date=previous),
+                       start_date=previous, indications=[MedicationIndication(**diagnosis_snapshot(hypertension))]),
             Medication(patient_id=jordan.id, name="Atorvastatin", strength="20 mg",
                        dose="20 mg", route="oral", frequency="Nightly", status="active",
-                       start_date=previous),
+                       start_date=previous, indications=[MedicationIndication(**diagnosis_snapshot(lipids))]),
             Allergy(patient_id=maria.id, allergen="Penicillin", reaction="Rash",
                     severity="moderate", status="active"),
             Vital(patient_id=jordan.id, recorded_on=previous, systolic_bp=142,
@@ -132,11 +141,14 @@ def seed_browser_database(engine: Engine) -> None:
         ])
         orders = [
             LabOrder(encounter_id=note.id, test_name="Lipid panel", priority="routine",
-                     status="resulted", ordered_at=past_time),
+                     status="resulted", ordered_at=past_time,
+                     indications=[LabOrderIndication(**diagnosis_snapshot(lipids))]),
             LabOrder(encounter_id=note.id, test_name="Basic metabolic panel", priority="routine",
-                     status="ordered", ordered_at=past_time),
+                     status="ordered", ordered_at=past_time,
+                     clinical_reason="Blood pressure medication monitoring", indications=[LabOrderIndication(**diagnosis_snapshot(hypertension))]),
             LabOrder(encounter_id=note.id, test_name="Complete blood count", priority="routine",
-                     status="resulted", ordered_at=past_time),
+                     status="resulted", ordered_at=past_time,
+                     clinical_reason="Routine screening for blood disorders", indications=[LabOrderIndication(**diagnosis_snapshot(screening))]),
         ]
         session.add_all(orders)
         session.flush()
