@@ -41,7 +41,7 @@ def verify_notices(url):
     checks = {
         "third-party-notices/README.txt": "Pyodide 314.0.8",
         "third-party-notices/pyodide-314.0.8-LICENSE.txt": "Mozilla Public License Version 2.0",
-        "third-party-notices/cpython-3.14.2-LICENSE.txt": "PSF LICENSE AGREEMENT",
+        "third-party-notices/cpython-3.14.2-LICENSE.txt": "PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2",
         "third-party-notices/npm/index.txt": "react-dom ",
     }
     for path, marker in checks.items():
