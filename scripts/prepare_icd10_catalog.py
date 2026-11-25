@@ -1,6 +1,7 @@
 """Build the local diagnosis catalog from the official FY 2027 release archive."""
 import argparse
 import hashlib
+import os
 from io import BytesIO
 from pathlib import Path
 import re
@@ -22,29 +23,43 @@ def parse_archive(content: bytes) -> dict[str, str]:
     with ZipFile(BytesIO(content)) as archive:
         matches = [name for name in archive.namelist()
                    if re.fullmatch(r"icd10cm[-_]codes[-_]2027\.txt", Path(name).name, re.I)]
+        orders = [name for name in archive.namelist()
+                  if re.fullmatch(r"icd10cm[-_]order[-_]2027\.txt", Path(name).name, re.I)]
+        candidates = []
+        if len(orders) == 1:
+            lines = archive.read(orders[0]).decode("utf-8-sig").splitlines()
+            candidates.append((orders[0], [(line[6:13].strip(), line[77:].strip())
+                                          for line in lines if len(line) > 77 and line[14] == "1"]))
         if len(matches) == 1:
-            lines = archive.read(matches[0]).decode("utf-8-sig", errors="strict").splitlines()
-            pairs = [line.split(maxsplit=1) for line in lines if line.strip()]
-        else:
-            # The tabular order file marks reportable codes with a 1 in column 15.
-            orders = [name for name in archive.namelist()
-                      if re.fullmatch(r"icd10cm[-_]order[-_]2027\.txt", Path(name).name, re.I)]
-            if len(orders) != 1:
-                raise ValueError("Expected a FY 2027 ICD-10-CM descriptions file; archive members: " + ", ".join(archive.namelist()[:20]))
-            pairs = [(line[6:13].strip(), line[77:].strip())
-                     for line in archive.read(orders[0]).decode("utf-8-sig").splitlines()
-                     if len(line) > 77 and line[14] == "1"]
-    records = {}
-    for code, title in pairs:
-        title = " ".join(title.split())
-        if not CODE.fullmatch(code) or not title or code in records:
-            raise ValueError(f"Unexpected or duplicate diagnosis code: {code!r}")
-        records[code] = title
-    if not 65_000 <= len(records) <= 100_000:
-        raise ValueError(f"Unexpected number of reportable codes: {len(records)}")
-    if not {"I10", "E119", "E785", "Z0000", "Z130"} <= records.keys():
-        raise ValueError("Expected reference diagnoses are missing")
-    return records
+            lines = archive.read(matches[0]).decode("utf-8-sig").splitlines()
+            candidates.append((matches[0], [line.split(maxsplit=1) for line in lines if line.strip()]))
+        errors = []
+        for filename, pairs in candidates:
+            records = {}
+            invalid = 0
+            examples = []
+            for pair in pairs:
+                if len(pair) != 2:
+                    invalid += 1
+                    continue
+                code, title = pair
+                title = " ".join(title.split())
+                if not CODE.fullmatch(code) or not title or code in records:
+                    invalid += 1
+                    if len(examples) < 3:
+                        examples.append(code)
+                    continue
+                records[code] = title
+            print(f"{Path(filename).name}: {len(records)} structurally valid, {invalid} invalid; examples {examples}", flush=True)
+            if invalid or not 65_000 <= len(records) <= 100_000:
+                errors.append(f"{Path(filename).name}: {len(records)} valid and {invalid} invalid entries")
+                continue
+            if not {"I10", "E119", "E785", "Z0000", "Z130"} <= records.keys():
+                errors.append(f"{Path(filename).name}: expected reference diagnoses missing")
+                continue
+            return records
+        raise ValueError("No complete FY 2027 description file passed validation; " +
+                         ("; ".join(errors) or "members: " + ", ".join(archive.namelist()[:20])))
 
 
 def prepare(archive_path: Path | None = None, force: bool = False) -> None:
@@ -60,6 +75,10 @@ def prepare(archive_path: Path | None = None, force: bool = False) -> None:
                         content = response.read(12_000_001)
                     if len(content) > 12_000_000:
                         raise ValueError("Description archive exceeds expected size")
+                    if os.environ.get('EMR_ICD10_SOURCE_DIR'):
+                        directory = Path(os.environ['EMR_ICD10_SOURCE_DIR'])
+                        directory.mkdir(parents=True, exist_ok=True)
+                        (directory / ('source-' + hashlib.sha256(content).hexdigest()[:16] + '.zip')).write_bytes(content)
                     candidates.append((url, content))
                     break
                 except (OSError, ValueError) as error:
