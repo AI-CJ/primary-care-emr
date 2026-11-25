@@ -1,5 +1,6 @@
 """Exercise the deployed build without a networked API or shared database."""
 import re
+from time import monotonic
 from playwright.sync_api import expect, sync_playwright
 
 URL = "http://127.0.0.1:4174/primary-care-emr/"
@@ -67,9 +68,16 @@ def run():
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.on("console", lambda message: print(message.text) if message.type == "error" else None)
+        start = monotonic()
         page.goto(URL)
         assert_notice(page)
+        # Preparation starts without submitting credentials or creating a session.
+        expect(page.get_by_text("Workspace ready.", exact=True)).to_be_visible(timeout=TIMEOUT)
+        expect(page.get_by_role("button", name="Sign out", exact=True)).to_have_count(0)
+        print(f"Browser workspace prepared in {monotonic() - start:.2f}s (local CI, fresh tab).")
+        start = monotonic()
         sign_in(page, "Administrator")
+        print(f"Prepared workspace sign-in in {monotonic() - start:.2f}s (local CI).")
         expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_visible()
         expect(page.get_by_role("heading", name="Today's schedule", exact=True)).to_be_visible()
         expect(page.locator(".dashboard-metrics dd").first).to_have_text(re.compile(r"^[0-9]+$"), timeout=TIMEOUT)

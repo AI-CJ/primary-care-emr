@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { API_BASE_URL, BROWSER_MODE, apiFetch, getApiErrorMessage, setAccessToken } from '../api'
 import './StaffSignIn.css'
 import { BrandMark, CareIllustration } from './BrandArtwork'
@@ -22,6 +22,25 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [preparation, setPreparation] = useState<'preparing' | 'ready' | 'unavailable'>('preparing')
+
+  useEffect(() => {
+    if (!BROWSER_MODE) return
+    const controller = new AbortController()
+    // Start the tab-local runtime while the sign-in screen is visible. The public
+    // root endpoint contains no patient data and does not establish a session.
+    async function prepareWorkspace() {
+      try {
+        const response = await apiFetch(API_BASE_URL + '/', { signal: controller.signal })
+        if (!response.ok) throw new Error('Workspace preparation failed.')
+        if (!controller.signal.aborted) setPreparation('ready')
+      } catch {
+        if (!controller.signal.aborted) setPreparation('unavailable')
+      }
+    }
+    void prepareWorkspace()
+    return () => controller.abort()
+  }, [])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -121,7 +140,13 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
             {busy ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
-        {busy && <p role="status">Connecting to your workspace…</p>}
+        {BROWSER_MODE && !busy && <p className="sign-in-description" role="status">
+          {preparation === 'preparing' ? 'Preparing the workspace. You can sign in while it loads.'
+            : preparation === 'ready' ? 'Workspace ready.'
+              : 'Workspace preparation did not complete. If sign-in fails, use Demo reset.'}
+        </p>}
+        {busy && <p role="status">{BROWSER_MODE && preparation === 'preparing'
+          ? 'Preparing the workspace and checking your account…' : 'Checking your account…'}</p>}
         <button
           type="button"
           className="sign-in-switch"
