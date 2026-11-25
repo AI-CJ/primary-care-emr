@@ -119,8 +119,16 @@ def run():
             expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_focused()
         page.get_by_role("button", name="Find a patient", exact=False).click()
         expect(page.get_by_role("heading", name="Patient Search", exact=True)).to_be_focused()
-        # The directory is populated without an initial search.
-        expect(page.get_by_role("button", name="Lee, Jordan", exact=False)).to_be_visible(timeout=TIMEOUT)
+        # All 400 charts are searchable; only one page is rendered.
+        expect(page.get_by_text("400 patients found", exact=False)).to_be_visible(timeout=TIMEOUT)
+        directory = page.get_by_role("list", name="Patient directory")
+        expect(directory.get_by_role("listitem")).to_have_count(25)
+        first_name = directory.get_by_role("button").first.inner_text()
+        page.get_by_role("button", name="Next", exact=True).click()
+        expect(page.get_by_text("Showing 26–50", exact=False)).to_be_visible()
+        assert directory.get_by_role("button").first.inner_text() != first_name
+        page.get_by_role("button", name="Previous", exact=True).click()
+        expect(page.get_by_text("Showing 1–25", exact=False)).to_be_visible()
         capture_reference(page, "08-staff-directory")
         staff_section(page, "Clinic Schedule")
         expect(page.get_by_role("heading", name="Clinic Schedule", exact=True)).to_be_visible()
@@ -335,6 +343,8 @@ def run():
         search(other, "Avery")
         expect(other.get_by_text("No patients found.")).to_be_visible()
         other.get_by_role("button", name="Clear search", exact=True).click()
+        expect(other.get_by_text("400 patients found", exact=False)).to_be_visible()
+        search(other, "Jordan")
         other.get_by_role("button", name="Lee, Jordan", exact=False).click()
         expect(mobile_nav).to_have_value("chart")
         expect(other.get_by_role("heading", name="Jordan Lee", exact=True)).to_be_focused()
@@ -342,7 +352,7 @@ def run():
         capture_reference(other, "07-staff-chart-mobile")
         mobile_nav.select_option("patients")
         expect(other.get_by_role("heading", name="Patient Search", exact=True)).to_be_focused()
-        expect(other.get_by_role("button", name="Lee, Jordan", exact=False)).to_be_visible()
+        expect(other.get_by_text("400 patients found", exact=False)).to_be_visible()
         assert other.evaluate("document.documentElement.scrollWidth <= innerWidth")
         other.close()
 
