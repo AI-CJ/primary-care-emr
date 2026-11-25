@@ -277,7 +277,7 @@ class MedicationBase(BaseModel):
 
 
 class MedicationCreate(MedicationBase):
-    rxnorm_cui: str | None = Field(default=None, pattern=r'^[0-9]{1,20}
+    rxnorm_cui: str | None = Field(default=None, pattern=r'^[0-9]{1,20}$')
     # Missing on an older client means preserve recorded links during an edit.
     problem_ids: list[ProblemId] | None = Field(default=None, max_length=20)
 
