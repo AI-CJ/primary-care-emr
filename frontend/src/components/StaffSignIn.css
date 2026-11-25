@@ -5,8 +5,8 @@
 .sign-in-brand svg { flex-shrink: 0; }
 .sign-in-kicker { color: #a8ded0; font-size: .78rem; letter-spacing: .09em; text-transform: uppercase; margin: 0 0 12px; font-weight: 700; }
 .sign-in-kicker::after { content: ""; display: block; width: 35px; height: 3px; margin-top: 12px; background: #d58c70; border-radius: 2px; }
-.sign-in-intro h2 { color: white; font-size: clamp(1.8rem, 2.8vw, 2.5rem); line-height: 1.13; letter-spacing: -.04em; margin: 0; font-weight: 670; }
-.sign-in-intro p:not(.sign-in-kicker) { margin: 12px 0 0; max-width: 38ch; font-size: 1rem; line-height: 1.6; }
+.sign-in-intro .sign-in-headline { color: white; font-size: clamp(1.8rem, 2.8vw, 2.5rem); line-height: 1.13; letter-spacing: -.04em; margin: 0; font-weight: 670; }
+.sign-in-intro p:not(.sign-in-kicker, .sign-in-headline) { margin: 12px 0 0; max-width: 38ch; font-size: 1rem; line-height: 1.6; }
 .care-illustration { display: block; width: 100%; max-height: 210px; height: auto; margin: 18px 0 0; }
 .sign-in-intro-rule { height: 1px; background: #527773; margin-top: 16px; }
 .sign-in-intro .sign-in-intro-detail { color: #c4ded7; font-size: .85rem; }
@@ -40,7 +40,7 @@
 .sign-in-panel .sign-in-switch { min-height: 44px; padding: 8px 0; margin-top: 7px; background: transparent; border: 0; color: #195e50; text-decoration: underline; text-underline-offset: 3px; text-align: left; font-weight: 650; }
 .sign-in-panel :is(button, input):focus-visible { outline: 3px solid #167760; outline-offset: 3px; }
 .sign-in-patient .sign-in-intro { background: linear-gradient(150deg, #eaf7f0, #d4eee3); color: #345d51; }
-.sign-in-patient .sign-in-brand, .sign-in-patient .sign-in-intro h2 { color: #214d41; }
+.sign-in-patient .sign-in-brand, .sign-in-patient .sign-in-intro .sign-in-headline { color: #214d41; }
 .sign-in-patient .sign-in-kicker, .sign-in-patient .sign-in-intro-detail { color: #315d50; }
 .sign-in-patient .sign-in-intro-rule { background: #a3c6b8; }
 .sign-in-patient .sign-in-panel :is(label, input, button) { font-size: 1rem; }

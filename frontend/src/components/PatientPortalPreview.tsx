@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Patient, PortalAllergySummary, PortalCareGoalSummary, PortalMedicationSummary, PortalProblemSummary } from '../types'
 import './PatientPortalPreview.css'
@@ -29,6 +29,21 @@ type PortalOverview = {
 
 function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
   const [section, setSection] = useState<PortalSection>('health')
+  const sectionHeading = useRef<HTMLHeadingElement>(null)
+  const moveFocus = useRef(false)
+
+  function navigate(next: PortalSection) {
+    if (next === section) return
+    moveFocus.current = true
+    setSection(next)
+  }
+
+  useEffect(() => {
+    if (moveFocus.current) {
+      moveFocus.current = false
+      sectionHeading.current?.focus()
+    }
+  }, [section])
   const [overview, setOverview] = useState<PortalOverview | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -107,9 +122,12 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
 
         <SectionNavigation label="Patient portal preview sections"
           options={portalSections.filter((option) => option.id !== 'preferences')}
-          current={section} onChange={setSection} />
+          current={section} onChange={navigate} />
+        <h2 className="portal-section-heading" tabIndex={-1} ref={sectionHeading}>
+          {portalSections.find(option => option.id === section)?.label}
+        </h2>
 
-        {section === 'home' && <PortalHome patientId={patient.id} onNavigate={setSection} />}
+        {section === 'home' && <PortalHome patientId={patient.id} onNavigate={navigate} />}
         {section !== 'home' && !isLoading && overview && (
           <div className="portal-grid" key={section}>
             {section === 'health' && <>

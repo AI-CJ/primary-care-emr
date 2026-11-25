@@ -787,22 +787,41 @@ function App() {
   const [account, setAccount] = useState<SignedInAccount | null>(null)
   const signOutGuard = useRef<(() => boolean) | null>(null)
   const [signInMode, setSignInMode] = useState<'staff' | 'patient'>('staff')
+  const focusAfterTransition = useRef(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
-    const sessionEnded = () => setAccount(null)
+    const sessionEnded = () => {
+      focusAfterTransition.current = true
+      setAccount(null)
+    }
     window.addEventListener('emr:session-ended', sessionEnded)
     return () => window.removeEventListener('emr:session-ended', sessionEnded)
   }, [])
 
+  useEffect(() => {
+    if (!focusAfterTransition.current) return
+    focusAfterTransition.current = false
+    const heading = document.querySelector<HTMLElement>('main h1')
+    if (heading) {
+      heading.tabIndex = -1
+      heading.focus()
+    }
+  }, [account, signInMode])
+
   async function signOut() {
+    if (signingOut) return
     if (signOutGuard.current && !signOutGuard.current()) return
     if (account?.account_type === 'patient' && document.querySelector('.patient-workspace form[data-unsaved="true"]') &&
         !window.confirm('Sign out and discard unsaved changes?')) return
+    setSigningOut(true)
     try {
       await apiFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' })
     } finally {
       setAccessToken(null)
+      focusAfterTransition.current = true
       setAccount(null)
+      setSigningOut(false)
     }
   }
 
@@ -811,8 +830,8 @@ function App() {
       <SignIn
         key={signInMode}
         mode={signInMode}
-        onModeChange={setSignInMode}
-        onSignedIn={setAccount}
+        onModeChange={(mode) => { focusAfterTransition.current = true; setSignInMode(mode) }}
+        onSignedIn={(signedIn) => { focusAfterTransition.current = true; setAccount(signedIn) }}
       />
     )
   }
@@ -822,8 +841,8 @@ function App() {
       <header className={`session-bar ${account.account_type === 'patient' ? 'patient-session-bar' : ''}`}>
         <div className="workspace-brand"><BrandMark /><strong>Primary Care EMR</strong><span className="workspace-product">{account.account_type === 'patient' ? 'Patient portal' : 'Clinical workspace'}</span></div>
         <div className="session-account"><strong>{account.username}</strong><span>{account.account_type === 'patient' ? 'Patient' : account.staff_role === 'admin' ? 'Administrator' : 'Clinician'}</span></div>
-        <button type="button" onClick={() => void signOut()}>
-          Sign out
+        <button type="button" disabled={signingOut} onClick={() => void signOut()}>
+          {signingOut ? 'Signing out…' : 'Sign out'}
         </button>
       </header>
       {account.account_type === 'patient' ? <PatientPortal /> : <StaffApp isAdmin={account.staff_role === 'admin'} signOutGuard={signOutGuard} />}

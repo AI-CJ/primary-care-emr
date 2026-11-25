@@ -145,3 +145,26 @@ The visual pass introduced original shared SVG icons and adjusted spacing, card 
 All five jobs passed at the audited revision. PostgreSQL migrations and 376 backend tests passed; frontend lint, 34 tests and production build passed. Browser tests exercised all six dashboard queue destinations, timeline expansion/collapse, staff focus, patient focus, mobile chart navigation, clearing search, unsaved staff sign-out cancellation, hidden patient preference draft cancellation, preference save state, clinical workflows and reset. The browser-only clinical API smoke also passed. The seven PNGs were uploaded as the `emr-workspace-screenshots` artifact (ID 14997770476, retained for 30 days).
 
 The browser run measured 7.01 seconds for preparation and 0.41 seconds for prepared sign-in on its local CI server. This is another observation, not a production benchmark. No application dependency, database migration, or clinical API contract changed. Existing npm installation warnings still report nine moderate and two high advisories; remediation and production exposure assessment remain outstanding. This pass does not establish complete accessibility, usability, security or clinical certification. Screen-reader, representative-user and independent public-network checks remain open. The audited branch and subsequent deployment must pass their release gates before the refinements are published.
+
+
+## Dependency and accessibility follow-up (November 25, 2026)
+
+The refinement merge at [47d6d7b](https://github.com/AI-CJ/primary-care-emr/commit/47d6d7b4386de3b1a8ac2ebfbaca9e6a573102ae) passed [main Checks](https://github.com/AI-CJ/primary-care-emr/actions/runs/45560346481) and [Pages deployment](https://github.com/AI-CJ/primary-care-emr/actions/runs/45560669542). This resolves the earlier outstanding deployment status for PR 79.
+
+The [initial dependency review](https://github.com/AI-CJ/primary-care-emr/actions/runs/45560758733) found 11 affected npm dependency nodes (nine moderate, two high). The production-only scan was clean. The direct advisories involved Vite's development server/editor behavior, minimatch's glob processing and Zod's constrained collection validation; other reported nodes inherited vulnerable dependencies. A non-forced lockfile-only npm audit fix produced a zero-advisory candidate. The committed lockfile matches the reviewed candidate artifact byte-for-byte (Git blob `ab85231d2929e83c2e9b1a0f8ead594a2fef09bf`); the direct package manifest and production dependency entries are unchanged.
+
+| Package | Prior | Reviewed |
+| --- | --- | --- |
+| ESLint | 10.11.0 | 10.15.0 |
+| typescript-eslint | 8.71.0 | 8.74.0 |
+| Vite | 8.3.2 | 8.3.8 |
+| minimatch (transitive) | 10.2.6 | 11.0.9 |
+| Zod (transitive) | 4.6.5 | 4.6.7 |
+
+The update changes 39 existing development-only lockfile entries and introduces eight transitive development-only entries required by the updated build toolchain. The additional entries retain their registry-provided integrity hashes and license metadata (MIT, BlueOak-1.0.0 and 0BSD); several are optional platform-specific WASM build dependencies. No new direct application dependency or runtime UI asset is added. The [follow-up CI audit](https://github.com/AI-CJ/primary-care-emr/actions/runs/45561485342/job/139025991367) independently reported zero full and zero production npm advisories. The reusable dependency job archives both reports and blocks release checks when advisories are unresolved. This is a point-in-time registry audit, not a comprehensive assessment of the packaged Python runtime, backend dependencies or unknown vulnerabilities.
+
+Accessibility changes add a keyboard bypass link, logical sign-in heading structure, accessible account descriptions and form names, focus restoration after account and portal-preview transitions, and a stable sign-in status region. The new Chromium script inspects the actual accessibility tree, named controls and landmarks, keyboard navigation, hidden draft fields, computed solid-surface contrast and responsive reflow. The first run exposed a test implementation defect: the flat CDP node array was not in depth-first reading order. The corrected check follows child IDs through ignored containers. The original browser clinical and reset checks passed on that run; the revised accessibility and deployment-verifier tests require their own passing run.
+
+The deployment workflow writes an exact revision marker, restricts automatic releases to successful main checks and exercises the published fictional staff and patient workflows. The verifier is also exercised against the disposable local build before release. A successful GitHub deployment alone is distinct from successful external retrieval and application verification.
+
+The [manual verification protocol](USABILITY_TEST_PROTOCOL.md) records environment coverage, screen-reader tasks, ten formative staff/patient scenarios and an anonymous observation sheet. No representative-user sessions, actual screen-reader speech checks, or participant results have been fabricated. Those manual activities remain open, as do comprehensive accessibility and security validation.

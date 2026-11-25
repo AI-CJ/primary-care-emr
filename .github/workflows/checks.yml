@@ -9,6 +9,9 @@ permissions:
   contents: read
 
 jobs:
+  dependency-review:
+    uses: ./.github/workflows/dependency-review.yml
+
   backend-tests:
     runs-on: ubuntu-latest
     env:
@@ -211,6 +214,9 @@ jobs:
           done
           EMR_SCREENSHOT_DIR=/tmp/emr-screenshots python scripts/check_browser_emr.py
           python scripts/check_browser_clinical_api.py
+          python -m scripts.check_accessibility
+          printf '{"commit":"%s"}\n' "$(git rev-parse HEAD)" > frontend/dist/release.json
+          python -m scripts.check_published_workspace --local --revision "$(git rev-parse HEAD)"
       - name: Archive reference screenshots
         uses: actions/upload-artifact@v4
         with:

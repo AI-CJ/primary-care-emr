@@ -173,6 +173,7 @@ The browser workflow captures the actual rendered application using the fictiona
 | `scripts/` | Browser runtime packaging and end-to-end verification |
 | `docs/UX_DESIGN.md` | Research-informed design choices |
 | `docs/UX_AUDIT.md` | Audit findings, test evidence and release verification |
+| `docs/USABILITY_TEST_PROTOCOL.md` | Reproducible manual screen-reader and formative user-test procedures |
 | `docs/WORKFLOWS.md` | API contracts, access rules, lifecycle behavior and hosting configuration |
 | `docs/V1_RELEASE.md` | Historical scope of the tagged V1 release |
 | `demo/` | Historical static preview, retained for reference; not the deployed application |
@@ -182,8 +183,8 @@ The browser workflow captures the actual rendered application using the fictiona
 - Only fictional records belong in the application, logs, screenshots and repository.
 - The public workspace is disposable and has no durable shared storage. Its browser-side access checks are not production-grade security.
 - The API-backed build models role restrictions, session revocation, chart lifecycle safeguards and privacy-minimal audit events. It has not undergone a clinical security review, penetration test or HIPAA compliance assessment.
-- The November 24 build reported 11 npm dependency advisories (nine moderate, two high). Their affected dependency paths and production exposure require investigation; a passing functional test suite does not resolve them.
-- Representative clinician and patient usability testing, comprehensive screen-reader checks, direct inspection of the deployed site and public-network performance measurements remain outstanding.
+- The November 25 dependency review resolved the 11 reported npm toolchain advisories using compatible lockfile updates. The reviewed lockfile returned zero advisories in the full and production-only npm scans. CI now archives both reports and rejects unresolved npm advisories. This is not a Python dependency audit, penetration test, or assurance against unknown vulnerabilities.
+- Manual screen-reader evaluation and representative clinician/patient usability sessions remain outstanding. Automated Chromium accessibility-tree and reflow checks complement the [manual test protocol](docs/USABILITY_TEST_PROTOCOL.md); the deployment workflow also verifies the served revision and isolated account workflows. These checks do not establish clinical readiness or complete accessibility conformance.
 - Real prescribing, insurance claims, billing, secure messaging, external clinical integrations and clinical decision support are outside the current release scope.
 
 The repository is public; established frameworks and runtime packages retain their own licenses. No repository-level license is declared. See [workflow details](docs/WORKFLOWS.md) and the [audit](docs/UX_AUDIT.md) for more information.

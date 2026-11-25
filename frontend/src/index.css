@@ -97,3 +97,24 @@ input {
   .legal-notice { flex-wrap: wrap; }
   .legal-notice button { min-height: 44px; }
 }
+
+/* Keyboard bypass of the shared legal notice and workspace navigation. */
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  padding: 12px 16px;
+  color: white;
+  background: #20584f;
+  border: 2px solid white;
+  border-radius: 6px;
+  font-weight: 650;
+  clip-path: inset(50%);
+}
+.skip-link:focus {
+  clip-path: none;
+  outline: 3px solid #20584f;
+  outline-offset: 2px;
+}

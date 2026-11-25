@@ -431,3 +431,12 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .portal-card .portal-unsaved { margin:0; padding:8px 10px; background:#fbf1e6; color:#734b20; border-left:3px solid #bb8450; border-radius:4px; }
 .portal-home > .section-nav { margin-top:16px; }
 @media(max-width:540px) { .directory-clear { order:3; flex:0 0 100%; } .directory-page .search-form { flex-wrap:wrap; } }
+
+/* Programmatic focus following account changes and keyboard bypass. */
+.sign-in-panel h1[tabindex="-1"]:focus,
+.staff-dashboard h1[tabindex="-1"]:focus,
+.portal-header h1[tabindex="-1"]:focus {
+  outline: 2px solid #287d91;
+  outline-offset: 5px;
+  border-radius: 3px;
+}

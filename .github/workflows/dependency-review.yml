@@ -1,0 +1,56 @@
+name: Dependency review
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit locked dependencies
+        run: |
+          mkdir -p /tmp/emr-dependency-review
+          npm audit --json > /tmp/emr-dependency-review/full.json || true
+          npm audit --omit=dev --json > /tmp/emr-dependency-review/production.json || true
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ('full', 'production'):
+              report = json.loads(Path('/tmp/emr-dependency-review/' + name + '.json').read_text())
+              if 'metadata' not in report or 'vulnerabilities' not in report:
+                  raise SystemExit('Registry audit did not return advisory data: ' + name)
+              print(name + ': ' + json.dumps(report['metadata']['vulnerabilities']))
+              for key, value in report['vulnerabilities'].items():
+                  print(json.dumps({'package': key, **value}))
+          PY
+      - name: Archive dependency review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emr-dependency-review
+          path: /tmp/emr-dependency-review/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Enforce dependency advisory gate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ('full', 'production'):
+              report = json.loads(Path('/tmp/emr-dependency-review/' + name + '.json').read_text())
+              if report['metadata']['vulnerabilities']['total']:
+                  raise SystemExit('Unresolved npm advisories in ' + name + ' dependency tree')
+          print('No npm advisories in either dependency tree.')
+          PY
