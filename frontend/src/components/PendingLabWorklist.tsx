@@ -1,5 +1,6 @@
 import DiagnosisIndications from './DiagnosisIndications'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import PendingLabActions, { type LabResolution } from './PendingLabActions'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { LabOrder } from '../types'
 
@@ -23,6 +24,19 @@ function PendingLabWorklist({
   const [orders, setOrders] = useState<PendingLabOrder[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
+  const [activeOrder, setActiveOrder] = useState<number | null>(null)
+  const [notice, setNotice] = useState('')
+  const noticeRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => { if (notice) noticeRef.current?.focus() }, [notice])
+
+  function resolved(order: PendingLabOrder, resolution: LabResolution) {
+    setOrders(current => current?.filter(item => item.id !== order.id) ?? null)
+    setActiveOrder(null)
+    setNotice(order.test_name + ' for ' + order.patient_name + (resolution.kind === 'cancelled'
+      ? ' cancelled. The request and reason remain in the chart.'
+      : ' result recorded. Review and release separately when appropriate.'))
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -71,20 +85,20 @@ function PendingLabWorklist({
           <div>
             <h1 id="pending-labs-heading">Pending Lab Requests</h1>
             <p className="pending-lab-intro">
-              Outstanding requests, with urgent requests first. Open a chart to
-              record results or cancel a request.
+              Outstanding requests, with urgent requests first. Record a received result or cancel a request that is no longer needed without leaving this list.
             </p>
           </div>
           <button
             className="secondary-action-button"
             type="button"
             onClick={() => setRefreshCount((count) => count + 1)}
-            disabled={orders === null && error === null}
+            disabled={activeOrder !== null || (orders === null && error === null)}
           >
             Refresh
           </button>
         </div>
 
+        {notice && <p role="status" tabIndex={-1} ref={noticeRef} className="lab-resolution-notice">{notice}</p>}
         {patientError && <p className="form-error" role="alert">{patientError}</p>}
         {!orders && !error && (
           <p className="empty-message" role="status">Loading pending requests...</p>
@@ -146,6 +160,13 @@ function PendingLabWorklist({
                         {order.patient_name}
                       </button>
                       <span>Open patient chart</span>
+                    </div>
+                    <div className="pending-lab-resolution">
+                      <PendingLabActions order={order} visitDate={order.visit_date} patientName={order.patient_name}
+                        active={activeOrder === order.id} disabled={activeOrder !== null}
+                        onBegin={() => { setActiveOrder(order.id); setNotice('') }}
+                        onDismiss={() => setActiveOrder(null)}
+                        onResolved={resolution => resolved(order, resolution)} />
                     </div>
                   </li>
                 ))}
