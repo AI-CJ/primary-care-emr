@@ -206,7 +206,7 @@ def _add_complexity(chart: "Chart", rng: Random) -> None:
         if condition.code == "K76.0" and not (bmi >= 30 or "E11.9" in existing):
             continue
         eligible.append(condition)
-    if eligible and rng.random() < .57:
+    if eligible and rng.random() < (.57 if active_count else .22):
         chosen = rng.choice(eligible)
         chart.conditions.append(chosen)
 
