@@ -9,3 +9,4 @@ backend/data/cvx.json
 backend/data/mvx.json
 backend/data/terminology-sources/
 backend/data/*.tmp
+backend/data/seed-reference.json
