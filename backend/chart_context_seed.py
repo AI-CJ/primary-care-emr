@@ -146,6 +146,11 @@ def _age(patient: Patient, today: date) -> int:
         (today.month, today.day) < (patient.date_of_birth.month, patient.date_of_birth.day))
 
 
+def daily_context(patient: Patient, as_of: date) -> tuple[str, str]:
+    rng = Random(CONTEXT_SEED + patient.id)
+    return rng.choice(RETIRED_CONTEXTS if _age(patient, as_of) >= 67 else WORK_CONTEXTS)
+
+
 def _report(patient_id: int, performed: date, reviewed: date, modality: str,
             study: str, indication: str, findings: str, impression: str,
             rng: Random) -> dict:
@@ -218,13 +223,32 @@ def seed_chart_backgrounds(session: Session, *, as_of: date) -> None:
             reports.append(_report(patient.id, performed, reviewed, "Radiograph", study,
                                    indication, findings, impression, rng))
             medical += " Prior right knee films are available; symptoms affect prolonged walking."
-        if "M54.50" in codes and rng.random() < .27:
+        if ("M54.50" in codes and codes["M54.50"].onset_date is not None
+                and codes["M54.50"].onset_date <= reviewed - timedelta(days=100)
+                and rng.random() < .27):
             study, indication, findings, impression = rng.choice(BACK_REPORTS)
             onset = codes["M54.50"].onset_date or reviewed - timedelta(days=120)
             performed = min(reviewed - timedelta(days=10), onset + timedelta(days=90))
             reports.append(_report(patient.id, performed, reviewed, "MRI", study,
                                    indication, findings, impression, rng))
             medical += " A prior course of conservative back care is documented; prior MRI was reviewed."
+        if "M81.0" in codes:
+            performed = min(reviewed - timedelta(days=21),
+                            (codes["M81.0"].onset_date or reviewed - timedelta(days=120)) + timedelta(days=15))
+            score = rng.uniform(-3.3, -2.5)
+            reports.append(_report(patient.id, performed, reviewed, "DXA", "Bone density study",
+                                   "Prior osteoporosis assessment in an older adult.",
+                                   f"Femoral neck T-score {score:.1f}; lumbar spine T-score {score + .3:.1f}.",
+                                   "Bone mineral density in the osteoporotic range at the femoral neck.", rng))
+            medical += " Prior bone density report documents osteoporosis."
+        if "K76.0" in codes:
+            performed = min(reviewed - timedelta(days=14),
+                            (codes["K76.0"].onset_date or reviewed - timedelta(days=120)) + timedelta(days=21))
+            reports.append(_report(patient.id, performed, reviewed, "Ultrasound", "Abdominal ultrasound",
+                                   "Prior investigation of persistent mild liver enzyme elevation.",
+                                   "Diffuse increased hepatic echogenicity. No focal lesion identified on the recorded study.",
+                                   "Sonographic appearance consistent with hepatic steatosis.", rng))
+            medical += " Prior evaluation of liver enzyme elevation included abdominal sonography."
         family = rng.choice(FAMILY)
         care = barrier + " " + rng.choice(FOLLOW_UP)
         if "I10" in codes:
