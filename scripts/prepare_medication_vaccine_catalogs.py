@@ -107,6 +107,32 @@ def write_catalog(name, release, rows, source, url):
     print(f"{name}: {len(rows)} concepts; {target.stat().st_size} bytes; source sha256 {payload['source_sha256']}")
 
 
+def write_seed_reference():
+    # The full catalogs stay out of the initial browser archive. The small
+    # reviewed subset reconciles only explicitly named fictional ingredients.
+    names = {"amlodipine", "atorvastatin", "metformin", "levothyroxine", "budesonide",
+             "cetirizine", "omeprazole", "sertraline", "lisinopril", "famotidine", "escitalopram"}
+    codes = {"88", "115", "187", "216", "45", "208", "207"}
+    makers = {"PFR", "MOD"}
+    snapshot = {}
+    for kind in ("rxnorm", "cvx", "mvx"):
+        document = json.loads((DATA / (kind + ".json")).read_text(encoding="utf-8"))
+        if kind == "rxnorm":
+            selected = [row for row in document["rows"]
+                        if row["kind"] == "IN" and row["name"].casefold() in names]
+            if {row["name"].casefold() for row in selected} != names or len(selected) != len(names):
+                raise ValueError("Missing or ambiguous fictional medication ingredient")
+        else:
+            required = codes if kind == "cvx" else makers
+            selected = [row for row in document["rows"] if row["code"] in required]
+            if {row["code"] for row in selected} != required:
+                raise ValueError("Missing fictional vaccination terminology")
+        snapshot[kind] = {**document, "rows": selected}
+    target = DATA / "seed-reference.json"
+    target.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    print(f"Seed terminology snapshot: {target.stat().st_size} bytes")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rxnorm", type=Path)
@@ -133,6 +159,7 @@ def main():
     write_catalog("cvx", "CDC-" + digest[:16], vaccines, cvx, CVX_URL)
     write_catalog("mvx", "CDC-" + hashlib.sha256(mvx.read_bytes()).hexdigest()[:16],
                   mvx_rows(mvx), mvx, MVX_URL)
+    write_seed_reference()
 
 
 if __name__ == "__main__":
