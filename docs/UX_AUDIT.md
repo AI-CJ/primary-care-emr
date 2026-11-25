@@ -229,3 +229,49 @@ At **09:27:37 UTC** on November 25, [Pages deployment 45585129869](https://githu
 The security branch incorporated integrated main at `322130bc7b005ab91308791c14a3d385a8fb9fc5` with no changed-file overlap; the diagnostic and CI archive steps are `f37c0e339ec536c59cd44500f27e8c6a52031046` and `19f5266285fc0b14378333dacf0fb8f285762dc6`. Replaced the actual Vite favicon with the existing project-specific EMR brand artwork at `60c6160d65b36f080b5e6717856b4d06075abb84`; this candidate is not yet deployed. No license or required notices were changed. Unused starter assets and a complete dependency/license inventory require further review. The public vocabulary and synthetic associations retain their existing source attribution; they are not clinical decision support.
 
 **Next concrete task:** obtain the candidate wheel metadata artifact, implement compatible digest-pinned build and audit inventory changes together (or a reviewed supported upstream runtime upgrade), resolve cryptography without weakening password verification, and rerun all seven jobs. Do not merge a failing security candidate or treat the previous six-job gate as sufficient for final release. Inspect integrated captures and verify main/Pages for the exact final application SHA, then make and verify the separate README update. Full screen-reader and representative-user tests, broader security review and clinical readiness remain outside verified scope.
+
+## Verified application release — November 25, 2026
+
+**Audited and published application revision:** [`1b68e37f8ed2adf144f4f7d67b10683656730688`](https://github.com/AI-CJ/primary-care-emr/commit/1b68e37f8ed2adf144f4f7d67b10683656730688).  
+**Main checks:** [45618206243](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243), all seven jobs successful at 12:57 UTC.  
+**Published verification:** [45618722375](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618722375/job/139220861241), completed at 12:59 UTC (7:59 AM Eastern). The published-workspace job matched the exact release.json commit before and after its live browser workflow. This supersedes the pending release status recorded in the preceding historical review.
+
+### Integrated release evidence
+
+The [full sprint comparison](https://github.com/AI-CJ/primary-care-emr/compare/95464ca080346359ea574a8f9ab3ba204e6f3885...1b68e37f8ed2adf144f4f7d67b10683656730688) includes 132 commits and 76 changed files. All nine sprint PRs (82–90) are merged. The final changed-file inventory covers clinical history and immunization migrations, deterministic seed scenarios, reference imports and selection, direct lab resolution, role-scoped UI, authentication and runtime changes, dependency gates, distribution notices, tests and documentation. The review combines this inventory, the preceding incremental audits, actual rendered evidence and integrated regression results; it is not an exhaustive independent line-by-line or clinical validation of every record.
+
+| Verification | Observed result |
+| --- | --- |
+| [PostgreSQL migrations and backend tests](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/job/139219037668) | 400 tests passed |
+| [Frontend lint, tests and production build](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/job/139219037502) | 41 tests passed |
+| [API-backed browser smoke](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/job/139219037549) | Passed |
+| [Packaged browser, startup, clinical API and accessibility checks](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/job/139219037552) | Passed, including failure recovery and wrong-password rejection |
+| [Historical static demo smoke](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/job/139219037014) | Passed |
+| [npm advisory gate](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/job/139219037697) | Zero reported advisories in full and production trees |
+| [Python advisory gate](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/job/139219037628) | 29 server and 15 browser wheel distributions; zero advisory or coverage findings |
+| [Published workflow](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618722375/job/139220861241) | Exact revision, notices, 400-chart directory, clinician/patient access, recorded background, imaging and vaccination history, lab cancellation, shared results, preferences and reset passed; no unexpected external browser requests |
+
+Official vocabulary imports in the successful main and Pages builds agreed: 74,879 FY2027 ICD-10-CM reportable codes (existing pinned reference), 34,034 RxNorm concepts from the November 2, 2026 release, 245 CVX entries and 89 MVX entries. The generated histories are fictional, adult, and deliberately heterogeneous, including unknown or incomplete records. See [population design](SYNTHETIC_POPULATION.md), [diagnosis reference](ICD10_REFERENCE.md) and [medication/vaccine provenance](MEDICATION_VACCINE_REFERENCE.md). The tests cover association ownership and chronology, historical medications and results, vaccination dates and correction boundaries; this does not establish clinical accuracy in every possible scenario.
+
+### Final rendered review
+
+Downloaded the [main Chromium archive](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/artifacts/15022229992) and inspected its 14 captures, using a full contact sheet and enlarged desktop/mobile sections. Each image matched the corresponding final PR 90 capture byte-for-byte. The desktop staff views have consistent chart headings, compact navigation and explicit statuses; the patient sign-in and home use the lighter palette and accessible task labels. The background, historical imaging, coded health record, vaccination section and lab actions are present in the rendered captures. Narrow-screen chart, patient home and cancellation form remain readable with stacked controls; no release-blocking clipping was observed in the reviewed regions. The automated Chromium accessibility tree, keyboard navigation, sampled contrast and reflow checks passed (sampled text ratios 6.85:1, 8.16:1 and 7.01:1; field boundaries 3.50:1).
+
+Residual usability findings: patient home at 360 px is 1,814 px tall; staff chart at 360 px is 3,250 px tall; the 320 px lab queue with a cancellation form is 8,385 px tall. These long mobile layouts require vertical scrolling despite the prior worklist compaction. Further search/filtering or pagination of worklists and removal of redundant home navigation are candidates for future measured usability refinement, not an assertion that every interface is perfected. The captures are of the tested built application, not an independent manual browsing session on the public site. Direct DNS from the review environment was unavailable; the published browser workflow above provides the live verification evidence.
+
+### Measured startup
+
+| Environment / procedure | Shell visible | Workspace ready | Prepared login |
+| --- | ---: | ---: | ---: |
+| Main local fresh-tab smoke | Not separately measured | 9.08 s | 0.40 s staff |
+| Main controlled cold profile | 0.410 s | 16.303 s | 0.383 s |
+| Main controlled cached-repeat profile | 0.127 s | 13.012 s | 0.378 s |
+| Published Pages browser | Not separately measured | 10.24 s | 0.40 s clinician |
+
+The local same-worker patient sign-in measured 0.17 s. The controlled profile uses a local HTTP origin with a shared 20 Mbit/s payload budget and 40 ms per-request delay; it measures response body bytes at that origin, not actual Pages transfer or device performance. The profile observed 19,201,069 bytes cold and 9,605,141 bytes cached-repeat. The public build contains 18.2 MiB of on-disk runtime assets, including 472,206 bytes of deferred reference archives (core 13,522,801; wheels 4,453,058; backend archive 644,852 bytes). Initial readiness still exceeds the five-second stretch target, chiefly runtime startup and Python imports; the shell and prepared sign-in are fast in these tests. No guarantee is made for a slower device or network. See [startup profile source](../scripts/profile_browser_startup.py) and the integrated browser job linked above.
+
+### Security, attribution and disposition
+
+The previously failing Python gate is resolved for this exact application revision. Browser verification no longer requires the affected cryptography wheel; the build uses pinned compatible pure-Python updates and the browser's native password derivation path, retaining the existing PBKDF2 parameters and invalid-password regression coverage. Server and effective browser wheel advisory inventories are archived in [main dependency evidence](https://github.com/AI-CJ/primary-care-emr/actions/runs/45618206243/artifacts/15023032182). The project brand mark replaced the starter favicon; unused starter graphics were removed. The public check verified distributed Pyodide, CPython and npm notices. Existing required third-party notices are retained. A targeted provenance review and source attribution do not establish independent authorship of every line or exhaustive license compliance. No repository-level license change was made.
+
+**Disposition:** Application release passed its automated gates and was deployed and verified. The subsequent documentation-only closeout must pass its own main checks and Pages revision verification; it must not alter the audited application behavior. Manual screen-reader speech testing, representative clinician/patient usability sessions, comprehensive accessibility and security assessments, independently validated clinical scenarios, and further cold-start and mobile-list optimization remain outside the verified release scope. The public browser is a disposable educational environment, not a clinical security boundary; no real patient information belongs in either mode.
