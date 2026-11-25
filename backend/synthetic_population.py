@@ -133,7 +133,7 @@ ADDITIONAL_CONDITIONS = (
     Condition("E66.9", "Obesity, unspecified", "Obesity", 18,
               "Discussed weight history and patient-defined functional goals.",
               "Review agreed health and activity goals"),
-    Condition("F32.A", "Depression, unspecified depression type", "Depression", 18,
+    Condition("F32.A", "Depression, unspecified", "Depression", 18,
               "Discussed mood, sleep, daily functioning and supports.",
               "Review functioning and mood at follow-up",
               referral=("Behavioral health", "Discuss ongoing support")),
@@ -149,7 +149,7 @@ ADDITIONAL_CONDITIONS = (
     Condition("K76.0", "Fatty (change of) liver, not elsewhere classified", "Hepatic steatosis", 35,
               "Reviewed prior liver imaging and laboratory history.",
               "Review prior liver assessment and interval laboratory results"),
-    Condition("K58.9", "Irritable bowel syndrome without diarrhea", "Irritable bowel syndrome without diarrhea", 18,
+    Condition("K58.9", "Irritable bowel syndrome, unspecified", "Irritable bowel syndrome", 18,
               "Reports intermittent abdominal discomfort and variable bowel habits.",
               "Review symptom diary and functional impact"),
 )
