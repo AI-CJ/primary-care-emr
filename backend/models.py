@@ -667,6 +667,7 @@ class ImagingReport(Base):
 
     __tablename__ = "imaging_reports"
     __table_args__ = (
+        CheckConstraint("reported_on >= performed_on", name="ck_imaging_report_chronology"),
         CheckConstraint("shared_on IS NULL OR shared_on >= reported_on", name="ck_imaging_report_share_date"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
