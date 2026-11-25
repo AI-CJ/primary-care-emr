@@ -4,18 +4,18 @@ export type PortalSection = 'home' | 'health' | 'visits' | 'results' | 'care' | 
 
 export const portalSections: SectionOption<PortalSection>[] = [
   { id: 'home', label: 'Home' },
-  { id: 'health', label: 'Health summary' },
+  { id: 'health', label: 'My health' },
   { id: 'visits', label: 'Appointments & visits' },
-  { id: 'results', label: 'Results & referrals' },
+  { id: 'results', label: 'Test results & referrals' },
   { id: 'care', label: 'Care plan' },
-  { id: 'preferences', label: 'Preferences' },
+  { id: 'preferences', label: 'Settings' },
 ]
 
 export const portalSectionDescriptions: Record<PortalSection, string> = {
   home: 'Find your next appointment and choose what you want to do.',
   health: 'Review your health conditions, medications, allergies and recorded vital signs.',
   visits: 'Review scheduled appointments, visit summaries and appointment change requests.',
-  results: 'Review laboratory requests, released results and specialist referrals.',
+  results: 'Find test results shared by the clinic, lab requests and specialist referrals.',
   care: 'Follow your care goals and progress.',
   preferences: 'Choose how you prefer to receive clinic updates.',
 }

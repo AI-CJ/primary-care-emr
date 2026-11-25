@@ -79,7 +79,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
   const displayName = patient.preferred_name || patient.first_name
 
   return (
-    <main className="portal-preview">
+    <main className="portal-preview patient-workspace">
       <div className="portal-shell">
         <button type="button" className="back-button" onClick={onBack}>
           ← Back to staff chart

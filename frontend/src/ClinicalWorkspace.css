@@ -373,3 +373,24 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .note-state { border:1px solid #d6c6a7; border-radius:4px; padding:2px 7px; background:#faf2e0; color:#6e4b16; font-size:.75rem; font-weight:650; }
 .note-state-final { border-color:#b3d4c5; background:#e6f3eb; color:#245e49; }
 @media(max-width:650px) { .encounter-note-fields { grid-template-columns:minmax(0,1fr); } .encounter-note-group { padding:12px; } }
+
+/* Patient reading surfaces use comfortable text, visible focus and predictable wrapping. */
+.patient-workspace .section-nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:6px; border:1px solid #b8d1c5; border-radius:12px; background:#f7fbf8; }
+.patient-workspace .section-nav button { min-height:48px; border:1px solid transparent; border-radius:8px; padding:10px 12px; white-space:normal; line-height:1.35; text-align:center; color:#294b40; }
+.patient-workspace .section-nav button[aria-current="page"] { color:#fff; background:#1c6452; border-color:#1c6452; font-weight:700; }
+.patient-workspace .section-nav button[aria-current="page"]::after { display:none; }
+.patient-workspace .portal-section-heading h2 { font-size:clamp(1.35rem, 2.5vw, 1.7rem); }
+.patient-workspace .portal-section-heading p, .patient-workspace .portal-header p:last-child { font-size:1rem; line-height:1.55; }
+.patient-workspace .portal-card { border-color:#bfd4c9; border-radius:14px; padding:clamp(16px,2.5vw,24px); }
+.patient-workspace .portal-card h2 { font-size:1.25rem; }
+.patient-workspace .portal-card :where(p,li,summary,label,select,button) { line-height:1.55; overflow-wrap:anywhere; }
+.patient-workspace .portal-card :where(button,select,summary) { min-height:44px; max-width:100%; }
+.patient-workspace .portal-card summary { display:list-item; padding:10px 0; cursor:pointer; color:#24594a; font-weight:650; }
+.patient-workspace .portal-card [role="alert"] { padding:12px; border-left:4px solid #9a4635; background:#fff2eb; color:#713324; border-radius:4px; }
+.patient-workspace .portal-card [role="status"] { overflow-wrap:anywhere; }
+.patient-workspace .portal-section-heading h2:focus, .patient-workspace .portal-header h1:focus { outline:3px solid #276954; outline-offset:5px; border-radius:3px; }
+.patient-workspace .portal-visits-grid > [aria-labelledby="portal-visits"] { grid-column:1 / -1; }
+.patient-workspace .portal-results-grid { grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); }
+@media(min-width:900px) { .patient-workspace .section-nav { grid-template-columns:repeat(6,minmax(0,1fr)); } }
+@media(max-width:700px) { .patient-workspace .portal-results-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:400px) { .patient-workspace .section-nav { grid-template-columns:repeat(2,minmax(0,1fr)); } }
