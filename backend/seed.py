@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import engine
 from backend.models import Patient
+from backend.synthetic_population import POPULATION_SIZE, add_clinic_population
 from sqlalchemy import select
 
 patients = [
@@ -35,5 +36,7 @@ with Session(engine) as session:
         print("Seed data already exists; skipping.")
     else:
         session.add_all(patients)
+        session.flush()
+        add_clinic_population(session, as_of=date.today(), reference_patients=tuple(patients))
         session.commit()
-        print("Seeded 3 synthetic patients.")
+        print(f"Seeded {POPULATION_SIZE} synthetic patients with clinical histories.")
