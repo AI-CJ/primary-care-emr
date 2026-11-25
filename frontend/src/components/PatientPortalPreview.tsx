@@ -122,9 +122,9 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
           </div>
         )}
 
-        <SectionNavigation label="Patient portal preview sections"
+        {section !== 'home' && <SectionNavigation label="Patient portal preview sections"
           options={portalSections.filter((option) => option.id !== 'preferences')}
-          current={section} onChange={navigate} />
+          current={section} onChange={navigate} />}
         <h2 className="portal-section-heading" tabIndex={-1} ref={sectionHeading}>
           {portalSections.find(option => option.id === section)?.label}
         </h2>
