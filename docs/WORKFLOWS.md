@@ -163,3 +163,7 @@ The public build reuses the FastAPI routes inside a Web Worker with a pinned Pyo
 The API logic still enforces role and ownership checks, but a person controlling their browser can modify the local application and its data. Browser roles are therefore illustrative, not a production security boundary. SQLite requests are serialized; PostgreSQL-specific locks and migration guarantees apply to the API-backed application, not the browser build. Use fictional data in both modes.
 
 See [the audit](UX_AUDIT.md) for the verified implementation, release evidence and remaining risks.
+
+## Resolving outstanding laboratory requests
+
+The Pending Lab Requests worklist and the patient's Lab History section both provide direct actions to record a received result or cancel an outstanding request. Cancellation requires a reason and explicit confirmation; it retains the original order, cancellation timestamp and reason in the chart. Recording a result requires the collection date, result text and confirmation of the patient/result review. Neither action deletes records. A successful response removes the order from the pending queue; recording a result does not automatically release it to the patient portal. Finalized visits can still receive results or cancellation events under the existing API rules. Archived charts remain read-only. Staff can retain the pending request by dismissing the form without saving. The existing patient, encounter and order locking and authorization rules are unchanged.

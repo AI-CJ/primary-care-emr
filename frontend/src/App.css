@@ -1739,3 +1739,18 @@
 }
 .audit-table th { background: var(--pale-aqua); }
 .audit-pagination { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+/* Resolve a pending request without leaving its worklist or chart history. */
+.pending-lab-resolution { grid-column: 1 / -1; min-width: 0; }
+.lab-resolution-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.lab-resolution-actions button { min-height: 44px; margin-top: 0; }
+.lab-cancel-action { color: #873c2e; border-color: #b98474; }
+.lab-cancel-action:hover:not(:disabled) { color: #873c2e; background: #fff5ef; border-color: #873c2e; }
+.lab-resolution-form { display: grid; gap: 12px; padding: 16px; margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--mist, #f3f6f5); min-width: 0; }
+.lab-resolution-form h3, .lab-resolution-form p { margin: 0; }
+.lab-resolution-context { overflow-wrap: anywhere; color: var(--onyx); }
+.lab-resolution-form input, .lab-resolution-form textarea { max-width: 100%; min-width: 0; }
+.lab-resolution-review { display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; }
+.lab-resolution-review input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 2px; }
+.lab-resolution-notice { margin: 12px 0; padding: 12px 14px; color: var(--deep-sea); background: var(--pale-aqua); border: 1px solid var(--border); border-radius: 8px; }
+@media (max-width: 600px) { .lab-resolution-form { padding: 12px; } .lab-resolution-actions button { flex: 1 1 auto; } }
