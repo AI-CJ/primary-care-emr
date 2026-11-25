@@ -35,6 +35,14 @@ WHEEL_OVERRIDES = {
         # Retain the upstream closure and add the unconditional idna requirement.
         "additional_dependencies": ["idna"],
     },
+    "idna": {
+        "upstream_version": "3.11",
+        "version": "3.20",
+        "file_name": "idna-3.20-py3-none-any.whl",
+        "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+        "url": "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl",
+        "additional_dependencies": [],
+    },
     "starlette": {
         "upstream_version": "1.0.0",
         "version": "1.3.1",

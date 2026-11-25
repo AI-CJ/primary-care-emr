@@ -48,6 +48,9 @@ def run():
         def login(username):
             return request("POST", "/auth/login", {"username": username, "password": PASSWORD})["access_token"]
 
+        # Exercise the native verifier, not only the precomputed account seed.
+        request("POST", "/auth/login", {"username": "admin", "password": "incorrect-password"}, expected=401)
+        request("POST", "/auth/login", {"username": "missing-account", "password": PASSWORD}, expected=401)
         admin = login("admin")
         patient = login("jordan.lee")
         request("GET", "/patients/2", token=patient, expected=403)
