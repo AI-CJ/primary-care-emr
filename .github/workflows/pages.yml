@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["Checks"]
     types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -31,6 +32,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      - name: Confirm checked-out revision passed Checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git rev-parse HEAD)
+          count=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/checks.yml/runs?branch=main&head_sha=$revision&status=success" --jq '.total_count')
+          test "$count" -ge 1
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
         with:
@@ -52,6 +60,8 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: Write release identity
+        run: printf '{"commit":"%s"}\n' "$(git rev-parse HEAD)" > frontend/dist/release.json
       - name: Upload public application
         uses: actions/upload-pages-artifact@v3
         with:
@@ -65,6 +75,8 @@ jobs:
           for attempt in {1..15}; do
             count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME" --jq '.total_count')
             if [ "$count" = 1 ]; then
+              # Allow the Pages deployment service time to see the same artifact.
+              sleep 12
               exit 0
             fi
             sleep 4
@@ -76,6 +88,11 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Verify the published workspace
+        run: |
+          python -m pip install playwright==1.51.0
+          python -m playwright install --with-deps chromium
+          python -m scripts.check_published_workspace --revision "$(git rev-parse HEAD)"
       - name: Publish V1 release after verified deployment
         env:
           GH_TOKEN: ${{ github.token }}
