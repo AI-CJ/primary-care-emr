@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import re
 import shutil
+import subprocess
+import sys
 import time
 from urllib.request import urlopen
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -38,6 +40,7 @@ def download(name: str, sha256: str | None = None) -> None:
 
 
 def main() -> None:
+    subprocess.run([sys.executable, '-m', 'scripts.prepare_icd10_catalog'], cwd=ROOT, check=True)
     if OUTPUT.exists():
         shutil.rmtree(OUTPUT)
     OUTPUT.mkdir(parents=True)
@@ -65,6 +68,7 @@ def main() -> None:
                       resolved.values()))
     with ZipFile(OUTPUT / "backend.zip", "w", ZIP_DEFLATED) as archive:
         archive.writestr("backend/__init__.py", "")
+        archive.write(ROOT / "backend/data/icd10cm-fy2027.tsv", "backend/data/icd10cm-fy2027.tsv")
         for source in sorted((ROOT / "backend").glob("*.py")):
             if source.name not in {"__init__.py", "seed.py", "bootstrap_staff.py", "bootstrap_patient.py"}:
                 archive.write(source, f"backend/{source.name}")

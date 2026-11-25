@@ -11,6 +11,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.icd10_catalog import RELEASE, search_codes
 from backend.settings import cors_origins
 from backend.patient_lifecycle import (
     PatientLifecycleEventRead, archive_patient, reactivate_patient,
@@ -33,7 +34,7 @@ from backend.audit_review import (
 )
 from backend.session_auth import create_session, get_session_account, revoke_session
 from backend.models import UserAccount
-from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse
+from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse, DiagnosisCodeSearch
 from backend.patient_timeline import list_patient_timeline
 from backend.portal_medications import list_portal_preview_medications
 from backend.portal_problems import list_portal_preview_problems
@@ -768,6 +769,12 @@ def reschedule_patient_follow_up_task(task_id: int, change: FollowUpTaskReschedu
 def read_follow_up_due_date_changes(task_id: int):
     with Session(engine) as session:
         return list_follow_up_due_date_changes(session, task_id)
+
+
+@app.post("/diagnosis-codes/search")
+def read_diagnosis_codes(payload: DiagnosisCodeSearch):
+    # POST keeps typed clinical search terms out of ordinary URL/access logs.
+    return {"release": RELEASE, "results": [item._asdict() for item in search_codes(payload.query)]}
 
 
 @app.get(

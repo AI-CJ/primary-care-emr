@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { BROWSER_MODE } from './api'
+import { cleanEntryUrl } from './entryUrl'
+
+const entryUrl = cleanEntryUrl(window.location.href)
+if (entryUrl !== window.location.href) window.history.replaceState(window.history.state, '', entryUrl)
 
 async function resetDemo() {
   if (!window.confirm('Reset all records, accounts, preferences and activity to their original state? All changes in this tab will be lost.')) return

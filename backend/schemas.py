@@ -127,6 +127,11 @@ class PatientRead(PatientBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DiagnosisCodeSearch(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    query: str = Field(min_length=2, max_length=200)
+
+
 class ProblemBase(BaseModel):
     name: str = Field(max_length=200)
     status: ProblemStatus = "active"
