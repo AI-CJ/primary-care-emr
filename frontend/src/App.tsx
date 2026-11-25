@@ -27,6 +27,7 @@ import ClinicalSnapshot from './components/ClinicalSnapshot'
 import PatientLifecycleControls from './components/PatientLifecycleControls'
 import PatientPortalPreview from './components/PatientPortalPreview'
 import PatientLabHistory from './components/PatientLabHistory'
+import { PatientBackground, ImagingHistory } from './components/ChartHistory'
 import PendingLabWorklist from './components/PendingLabWorklist'
 import UnreleasedLabResultsWorklist from './components/UnreleasedLabResultsWorklist'
 import PendingReferralWorklist from './components/PendingReferralWorklist'
@@ -509,6 +510,7 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
                 }} />
             </>}
             {chartSection === 'health' && <>
+              <PatientBackground key={selectedPatient.id} patientId={selectedPatient.id} />
               <ProblemList patientId={selectedPatient.id} />
               <MedicationList patientId={selectedPatient.id} />
               <AllergyList patientId={selectedPatient.id} onChanged={() => setAllergyRevision(n => n + 1)} />
@@ -521,6 +523,7 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
             {chartSection === 'orders' && <>
               <PatientLabHistory key={selectedPatient.id} patientId={selectedPatient.id} />
               <PatientReferralHistory key={selectedPatient.id} patientId={selectedPatient.id} />
+              <ImagingHistory key={selectedPatient.id} patientId={selectedPatient.id} staff />
             </>}
             {chartSection === 'notes' && <EncounterList
               key={selectedPatient.id}
