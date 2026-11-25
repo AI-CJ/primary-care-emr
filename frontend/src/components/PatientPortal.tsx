@@ -12,6 +12,7 @@ import PortalCareGoals from './PortalCareGoals'
 import PortalLabResults from './PortalLabResults'
 import PortalReferrals from './PortalReferrals'
 import { ImagingHistory } from './ChartHistory'
+import Immunizations from './Immunizations'
 import PortalCommunicationPreferences from './PortalCommunicationPreferences'
 import PortalAppointmentChangeRequests from './PortalAppointmentChangeRequests'
 import './PatientPortalPreview.css'
@@ -69,6 +70,7 @@ export default function PatientPortal() {
           <PortalReferrals />
           <ImagingHistory />
         </div>}
+        {section === 'immunizations' && <div className="portal-grid"><Immunizations /></div>}
         {section === 'care' && <div className="portal-grid">
           <PortalCareGoals />
         </div>}
