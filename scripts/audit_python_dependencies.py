@@ -12,7 +12,7 @@ import subprocess
 import sys
 from urllib.request import urlopen
 
-from scripts.build_browser_runtime import CDN, PACKAGES, VERSION
+from scripts.build_browser_runtime import CDN, PACKAGES, VERSION, effective_runtime_lock
 
 
 def normalize(name: str) -> str:
@@ -117,7 +117,9 @@ def main():
     # Audit server even if the browser lock cannot be obtained.
     server_ok = audit(server, args.output / "server-audit.json")
     with urlopen(CDN + "pyodide-lock.json", timeout=90) as response:
-        lock = json.load(response)
+        upstream = json.load(response)
+    (args.output / "pyodide-upstream-lock.json").write_text(json.dumps(upstream, indent=2), encoding="utf-8")
+    lock = effective_runtime_lock(upstream)
     (args.output / "pyodide-lock.json").write_text(json.dumps(lock, indent=2), encoding="utf-8")
     inventory = browser_inventory(lock)
     (args.output / "browser-inventory.json").write_text(

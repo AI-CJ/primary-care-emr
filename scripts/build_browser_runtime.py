@@ -1,5 +1,6 @@
 """Prepare a pinned, self-hosted Python runtime and the current API source for Pages."""
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -21,13 +22,52 @@ CORE = (
 )
 PACKAGES = ("fastapi", "sqlalchemy")
 
+# Reviewed upstream pure-Python wheels, from the PyPI release inventory
+# archived by Checks 45605761646. Keep the upstream ABI/runtime pinned.
+# The build and advisory scanner use the same effective lock.
+WHEEL_OVERRIDES = {
+    "anyio": {
+        "upstream_version": "4.13.0",
+        "version": "4.14.2",
+        "file_name": "anyio-4.14.2-py3-none-any.whl",
+        "sha256": "9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494",
+        "url": "https://files.pythonhosted.org/packages/da/35/f2287558c17e29fafc8ef3daf819bb9834061cfa43bff8014f7df7f63bdc/anyio-4.14.2-py3-none-any.whl",
+        # Retain the upstream closure and add the unconditional idna requirement.
+        "additional_dependencies": ["idna"],
+    },
+    "starlette": {
+        "upstream_version": "1.0.0",
+        "version": "1.3.1",
+        "file_name": "starlette-1.3.1-py3-none-any.whl",
+        "sha256": "c7372aae11c3c3f26a42df7bd626cec2f47d03483d261d369516a615a53714c6",
+        "url": "https://files.pythonhosted.org/packages/ec/bb/2799cc2ede3ed41131f8975621e7213dfc7ef4acbbaadfa440f32500c370/starlette-1.3.1-py3-none-any.whl",
+        "additional_dependencies": ["anyio"],
+    },
+}
 
-def download(name: str, sha256: str | None = None) -> None:
+
+def effective_runtime_lock(upstream: dict) -> dict:
+    lock = deepcopy(upstream)
+    packages = lock["packages"]
+    for name, override in WHEEL_OVERRIDES.items():
+        item = packages[name]
+        if item["version"] != override["upstream_version"]:
+            raise ValueError(f"Review the browser override against the new upstream lock: {name}")
+        if not override["file_name"].endswith("-py3-none-any.whl"):
+            raise ValueError(f"Only reviewed pure-Python wheel overrides are supported: {name}")
+        item.update({key: override[key] for key in ("version", "file_name", "sha256")})
+        item["depends"] = sorted(set(item.get("depends", [])) | set(override["additional_dependencies"]))
+        if any(dependency not in packages for dependency in item["depends"]):
+            raise ValueError(f"Missing dependency in effective browser lock: {name}")
+    return lock
+
+
+def download(name: str, sha256: str | None = None, source: str | None = None) -> None:
     if not re.fullmatch(r"[A-Za-z0-9_.+!-]+", name) or name in (".", ".."):
         raise ValueError(f"Unexpected runtime filename: {name}")
     for attempt in range(3):
         try:
-            with urlopen(CDN + name, timeout=90) as response:
+            with urlopen(source or CDN + name, timeout=90) as response:
                 content = response.read()
             if sha256 and hashlib.sha256(content).hexdigest() != sha256:
                 raise ValueError(f"Runtime package checksum failed: {name}")
@@ -47,7 +87,9 @@ def main() -> None:
     OUTPUT.mkdir(parents=True)
     with ThreadPoolExecutor(max_workers=6) as pool:
         list(pool.map(download, CORE))
-    lock = json.loads((OUTPUT / "pyodide-lock.json").read_text())
+    lock_path = OUTPUT / "pyodide-lock.json"
+    lock = effective_runtime_lock(json.loads(lock_path.read_text()))
+    lock_path.write_text(json.dumps(lock, separators=(",", ":")), encoding="utf-8")
     packages = lock["packages"]
     resolved: dict[str, dict] = {}
 
@@ -64,9 +106,16 @@ def main() -> None:
 
     for name in PACKAGES:
         include(name)
+    def download_package(entry: tuple[str, dict]) -> None:
+        key, package = entry
+        source = WHEEL_OVERRIDES.get(key, {}).get("url")
+        digest = package.get("sha256")
+        if not digest or not re.fullmatch(r"[a-fA-F0-9]{64}", digest):
+            raise ValueError(f"Missing runtime wheel checksum: {key}")
+        download(package["file_name"], digest, source)
+
     with ThreadPoolExecutor(max_workers=6) as pool:
-        list(pool.map(lambda package: download(package["file_name"], package.get("sha256")),
-                      resolved.values()))
+        list(pool.map(download_package, resolved.items()))
     with ZipFile(OUTPUT / "backend.zip", "w", ZIP_DEFLATED) as archive:
         archive.writestr("backend/__init__.py", "")
         archive.write(ROOT / "backend/data/icd10cm-fy2027.tsv", "backend/data/icd10cm-fy2027.tsv")

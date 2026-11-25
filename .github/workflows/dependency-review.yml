@@ -77,9 +77,6 @@ jobs:
         run: |
           /tmp/emr-advisory-scanner/bin/python -m scripts.audit_python_dependencies \
             --server /tmp/emr-server-pins.txt --output /tmp/emr-python-review
-      - name: Collect upstream browser fix wheel evidence
-        if: always()
-        run: python -m scripts.check_browser_dependency_candidates
       - name: Archive Python dependency review
         if: always()
         uses: actions/upload-artifact@v4
