@@ -524,7 +524,7 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
               <FollowUpTasks key={selectedPatient.id} patientId={selectedPatient.id} />
             </>}
             {chartSection === 'orders' && <>
-              <PatientLabHistory key={selectedPatient.id} patientId={selectedPatient.id} />
+              <PatientLabHistory key={selectedPatient.id} patientId={selectedPatient.id} archived={Boolean(selectedPatient.archived_at)} />
               <PatientReferralHistory key={selectedPatient.id} patientId={selectedPatient.id} />
               <ImagingHistory key={selectedPatient.id} patientId={selectedPatient.id} staff />
             </>}
