@@ -125,8 +125,8 @@ function PendingLabWorklist({
             ) : (
               <ol className="pending-lab-list">
                 {orders.map((order) => (
-                  <li className="pending-lab-row" key={order.id}>
-                    <div>
+                  <li className={activeOrder === order.id ? "pending-lab-row lab-worklist-row lab-worklist-row-editing" : "pending-lab-row lab-worklist-row"} key={order.id}>
+                    <div className="lab-worklist-details">
                       <div className="pending-lab-title">
                         <strong>{order.test_name}</strong>
                         <span className={order.priority === 'urgent'
