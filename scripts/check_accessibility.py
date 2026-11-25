@@ -15,7 +15,27 @@ def ax_nodes(page):
     session = page.context.new_cdp_session(page)
     try:
         nodes = session.send("Accessibility.getFullAXTree")["nodes"]
-        return [node for node in nodes if not node.get("ignored")]
+        # The transport does not guarantee depth-first reading order. Follow
+        # ordered child IDs, traversing ignored containers as well.
+        by_id = {node["nodeId"]: node for node in nodes}
+        ordered = []
+        visited = set()
+
+        def visit(node):
+            node_id = node["nodeId"]
+            if node_id in visited:
+                return
+            visited.add(node_id)
+            if not node.get("ignored"):
+                ordered.append(node)
+            for child_id in node.get("childIds", []):
+                if child_id in by_id:
+                    visit(by_id[child_id])
+
+        for node in nodes:
+            if node.get("parentId") not in by_id:
+                visit(node)
+        return ordered
     finally:
         session.detach()
 
@@ -39,10 +59,14 @@ def inspect_screen(page, label):
     roles = Counter(ax_value(node, "role") for node in nodes)
     assert roles["main"] == 1, f"{label}: expected one main landmark"
     headings = [node for node in nodes if ax_value(node, "role") == "heading"]
+    assert headings, f"{label}: no exposed headings"
     first = headings[0]
     properties = {prop["name"]: prop.get("value", {}).get("value")
                   for prop in first.get("properties", [])}
-    assert properties.get("level") == 1, f"{label}: first heading must be level one"
+    assert properties.get("level") == 1, (
+        f"{label}: first heading must be level one; got "
+        f"{ax_value(first, 'name')} (level {properties.get('level')})"
+    )
     interactive = {"button", "link", "textbox", "searchbox", "checkbox",
                    "radio", "combobox", "spinbutton", "switch", "DisclosureTriangle"}
     unlabeled = [ax_value(node, "role") for node in nodes
