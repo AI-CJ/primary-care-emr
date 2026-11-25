@@ -1,5 +1,5 @@
 import DiagnosisIndications from './DiagnosisIndications'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import PendingLabActions, { type LabResolution } from './PendingLabActions'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { LabOrder } from '../types'
@@ -29,6 +29,7 @@ function PendingLabWorklist({
   const [notice, setNotice] = useState('')
   const noticeRef = useRef<HTMLParagraphElement>(null)
   const pageStatus = useRef<HTMLParagraphElement>(null)
+  const filterId = useId()
   const [query, setQuery] = useState('')
   const [priority, setPriority] = useState<LabQueueFilter>('all')
   const [requestedPage, setRequestedPage] = useState(0)
@@ -138,15 +139,15 @@ function PendingLabWorklist({
         {orders && (
           <>
             <div className="lab-queue-toolbar" role="group" aria-label="Filter pending lab requests">
-              <label className="form-field lab-queue-search"><span>Find a request</span>
-                <input type="search" placeholder="Patient, test or request number" value={query} disabled={locked}
+              <div className="form-field lab-queue-search"><label htmlFor={filterId + "-search"}><span>Find a request</span></label>
+                <input id={filterId + "-search"} type="search" placeholder="Patient, test or request number" value={query} disabled={locked}
                   onChange={event => { setQuery(event.target.value); setRequestedPage(0) }} />
-              </label>
-              <label className="form-field"><span>Priority</span>
-                <select value={priority} disabled={locked} onChange={event => { setPriority(event.target.value as LabQueueFilter); setRequestedPage(0) }}>
+              </div>
+              <div className="form-field"><label htmlFor={filterId + "-priority"}><span>Priority</span></label>
+                <select id={filterId + "-priority"} value={priority} disabled={locked} onChange={event => { setPriority(event.target.value as LabQueueFilter); setRequestedPage(0) }}>
                   <option value="all">All priorities</option><option value="urgent">Urgent</option><option value="routine">Routine</option>
                 </select>
-              </label>
+              </div>
               <button type="button" className="secondary-action-button" disabled={locked || (!query && priority === 'all')} onClick={clearFilters}>Clear filters</button>
             </div>
             <div className="lab-queue-pagebar">
