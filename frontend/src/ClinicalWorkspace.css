@@ -325,3 +325,20 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .portal-task small { color: #46665a; font-size: .95rem; line-height: 1.45; margin-top: 5px; }
 .portal-task-arrow { font-size: 1.5rem; color: #216b56; }
 @media(max-width: 480px) { .portal-next-visit { gap: 14px; } .next-visit-action { width: 100%; text-align: left; } .portal-task { padding: 14px; gap: 10px; } }
+
+/* Chart context is independent of section content. Empty or unavailable allergy data is never a clearance. */
+.chart-allergy-context { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; padding:14px 18px; margin-top:10px; border:1px solid #c8d5d4; border-left:4px solid #758d8d; border-radius:7px; background:#f7faf9; color:#263c3b; }
+.chart-allergy-recorded { border-color:#e1b9a8; border-left-color:#a54c34; background:#fff5ef; color:#743624; }
+.chart-allergy-content { flex:1 1 240px; min-width:0; overflow-wrap:anywhere; }
+.chart-allergy-content h2 { font-size:.8rem; font-weight:700; margin:0 0 3px; }
+.chart-allergy-content p, .chart-allergy-content ul { margin:0; font-size:.87rem; }
+.chart-allergy-content ul { padding-left:19px; }
+.chart-allergy-content li + li { margin-top:3px; }
+.chart-allergy-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+@media (min-width:1001px) and (min-height:720px) {
+  .chart-identity { position:sticky; top:0; z-index:3; padding:12px 20px; box-shadow:0 4px 12px #1c292e12; }
+  .chart-identity h1 { font-size:1.45rem; }
+  .chart-identity .eyebrow { margin-bottom:4px; }
+  .chart-identity .patient-meta { margin-top:4px; }
+  .patient-chart :where(button, input, select, textarea, summary):focus { scroll-margin-top:170px; }
+}

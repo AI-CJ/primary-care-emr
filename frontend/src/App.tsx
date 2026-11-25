@@ -12,6 +12,7 @@ import {
 import AppointmentChangeRequestsWorklist from './components/AppointmentChangeRequestsWorklist'
 import ActiveCareGoalsWorklist from './components/ActiveCareGoalsWorklist'
 import AllergyList from './components/AllergyList'
+import ChartAllergyContext from './components/ChartAllergyContext'
 import AppointmentList from './components/AppointmentList'
 import CareGoals from './components/CareGoals'
 import ClinicSchedule from './components/ClinicSchedule'
@@ -100,6 +101,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
 
   const [destination, setDestination] = useState<StaffDestination>('dashboard')
   const [chartSection, setChartSection] = useState<ChartSection>('summary')
+  const [allergyRevision, setAllergyRevision] = useState(0)
   const [showPortalPreview, setShowPortalPreview] = useState(false)
   const dirtyForms = useRef(new WeakSet<HTMLFormElement>())
   const workspaceRef = useRef<HTMLDivElement>(null)
@@ -476,6 +478,8 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
           </header>
 
 
+          <ChartAllergyContext key={selectedPatient.id + ':' + chartSection + ':' + allergyRevision}
+            patientId={selectedPatient.id} onReview={() => selectChartSection('health')} />
           <SectionNavigation label="Patient chart sections" options={chartSections}
             current={chartSection} onChange={selectChartSection} />
 
@@ -494,7 +498,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
             {chartSection === 'health' && <>
               <ProblemList patientId={selectedPatient.id} />
               <MedicationList patientId={selectedPatient.id} />
-              <AllergyList patientId={selectedPatient.id} />
+              <AllergyList patientId={selectedPatient.id} onChanged={() => setAllergyRevision(n => n + 1)} />
               <VitalList patientId={selectedPatient.id} />
             </>}
             {chartSection === 'care' && <>
