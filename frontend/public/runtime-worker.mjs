@@ -54,9 +54,13 @@ self.onmessage = ({ data: { id, request } }) => {
       const pyodide = await runtimePromise
       await prepareReferences(pyodide, request)
       pyodide.globals.set('request_json', JSON.stringify(request))
-      const reply = JSON.parse(await pyodide.runPythonAsync('await browser_request(request_json)'))
-      pyodide.globals.delete('request_json')
-      self.postMessage({ id, reply })
+      try {
+        const reply = JSON.parse(await pyodide.runPythonAsync('await browser_request(request_json)'))
+        self.postMessage({ id, reply })
+      } finally {
+        // Do not keep the previous request (including a failed login) in Python globals.
+        pyodide.globals.delete('request_json')
+      }
     } catch (error) {
       // Log only the exception class. Do not log request or patient data.
       console.error('Workspace request failed:', error.name)

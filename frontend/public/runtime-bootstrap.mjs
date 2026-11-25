@@ -1,23 +1,30 @@
+// Native Web Crypto is available in secure contexts (HTTPS and localhost).
+// Keep the same password parameters for both seed and login; the server uses
+// Python's hashlib implementation and does not call this worker module.
+export async function derivePassword(raw, salt, provider = globalThis.crypto) {
+  if (!provider?.subtle) throw new Error('Secure browser password derivation unavailable')
+  const key = await provider.subtle.importKey('raw', new Uint8Array(raw), 'PBKDF2', false, ['deriveBits'])
+  return new Uint8Array(await provider.subtle.deriveBits({
+    name: 'PBKDF2', hash: 'SHA-256', salt: new Uint8Array(salt), iterations: 600000,
+  }, key, 256))
+}
+
 // Only the four deliberately public demo identities use this seed path.
-// Fresh independent salts for each worker; normal Python login verification is unchanged.
+// Fresh independent salts for each worker.
 export async function prepareDemoHashes(provider = globalThis.crypto) {
   if (!provider?.subtle || typeof provider.getRandomValues !== 'function') return null
   try {
-    const key = await provider.subtle.importKey(
-      'raw', new TextEncoder().encode('Welcome-EMR-2026'), 'PBKDF2', false, ['deriveBits'],
-    )
+    const password = new TextEncoder().encode('Welcome-EMR-2026')
     const identities = ['admin', 'clinician', 'jordan.lee', 'maria.thompson']
     const base64url = bytes => btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_')
     const entries = await Promise.all(identities.map(async username => {
       const salt = provider.getRandomValues(new Uint8Array(16))
-      const digest = new Uint8Array(await provider.subtle.deriveBits({
-        name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 600000,
-      }, key, 256))
+      const digest = await derivePassword(password, salt, provider)
       return [username, 'pbkdf2_sha256$600000$' + base64url(salt) + '$' + base64url(digest)]
     }))
     return Object.fromEntries(entries)
   } catch {
-    // Unsupported native crypto must not prevent ordinary Python seeding.
+    // Initialization fails closed when secure native crypto is unavailable.
     return null
   }
 }
@@ -38,7 +45,8 @@ export async function initializeRuntime({ loadPyodide, runtimeURL, fetchAsset = 
 
   async function preparePython() {
     const pyodide = await measure('coreMs', () => loadPyodide({ indexURL: runtimeURL.href }))
-    await measure('packagesMs', () => pyodide.loadPackage(['fastapi', 'sqlalchemy', 'cryptography']))
+    await measure('packagesMs', () => pyodide.loadPackage(['fastapi', 'sqlalchemy']))
+    pyodide.registerJsModule('emr_crypto', { derivePassword })
     return pyodide
   }
 
@@ -58,8 +66,8 @@ export async function initializeRuntime({ loadPyodide, runtimeURL, fetchAsset = 
   await measure('unpackMs', () => pyodide.unpackArchive(archive, 'zip'))
   await measure('pythonImportMs', () => pyodide.runPythonAsync(
     'from backend.browser_demo import initialize_browser, browser_request'))
-  const seedSource = hashes === null ? 'initialize_browser()'
-    : 'initialize_browser(' + JSON.stringify(JSON.stringify(hashes)) + ')'
+  if (hashes === null) throw new Error('Secure browser password initialization unavailable')
+  const seedSource = 'initialize_browser(' + JSON.stringify(JSON.stringify(hashes)) + ')'
   await measure('databaseSeedMs', () => pyodide.runPythonAsync(seedSource))
   await measure('populationSeedMs', () => pyodide.runPythonAsync(
     'from backend.synthetic_population import extend_browser_population; extend_browser_population()'))

@@ -19,7 +19,7 @@ CORE = (
     "pyodide.mjs", "pyodide.asm.mjs", "pyodide.asm.wasm",
     "python_stdlib.zip", "pyodide-lock.json",
 )
-PACKAGES = ("fastapi", "sqlalchemy", "cryptography")
+PACKAGES = ("fastapi", "sqlalchemy")
 
 
 def download(name: str, sha256: str | None = None) -> None:

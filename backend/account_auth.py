@@ -29,16 +29,8 @@ def normalize_username(value: str) -> str:
 
 
 def _derive_password(raw: bytes, salt: bytes) -> bytes:
-    # Pyodide does not bundle OpenSSL-backed hashlib.pbkdf2_hmac.
-    # Use the same algorithm and work factor in the browser.
-    if sys.platform == "emscripten" and not hasattr(hashlib, "pbkdf2_hmac"):
-        from cryptography.hazmat.primitives import hashes
-        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-
-        return PBKDF2HMAC(
-            algorithm=hashes.SHA256(), length=32, salt=salt,
-            iterations=_PASSWORD_ITERATIONS,
-        ).derive(raw)
+    # The server uses the standard library. The browser has its own async
+    # Web Crypto verifier because its WASM stdlib lacks OpenSSL-backed PBKDF2.
     return hashlib.pbkdf2_hmac("sha256", raw, salt, _PASSWORD_ITERATIONS)
 
 
@@ -55,24 +47,51 @@ def hash_password(password: str) -> str:
     return f"{_PASSWORD_SCHEME}${_PASSWORD_ITERATIONS}${salt_text}${digest_text}"
 
 
-def verify_password(password: str, stored_hash: str) -> bool:
+def _password_parts(password: str, stored_hash: str) -> tuple[bytes, bytes, bytes] | None:
     if not isinstance(password, str) or not isinstance(stored_hash, str):
-        return False
+        return None
     raw = password.encode("utf-8")
     if len(raw) > 1024 or len(stored_hash) > 255:
-        return False
+        return None
     try:
         scheme, rounds, salt_text, digest_text = stored_hash.split("$")
         if scheme != _PASSWORD_SCHEME or int(rounds) != _PASSWORD_ITERATIONS:
-            return False
+            return None
         salt = base64.b64decode(salt_text, altchars=b"-_", validate=True)
         expected = base64.b64decode(digest_text, altchars=b"-_", validate=True)
         if len(salt) != 16 or len(expected) != 32:
-            return False
+            return None
     except (ValueError, TypeError):
+        return None
+    return raw, salt, expected
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    parts = _password_parts(password, stored_hash)
+    if parts is None:
         return False
-    actual = _derive_password(raw, salt)
-    return hmac.compare_digest(actual, expected)
+    raw, salt, expected = parts
+    return hmac.compare_digest(_derive_password(raw, salt), expected)
+
+
+async def _derive_browser_password(raw: bytes, salt: bytes) -> bytes:
+    # Registered only by the private, serialized browser worker. No digest,
+    # salt, or password is accepted from an HTTP request as a verifier.
+    from emr_crypto import derivePassword
+    from pyodide.ffi import to_js
+
+    digest = await derivePassword(to_js(list(raw)), to_js(list(salt)))
+    return bytes(digest.to_py())
+
+
+async def verify_browser_password(password: str, stored_hash: str) -> bool:
+    if sys.platform != "emscripten":
+        raise RuntimeError("Browser authentication is not a server operation")
+    parts = _password_parts(password, stored_hash)
+    if parts is None:
+        return False
+    raw, salt, expected = parts
+    return hmac.compare_digest(await _derive_browser_password(raw, salt), expected)
 
 
 def _lock_portal_patient(session: Session, patient_id: int) -> Patient | None:
@@ -139,7 +158,7 @@ def _create_user_account_with_hash(
     return account
 
 
-def authenticate_user(session: Session, username: str, password: str) -> UserAccount | None:
+def _active_account(session: Session, username: str) -> UserAccount | None:
     try:
         username = normalize_username(username)
     except ValueError:
@@ -147,11 +166,28 @@ def authenticate_user(session: Session, username: str, password: str) -> UserAcc
     account = session.scalar(select(UserAccount).where(UserAccount.username == username))
     if account is None or not account.is_active:
         return None
-    if not verify_password(password, account.password_hash):
-        return None
+    return account
+
+
+def _authenticated_account(session: Session, account: UserAccount) -> UserAccount | None:
     if account.account_type == "patient":
         # The login route commits the new session while this lock is held.
         patient = _lock_portal_patient(session, account.patient_id)
         if patient is None or patient.archived_at is not None:
             return None
     return account
+
+def authenticate_user(session: Session, username: str, password: str) -> UserAccount | None:
+    account = _active_account(session, username)
+    if account is None or not verify_password(password, account.password_hash):
+        return None
+    return _authenticated_account(session, account)
+
+
+async def authenticate_browser_user(session: Session, username: str, password: str) -> UserAccount | None:
+    if sys.platform != "emscripten":
+        raise RuntimeError("Browser authentication is not a server operation")
+    account = _active_account(session, username)
+    if account is None or not await verify_browser_password(password, account.password_hash):
+        return None
+    return _authenticated_account(session, account)
