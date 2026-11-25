@@ -1,10 +1,12 @@
 import DiagnosisIndications from './DiagnosisIndications'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import PendingLabActions, { type LabResolution } from './PendingLabActions'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PatientLabOrder } from '../types'
 
 type PatientLabHistoryProps = {
   patientId: number
+  archived?: boolean
 }
 
 const statusLabels: Record<PatientLabOrder['status'], string> = {
@@ -13,11 +15,26 @@ const statusLabels: Record<PatientLabOrder['status'], string> = {
   cancelled: 'Cancelled',
 }
 
-function PatientLabHistory({ patientId }: PatientLabHistoryProps) {
+function PatientLabHistory({ patientId, archived = false }: PatientLabHistoryProps) {
   const [orders, setOrders] = useState<PatientLabOrder[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reloadCount, setReloadCount] = useState(0)
+  const [activeOrder, setActiveOrder] = useState<number | null>(null)
+  const [notice, setNotice] = useState('')
+  const noticeRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => { if (notice) noticeRef.current?.focus() }, [notice])
+
+  function resolved(order: PatientLabOrder, resolution: LabResolution) {
+    setOrders(current => current.map(item => item.id !== order.id ? item : resolution.kind === 'cancelled'
+      ? { ...item, ...resolution.order }
+      : { ...item, status: 'resulted', result: resolution.result }))
+    setActiveOrder(null)
+    setNotice(order.test_name + (resolution.kind === 'cancelled'
+      ? ' cancelled. The request and reason remain in the chart.'
+      : ' result recorded. Review and release separately when appropriate.'))
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -62,13 +79,14 @@ function PatientLabHistory({ patientId }: PatientLabHistoryProps) {
         <button
           className="secondary-action-button"
           type="button"
-          disabled={isLoading}
+          disabled={isLoading || activeOrder !== null}
           onClick={() => setReloadCount((count) => count + 1)}
         >
           Refresh
         </button>
       </div>
 
+      {notice && <p role="status" tabIndex={-1} ref={noticeRef} className="lab-resolution-notice">{notice}</p>}
       {isLoading && <p role="status">Loading lab history...</p>}
       {error && (
         <div>
@@ -109,6 +127,7 @@ function PatientLabHistory({ patientId }: PatientLabHistoryProps) {
               {order.status === 'cancelled' && (
                 <p className="patient-lab-details">
                   Cancelled: {order.cancellation_reason ?? 'Reason not recorded'}
+                  {order.cancelled_at && <> · <time dateTime={order.cancelled_at}>{order.cancelled_at.slice(0, 10)}</time></>}
                 </p>
               )}
               {order.result && (
@@ -137,6 +156,12 @@ function PatientLabHistory({ patientId }: PatientLabHistoryProps) {
                     )}
                   </p>
                 </div>
+              )}
+              {order.status === 'ordered' && !archived && (
+                <PendingLabActions order={order} visitDate={order.visit_date}
+                  active={activeOrder === order.id} disabled={activeOrder !== null}
+                  onBegin={() => { setActiveOrder(order.id); setNotice('') }}
+                  onDismiss={() => setActiveOrder(null)} onResolved={resolution => resolved(order, resolution)} />
               )}
               {order.status === 'resulted' && !order.result && (
                 <p>Result details are unavailable.</p>
