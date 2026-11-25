@@ -88,7 +88,7 @@ export default function PortalCommunicationPreferences() {
         </button>
       )}
       {!loading && preferences && (
-        <form className="portal-preferences-form" data-unsaved={changed || undefined} onSubmit={(event) => void save(event)}>
+        <form aria-labelledby="portal-communication" className="portal-preferences-form" data-unsaved={changed || undefined} onSubmit={(event) => void save(event)}>
           <label htmlFor="preferred-channel">Preferred contact method</label>
           <select id="preferred-channel" value={preferences.preferred_channel}
             disabled={saving}
