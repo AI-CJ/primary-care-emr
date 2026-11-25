@@ -53,7 +53,7 @@ export default function PatientPortal() {
           <h2 ref={sectionHeading} tabIndex={-1}>{portalSections.find((item) => item.id === section)?.label}</h2>
           <p>{portalSectionDescriptions[section]}</p>
         </div>}
-        {section === 'home' && <PortalHome onNavigate={navigate} navigation={navigation} />}
+        {section === 'home' && <PortalHome onNavigate={navigate} />}
         {section === 'health' && <div className="portal-grid">
           <PortalProblemList />
           <PortalMedications />
