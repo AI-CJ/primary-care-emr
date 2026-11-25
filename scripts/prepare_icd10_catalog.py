@@ -11,6 +11,8 @@ from zipfile import ZipFile, BadZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "backend/data/icd10cm-fy2027.tsv"
+CATALOG_SHA256 = "623c7f250b800aa44e5c34efd7c37f168ceb2c41f33a8de11f9a9b4b6115e353"
+EXPECTED_COUNT = 74879
 SOURCES = (
     "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2027/icd10cm-code-descriptions-2027.zip",
     "https://www.cms.gov/files/zip/2027-code-descriptions-tabular-order.zip",
@@ -51,7 +53,7 @@ def parse_archive(content: bytes) -> dict[str, str]:
                     continue
                 records[code] = title
             print(f"{Path(filename).name}: {len(records)} structurally valid, {invalid} invalid; examples {examples}", flush=True)
-            if invalid or not 65_000 <= len(records) <= 100_000:
+            if invalid or len(records) != EXPECTED_COUNT:
                 errors.append(f"{Path(filename).name}: {len(records)} valid and {invalid} invalid entries")
                 continue
             if not {"I10", "E119", "E785", "Z0000", "Z130", "QA00101"} <= records.keys():
@@ -64,7 +66,9 @@ def parse_archive(content: bytes) -> dict[str, str]:
 
 def prepare(archive_path: Path | None = None, force: bool = False) -> None:
     if OUTPUT.exists() and not force and archive_path is None:
-        print("Existing FY 2027 diagnosis catalog retained.")
+        if hashlib.sha256(OUTPUT.read_bytes()).hexdigest() != CATALOG_SHA256:
+            raise ValueError("Existing catalog differs from the reviewed release. Re-import with --force.")
+        print("Existing verified FY 2027 diagnosis catalog retained.")
         return
     candidates = [(str(archive_path), archive_path.read_bytes())] if archive_path else []
     if not candidates:
@@ -98,7 +102,10 @@ def prepare(archive_path: Path | None = None, force: bool = False) -> None:
     records = parse_archive(content)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     temporary = OUTPUT.with_suffix(".tmp")
-    temporary.write_text("".join(f"{code}\t{records[code]}\n" for code in sorted(records)), encoding="utf-8")
+    data = "".join(f"{code}\t{records[code]}\n" for code in sorted(records)).encode("utf-8")
+    if hashlib.sha256(data).hexdigest() != CATALOG_SHA256:
+        raise ValueError("Imported catalog differs from the reviewed FY 2027 release.")
+    temporary.write_bytes(data)
     temporary.replace(OUTPUT)
     print(f"ICD-10-CM FY2027: {len(records)} reportable codes from {source}")
     print(f"Source SHA-256: {hashlib.sha256(content).hexdigest()}")

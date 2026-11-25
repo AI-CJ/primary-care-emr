@@ -6,6 +6,7 @@ lookup, not a diagnosis or a coding-guideline validator.
 from functools import lru_cache
 from pathlib import Path
 import re
+from hashlib import sha256
 from heapq import nsmallest
 from typing import NamedTuple
 
@@ -16,6 +17,7 @@ EFFECTIVE_FROM = "2026-10-01"
 EFFECTIVE_THROUGH = "2027-09-30"
 CATALOG_PATH = Path(__file__).resolve().parent / "data" / "icd10cm-fy2027.tsv"
 CODE_PATTERN = re.compile(r"[A-Z][A-Z0-9]{2,6}")
+CATALOG_SHA256 = "623c7f250b800aa44e5c34efd7c37f168ceb2c41f33a8de11f9a9b4b6115e353"
 
 
 class DiagnosisCode(NamedTuple):
@@ -34,14 +36,16 @@ def display_code(code: str) -> str:
 @lru_cache(maxsize=1)
 def load_catalog() -> dict[str, DiagnosisCode]:
     try:
+        data = CATALOG_PATH.read_bytes()
+        if sha256(data).hexdigest() != CATALOG_SHA256:
+            raise ValueError("Catalog checksum mismatch")
         records = {}
-        with CATALOG_PATH.open(encoding="utf-8") as source:
-            for line in source:
-                code, title = line.rstrip("\n").split("\t", 1)
-                if not CODE_PATTERN.fullmatch(code) or not title or code in records:
-                    raise ValueError("Invalid diagnosis catalog entry")
-                records[code] = DiagnosisCode(display_code(code), title)
-        if not 65_000 <= len(records) <= 100_000 or not {"I10", "E119", "Z0000", "QA00101"} <= records.keys():
+        for line in data.decode("utf-8").splitlines():
+            code, title = line.split("\t", 1)
+            if not CODE_PATTERN.fullmatch(code) or not title or code in records:
+                raise ValueError("Invalid diagnosis catalog entry")
+            records[code] = DiagnosisCode(display_code(code), title)
+        if len(records) != 74879 or not {"I10", "E119", "Z0000", "QA00101"} <= records.keys():
             raise ValueError("Incomplete diagnosis catalog")
         return records
     except (OSError, ValueError):

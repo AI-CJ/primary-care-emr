@@ -28,6 +28,7 @@ Changes remain in the same tab when you switch accounts. Use **Demo reset** in t
 - Searchable patient directory and chart sections for the clinical summary, health record, appointments, visit notes, labs/referrals and care plan.
 - Patient identity, recorded allergy status, active problems and medications, the latest dated vital record and a longitudinal activity timeline.
 - Appointment scheduling, conflict detection, rescheduling, check-in, completion, cancellation and no-show tracking.
+- Staff ICD-10-CM lookup by diagnosis description or code, with explicit problem-linked medication and lab indications.
 - Structured visit notes, linked clinical-record snapshots, draft review, finalization, append-only addenda and patient-facing instructions.
 - Lab requests and results, explicit result release, referral follow-up, care goals, task tracking and staff worklists.
 - Administrator-only chart archive/reactivation and audit review, with historical clinical records retained.
@@ -100,6 +101,7 @@ From the repository root:
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
 python -m pip install -r backend/requirements.txt
+python -m scripts.prepare_icd10_catalog
 alembic upgrade head
 python -m backend.seed
 python -m backend.bootstrap_staff --username demo.clinician --role clinician
@@ -107,6 +109,8 @@ python -m backend.bootstrap_staff --username demo.admin --role admin
 python -m backend.bootstrap_patient --username demo.patient --patient-id 1
 uvicorn backend.main:app --reload
 ```
+
+The catalog preparation step imports the reviewed official FY 2027 ICD-10-CM descriptions. The resulting local reference contains 74,879 reportable codes, with a verified SHA-256 digest. See the [diagnosis reference](docs/ICD10_REFERENCE.md) for provenance, refresh instructions and limitations.
 
 Account setup prompts for passwords (12–128 characters). The patient ID example assumes a fresh database seeded by this project; confirm the chart ID before linking an account if the database already contains records. The local seed creates three fictional patients, while the public workspace provides a richer pre-populated clinical dataset.
 

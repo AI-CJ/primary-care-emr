@@ -51,12 +51,28 @@ def run():
         admin = login("admin")
         patient = login("jordan.lee")
         request("GET", "/patients/2", token=patient, expected=403)
+        lookup = "/diagnosis-codes/search"
+        request("POST", lookup, {"query": "I10"}, expected=401)
+        request("POST", lookup, {"query": "I10"}, patient, expected=403)
+        codes = request("POST", lookup, {"query": "essential primary hypertension"}, admin)
+        assert codes["release"] == "FY2027"
+        assert any(item["code"] == "I10" for item in codes["results"])
+        assert request("POST", lookup, {"query": "e119"}, admin)["results"][0]["code"] == "E11.9"
+        assert request("POST", lookup, {"query": "QA00101"}, admin)["results"][0]["code"] == "QA0.0101"
+        request("POST", "/patients/1/problems", {"name": "Invalid", "icd10_code": "ZZZZZZZ"}, admin, expected=422)
         appointments = request("GET", "/patients/1/appointments", token=admin)
         appointment = next(item for item in appointments if item["reason_for_visit"] == "Blood pressure follow-up")
         day = appointment["scheduled_date"]
         request("POST", f"/appointments/{appointment['id']}/check-in", token=admin)
-        problem = request("POST", "/patients/1/problems", {"name": "Seasonal allergies"}, admin)
-        medication = request("POST", "/patients/1/medications", {"name": "Example medication", "strength": "10 mg"}, admin)
+        problem = request("POST", "/patients/1/problems", {"name": "Seasonal allergies", "icd10_code": "j302"}, admin)
+        assert problem["icd10_code"] == "J30.2" and problem["icd10_release"] == "FY2027"
+        other = request("POST", "/patients/2/problems", {"name": "Other chart condition", "icd10_code": "I10"}, admin)
+        request("POST", "/patients/1/medications", {"name": "Cross-chart", "problem_ids": [other["id"]]}, admin, expected=404)
+        request("POST", "/patients/1/medications", {"name": "Duplicate link", "problem_ids": [problem["id"], problem["id"]]}, admin, expected=422)
+        medication = request("POST", "/patients/1/medications", {"name": "Example medication", "strength": "10 mg", "problem_ids": [problem["id"]]}, admin)
+        assert medication["indications"][0]["icd10_code"] == "J30.2"
+        kept = request("PUT", f"/medications/{medication['id']}", {"name": "Example medication", "strength": "20 mg"}, admin)
+        assert kept["indications"] == medication["indications"]
         allergy = request("POST", "/patients/1/allergies", {"allergen": "Example allergen", "severity": "mild"}, admin)
         vital = request("POST", "/patients/1/vitals", {"recorded_on": day, "heart_rate": 72}, admin)
         note = request("POST", "/patients/1/encounters", {
@@ -72,9 +88,19 @@ def run():
         ):
             request("POST", f"{visit}/{path}", {field: record["id"]}, admin)
             assert request("GET", f"{visit}/{path}", token=admin)
-        order = request("POST", visit + "/lab-orders", {"test_name": "Follow-up panel"}, admin)
+        order = request("POST", visit + "/lab-orders", {"test_name": "Follow-up panel", "problem_ids": [problem["id"]]}, admin)
+        assert order["indications"] == medication["indications"]
+        order_path = f"/lab-orders/{order['id']}/indications"
+        request("PUT", order_path, {"problem_ids": [other["id"]]}, admin, expected=404)
+        assert request("PUT", order_path, {"problem_ids": []}, admin)["indications"] == []
+        assert request("PUT", order_path, {"problem_ids": [problem["id"]]}, admin)["indications"] == order["indications"]
         referral = request("POST", visit + "/referrals", {"specialty": "Cardiology", "reason": "Follow-up"}, admin)
         request("POST", visit + "/finalize", token=admin)
+        request("PUT", order_path, {"problem_ids": []}, admin, expected=409)
+        request("PUT", f"/problems/{problem['id']}", {"name": "Updated allergy record", "icd10_code": "J30.9"}, admin)
+        assert request("GET", visit + "/problems", token=admin)[0]["icd10_code_at_link"] == "J30.2"
+        assert request("GET", visit + "/medications", token=admin)[0]["indications_at_link"] == medication["indications"]
+        assert request("GET", visit + "/lab-orders", token=admin)[0]["indications"] == order["indications"]
         request("PUT", visit, {"visit_date": day, "reason_for_visit": "Altered", "assessment": "Attempted change."}, admin, expected=409)
         request("POST", visit + "/addenda", {"content": "Reviewed after finalization."}, admin)
         request("POST", f"/appointments/{appointment['id']}/complete", token=admin)
@@ -107,7 +133,11 @@ def run():
         request("POST", f"/appointment-change-requests/{change['id']}/review", token=admin)
         assert any(item["status"] == "reviewed" for item in request("GET", "/portal/appointment-change-requests", token=patient))
         assert any(item["id"] == note["id"] for item in request("GET", "/portal/visits", token=patient))
-        assert any(item["id"] == problem["id"] for item in request("GET", "/portal/problems", token=patient))
+        portal_problems = request("GET", "/portal/problems", token=patient)
+        assert any(item["id"] == problem["id"] for item in portal_problems)
+        assert all("icd10_code" not in item for item in portal_problems)
+        assert all("indications" not in item for item in request("GET", "/portal/medications", token=patient))
+        assert all("indications" not in item for item in request("GET", "/portal/lab-orders", token=patient))
         for path in ("/portal/medications", "/portal/allergies", "/portal/vitals",
                      "/portal/care-goals", "/portal/referrals", "/portal/appointments",
                      "/patients/1/timeline", "/worklists/pending-lab-orders",

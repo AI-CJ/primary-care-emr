@@ -48,6 +48,12 @@ export default function DiagnosisPicker({ value, selected, disabled, onChange, o
     return () => { window.clearTimeout(timer); controller.abort() }
   }, [query, open, selected, disabled, revision])
 
+  useEffect(() => {
+    if (expanded && active >= 0) {
+      document.getElementById(id + '-option-' + active)?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [active, expanded, id])
+
   function select(item: DiagnosisCode) {
     if (current?.state !== 'ready') return
     onSelect({ ...item, release: current.release })
