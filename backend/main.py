@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Literal
 import os
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -12,6 +13,9 @@ from sqlalchemy.orm import Session
 
 from backend.database import engine
 from backend.icd10_catalog import RELEASE, search_codes
+from backend.clinical_reference import medication_values, reference_search
+from backend.immunizations import (ImmunizationCreate, ImmunizationRead, ImmunizationVoid,
+    PortalImmunizationRead, list_immunizations, record_immunization, void_immunization)
 from backend.diagnosis_indications import problem_values, select_indications, replace_indications
 from backend.settings import cors_origins
 from backend.patient_lifecycle import (
@@ -252,7 +256,7 @@ _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
 _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
     "/portal/allergies", "/portal/vitals", "/portal/care-goals",
-    "/portal/visits", "/portal/lab-orders", "/portal/referrals", "/portal/imaging-reports",
+    "/portal/visits", "/portal/lab-orders", "/portal/referrals", "/portal/imaging-reports", "/portal/immunizations",
     "/portal/communication-preferences", "/portal/appointment-change-requests",
 }
 _PATIENT_WRITE_PATHS = {
@@ -289,7 +293,7 @@ def _audit_clinical_access(request: Request, status_code: int) -> None:
             value for name in (
                 "patient_id", "encounter_id", "goal_id", "task_id", "problem_id",
                 "medication_id", "allergy_id", "vital_id", "order_id",
-                "referral_id", "appointment_id", "request_id",
+                "referral_id", "appointment_id", "request_id", "immunization_id",
             )
             if (value := numeric_id(name)) is not None
         ),
@@ -300,7 +304,7 @@ def _audit_clinical_access(request: Request, status_code: int) -> None:
         subject_patient_id = numeric_id("patient_id")
     event_type = (
         "access_denied" if status_code in {401, 403}
-        else "clinical_read" if request.method == "GET" or route_template == "/diagnosis-codes/search"
+        else "clinical_read" if request.method == "GET" or route_template in {"/diagnosis-codes/search", "/clinical-reference/{kind}/search"}
         else "clinical_write"
     )
     with Session(engine) as session:
@@ -774,6 +778,47 @@ def read_follow_up_due_date_changes(task_id: int):
         return list_follow_up_due_date_changes(session, task_id)
 
 
+@app.post("/clinical-reference/{kind}/search")
+def search_clinical_reference(kind: Literal["rxnorm", "cvx", "mvx"], payload: DiagnosisCodeSearch):
+    return reference_search(kind, payload.query)
+
+
+@app.get("/patients/{patient_id}/immunizations", response_model=list[ImmunizationRead])
+def read_patient_immunizations(patient_id: int):
+    with Session(engine) as session:
+        return list_immunizations(session, patient_id)
+
+
+@app.post("/patients/{patient_id}/immunizations", response_model=ImmunizationRead, status_code=201)
+def create_patient_immunization(patient_id: int, payload: ImmunizationCreate):
+    with Session(engine) as session:
+        row = record_immunization(session, patient_id, payload)
+        session.commit()
+        session.refresh(row)
+        return row
+
+
+@app.post("/immunizations/{immunization_id}/void", response_model=ImmunizationRead)
+def correct_immunization(immunization_id: int, payload: ImmunizationVoid):
+    with Session(engine) as session:
+        row = void_immunization(session, immunization_id, payload)
+        session.commit()
+        session.refresh(row)
+        return row
+
+
+@app.get("/patients/{patient_id}/portal-preview/immunizations", response_model=list[PortalImmunizationRead])
+def read_portal_preview_immunizations(patient_id: int):
+    with Session(engine) as session:
+        return list_immunizations(session, patient_id, portal=True)
+
+
+@app.get("/portal/immunizations", response_model=list[PortalImmunizationRead])
+def read_portal_immunizations(account: UserAccount = Depends(_current_patient_account)):
+    with Session(engine) as session:
+        return list_immunizations(session, account.patient_id, portal=True)
+
+
 @app.post("/diagnosis-codes/search")
 def read_diagnosis_codes(payload: DiagnosisCodeSearch):
     # POST keeps typed clinical search terms out of ordinary URL/access logs.
@@ -924,7 +969,7 @@ def create_patient_medication(
 
         medication = Medication(
             patient_id=patient_id,
-            **medication_data.model_dump(exclude={'problem_ids'}),
+            **medication_values(medication_data),
             indications=select_indications(session, patient_id, medication_data.problem_ids or [], MedicationIndication),
         )
 
@@ -955,7 +1000,7 @@ def update_medication(
 
         if medication_data.problem_ids is not None:
             replace_indications(session, medication, medication.patient_id, medication_data.problem_ids, MedicationIndication)
-        for field, value in medication_data.model_dump(exclude={'problem_ids'}).items():
+        for field, value in medication_values(medication_data, medication).items():
             setattr(medication, field, value)
 
         session.commit()
