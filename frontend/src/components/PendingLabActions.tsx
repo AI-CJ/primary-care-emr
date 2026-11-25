@@ -54,7 +54,7 @@ export default function PendingLabActions({ order, visitDate, patientName, activ
   function dismiss() {
     if (inFlight.current) return
     onDismiss()
-    requestAnimationFrame(() => buttons.current?.querySelector('button')?.focus())
+    requestAnimationFrame(() => buttons.current?.querySelectorAll('button')[mode === 'result' ? 0 : 1]?.focus())
   }
 
   const valid = mode === 'cancel'
@@ -108,7 +108,7 @@ export default function PendingLabActions({ order, visitDate, patientName, activ
     </> : <>
       <p className="encounter-help">Enter a result that has actually been received. Saving removes this request from the pending queue, but does not release the result to the patient. Saved results cannot be edited.</p>
       <label className="form-field"><span>Collection date *</span><input ref={input} type="date" value={collectedOn}
-        min={visitDate} max={today} required disabled={busy} onChange={event => setCollectedOn(event.target.value)} /></label>
+        min={visitDate} max={today} required disabled={busy} onChange={event => { setCollectedOn(event.target.value); setReviewed(false) }} /></label>
       <label className="form-field"><span>Result details *</span><textarea value={resultText} rows={4} maxLength={4000}
         required disabled={busy} onChange={event => { setResultText(event.target.value); setReviewed(false) }} /></label>
       <label className="lab-resolution-review"><input type="checkbox" checked={reviewed} disabled={busy}
