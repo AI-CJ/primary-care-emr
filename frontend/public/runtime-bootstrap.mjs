@@ -33,6 +33,8 @@ export async function initializeRuntime({ loadPyodide, runtimeURL, fetchAsset = 
   await measure('pythonImportMs', () => pyodide.runPythonAsync(
     'from backend.browser_demo import initialize_browser, browser_request'))
   await measure('databaseSeedMs', () => pyodide.runPythonAsync('initialize_browser()'))
+  await measure('populationSeedMs', () => pyodide.runPythonAsync(
+    'from backend.synthetic_population import extend_browser_population; extend_browser_population()'))
   await measure('apiImportMs', () => pyodide.runPythonAsync('from backend.main import app'))
   timings.totalMs = Math.round(now() - started)
   report(timings)
