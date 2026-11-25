@@ -115,6 +115,10 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
 
   const [patients, setPatients] =
     useState<Patient[]>([])
+  const [directoryPage, setDirectoryPage] = useState(0)
+  const directoryPageSize = 25
+  const pageStart = directoryPage * directoryPageSize
+  const visiblePatients = patients.slice(pageStart, pageStart + directoryPageSize)
 
   const [
     selectedPatient,
@@ -223,6 +227,7 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
   async function searchPatients(query = search) {
     setError(null)
     setIsSearching(true)
+    setDirectoryPage(0)
     const request = ++searchRequest.current
 
     try {
@@ -734,7 +739,7 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
           <span>Patient</span><span>Date of birth</span><span>Chart status</span><span></span>
         </div>}
         <ul className="patient-list" aria-label="Patient directory" hidden={isSearching || Boolean(error)}>
-          {patients.map((patient) => (
+          {visiblePatients.map((patient) => (
             <li key={patient.id}>
               <button
                 className="patient-result"
@@ -760,7 +765,21 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
             </li>
           ))}
         </ul>
-        {!isSearching && !error && <p className="directory-status" role="status">{patients.length} {patients.length === 1 ? 'patient' : 'patients'} found</p>}
+        {!isSearching && !error && <div className="directory-pagination">
+          <p className="directory-status" role="status">
+            {patients.length} {patients.length === 1 ? 'patient' : 'patients'} found
+            {patients.length > directoryPageSize && (
+              <> · Showing {pageStart + 1}–{Math.min(pageStart + directoryPageSize, patients.length)}</>
+            )}
+          </p>
+          {patients.length > directoryPageSize && <nav aria-label="Patient directory pages">
+            <button type="button" className="secondary-action-button"
+              disabled={directoryPage === 0} onClick={() => setDirectoryPage(page => page - 1)}>Previous</button>
+            <button type="button" className="secondary-action-button"
+              disabled={pageStart + directoryPageSize >= patients.length}
+              onClick={() => setDirectoryPage(page => page + 1)}>Next</button>
+          </nav>}
+        </div>}
       </section>
     </main>
   )
