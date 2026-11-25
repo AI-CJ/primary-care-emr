@@ -1,20 +1,16 @@
 import { loadPyodide } from './runtime/pyodide.mjs'
+import { initializeRuntime } from './runtime-bootstrap.mjs'
 
 let runtimePromise
 let queue = Promise.resolve()
 
-async function initialize() {
-  const pyodide = await loadPyodide({ indexURL: new URL('./runtime/', import.meta.url).href })
-  await pyodide.loadPackage(['fastapi', 'sqlalchemy', 'cryptography'])
-  const response = await fetch(new URL('./runtime/backend.zip', import.meta.url))
-  if (!response.ok) throw new Error('Application package unavailable')
-  pyodide.unpackArchive(await response.arrayBuffer(), 'zip')
-  await pyodide.runPythonAsync(`
-from backend.browser_demo import initialize_browser, browser_request
-initialize_browser()
-from backend.main import app
-`)
-  return pyodide
+function initialize() {
+  return initializeRuntime({
+    loadPyodide,
+    runtimeURL: new URL('./runtime/', import.meta.url),
+    // Numeric stage timings only; never include credentials or chart data.
+    report: timings => console.info('EMR startup ' + JSON.stringify(timings)),
+  })
 }
 
 // One database and one request queue per tab; no request is sent to a server.
