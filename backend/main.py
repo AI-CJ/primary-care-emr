@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Literal
 import os
+import sys
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
@@ -15,14 +16,15 @@ from backend.database import engine
 from backend.icd10_catalog import RELEASE, search_codes
 from backend.clinical_reference import medication_values, reference_search
 from backend.immunizations import (ImmunizationCreate, ImmunizationRead, ImmunizationVoid,
-    PortalImmunizationRead, list_immunizations, record_immunization, void_immunization)
+    PortalImmunizationRead, list_immunizations, record_immunization, void_immunization,
+    validate_birth_date_against_immunizations)
 from backend.diagnosis_indications import problem_values, select_indications, replace_indications
 from backend.settings import cors_origins
 from backend.patient_lifecycle import (
     PatientLifecycleEventRead, archive_patient, reactivate_patient,
     list_patient_lifecycle_events, lock_active_patient,
 )
-from backend.account_auth import authenticate_user
+from backend.account_auth import authenticate_user, authenticate_browser_user
 from backend.audit import record_audit_event
 from backend.appointment_change_requests import (
     AppointmentChangeRequestCreate, AppointmentChangeRequestRead,
@@ -374,26 +376,41 @@ async def require_clinical_access(request: Request, call_next):
     return response
 
 
-@app.post("/auth/login", response_model=AuthLoginResponse)
+def _finish_login(session: Session, account: UserAccount | None) -> AuthLoginResponse:
+    if account is None:
+        # Never store a submitted username or password on failed authentication.
+        record_audit_event(
+            session, event_type="login_failure", route_template="/auth/login",
+            http_method="POST", status_code=401,
+        )
+        session.commit()
+        raise _unauthorized()
+    token, record = create_session(session, account)
+    record_audit_event(
+        session, event_type="login_success", route_template="/auth/login",
+        http_method="POST", status_code=200, actor_user_id=account.id,
+        subject_patient_id=account.patient_id,
+    )
+    session.commit()
+    return AuthLoginResponse(access_token=token, expires_at=record.expires_at)
+
+
 def login(credentials: AuthLoginRequest):
     with Session(engine) as session:
         account = authenticate_user(session, credentials.username, credentials.password)
-        if account is None:
-            # Never store a submitted username or password on failed authentication.
-            record_audit_event(
-                session, event_type="login_failure", route_template="/auth/login",
-                http_method="POST", status_code=401,
-            )
-            session.commit()
-            raise _unauthorized()
-        token, record = create_session(session, account)
-        record_audit_event(
-            session, event_type="login_success", route_template="/auth/login",
-            http_method="POST", status_code=200, actor_user_id=account.id,
-            subject_patient_id=account.patient_id,
-        )
-        session.commit()
-        return AuthLoginResponse(access_token=token, expires_at=record.expires_at)
+        return _finish_login(session, account)
+
+
+async def browser_login(credentials: AuthLoginRequest):
+    # Only the serialized, in-memory worker uses asynchronous native Web Crypto.
+    # The normal API keeps its synchronous database transaction and verifier.
+    with Session(engine) as session:
+        account = await authenticate_browser_user(session, credentials.username, credentials.password)
+        return _finish_login(session, account)
+
+
+app.add_api_route("/auth/login", browser_login if sys.platform == "emscripten" else login,
+                  methods=["POST"], response_model=AuthLoginResponse)
 
 
 @app.get("/auth/me", response_model=AuthAccountRead)
@@ -528,6 +545,7 @@ def update_patient(
 ):
     with Session(engine) as session:
         patient = lock_active_patient(session, patient_id)
+        validate_birth_date_against_immunizations(session, patient, patient_data.date_of_birth)
 
         for field, value in patient_data.model_dump().items():
             setattr(patient, field, value)

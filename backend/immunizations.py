@@ -78,6 +78,19 @@ def list_immunizations(session: Session, patient_id: int, *, portal: bool = Fals
         Immunization.administered_on.desc(), Immunization.id.desc())))
 
 
+def validate_birth_date_against_immunizations(session: Session, patient: Patient, new_birth_date: date):
+    """The caller holds the same patient lock used by vaccination writes."""
+    if new_birth_date == patient.date_of_birth:
+        return
+    conflicting = session.scalar(select(Immunization.id).where(
+        Immunization.patient_id == patient.id,
+        Immunization.voided_at.is_(None),
+        Immunization.administered_on < new_birth_date,
+    ).limit(1))
+    if conflicting is not None:
+        raise HTTPException(409, detail="The new date of birth is after a recorded vaccination. Review the vaccination history before changing the date of birth.")
+
+
 def record_immunization(session: Session, patient_id: int, payload: ImmunizationCreate):
     patient = lock_active_patient(session, patient_id)
     if not patient.date_of_birth <= payload.administered_on <= date.today():

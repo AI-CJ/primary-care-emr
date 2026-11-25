@@ -36,8 +36,24 @@ def verify_revision(url, revision):
     raise RuntimeError("The expected release metadata was not available within 120 seconds")
 
 
+def verify_notices(url):
+    # These are actual distributed files, not license labels in package.json.
+    checks = {
+        "third-party-notices/README.txt": "Pyodide 314.0.8",
+        "third-party-notices/pyodide-314.0.8-LICENSE.txt": "Mozilla Public License Version 2.0",
+        "third-party-notices/cpython-3.14.2-LICENSE.txt": "PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2",
+        "third-party-notices/npm/index.txt": "react-dom ",
+    }
+    for path, marker in checks.items():
+        with urlopen(url + path, timeout=15) as response:
+            if response.geturl() != url + path or marker not in response.read().decode("utf-8"):
+                raise RuntimeError("Missing or unexpected third-party notice: " + path)
+    print("Distributed third-party notices verified.")
+
+
 def verify_workspace(url, revision):
     verify_revision(url, revision)
+    verify_notices(url)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 900})
@@ -83,6 +99,16 @@ def verify_workspace(url, revision):
         expect(page.get_by_role("region", name="Prior imaging reports")).to_contain_text("Wrist radiographs")
         page.get_by_role("button", name="Immunizations", exact=True).click()
         expect(page.get_by_role("region", name="Vaccination history")).to_contain_text("influenza virus vaccine", ignore_case=True)
+        # A live clinician can clear a duplicate request without erasing history.
+        page.get_by_role("navigation", name="Staff workspace").get_by_role("button", name="Dashboard", exact=True).click()
+        page.locator(".dashboard-queue").filter(has_text="Pending labs").click()
+        pending = page.locator(".pending-lab-row").filter(has_text="Basic metabolic panel").filter(has_text="Jordan Lee")
+        expect(pending).to_be_visible(timeout=TIMEOUT)
+        pending.get_by_role("button", name="Cancel request", exact=True).click()
+        pending.get_by_label("Cancellation reason *").fill("Duplicate fictional request")
+        pending.get_by_role("button", name="Confirm cancellation", exact=True).click()
+        expect(pending).to_have_count(0)
+        expect(page.get_by_text("Basic metabolic panel for Jordan Lee cancelled.", exact=False)).to_be_visible()
         page.get_by_role("button", name="Sign out", exact=True).click()
         page.get_by_role("button", name="Switch to patient sign-in").click()
         page.get_by_role("button", name="Sign in as Jordan Lee").click()
@@ -112,7 +138,7 @@ def verify_workspace(url, revision):
         assert not external, f"Unexpected external requests: {external}"
         browser.close()
     verify_revision(url, revision)
-    print(f"Verified {url}: release identity, clinician and patient access, shared result, preferences and reset.")
+    print(f"Verified {url}: release identity, notices, clinician and patient access, pending lab cancellation, shared result, preferences and reset.")
 
 
 def main():

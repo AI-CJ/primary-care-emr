@@ -104,3 +104,49 @@ class ClinicalReferenceTests(TestCase):
         self.assertTrue(self.request("GET", path)[0]["voided_at"])
         replacement = self.request("POST", path, payload, expected=201)
         self.assertNotEqual(replacement["id"], row["id"])
+
+    def test_demographic_correction_preserves_vaccination_chronology(self):
+        demographics = {"first_name": "Synthetic", "last_name": "Fixture",
+                        "sex_at_birth": "unknown", "date_of_birth": "1990-01-01"}
+        patient = self.request("POST", "/patients", demographics, expected=201)
+        path = f"/patients/{patient['id']}"
+        row = self.request("POST", path + "/immunizations", {
+            "cvx_code": "115", "source": "historical_record",
+            "administered_on": "2010-01-01",
+        }, expected=201)
+        corrected = dict(demographics, date_of_birth="2011-01-01")
+        self.request("PUT", path, corrected, expected=409)
+        self.assertEqual(self.request("GET", path)["date_of_birth"], "1990-01-01")
+        self.request("PUT", path, dict(demographics, preferred_name="Test"))
+        self.request("POST", f"/immunizations/{row['id']}/void",
+                     {"reason": "Synthetic fixture correction"})
+        self.assertEqual(self.request("PUT", path, corrected)["date_of_birth"], "2011-01-01")
+        self.assertTrue(self.request("GET", path + "/immunizations")[0]["voided_at"])
+
+    def test_front_desk_cannot_read_or_write_clinical_reference_records(self):
+        from backend.account_auth import create_user_account
+        from sqlalchemy.orm import Session
+
+        with Session(self.engine) as session:
+            create_user_account(session, username="fixture.frontdesk",
+                                password=BROWSER_PASSWORD, account_type="staff",
+                                staff_role="front_desk")
+            session.commit()
+        front_desk = self.login("fixture.frontdesk")
+        clinician = self.login("clinician")
+        for path, payload in (
+            ("/diagnosis-codes/search", {"query": "I10"}),
+            ("/clinical-reference/rxnorm/search", {"query": "lisinopril"}),
+            ("/clinical-reference/cvx/search", {"query": "115"}),
+            ("/clinical-reference/mvx/search", {"query": "PMC"}),
+        ):
+            self.request("POST", path, payload, headers=front_desk, expected=403)
+            self.request("POST", path, payload, headers=self.patient, expected=403)
+        self.request("GET", "/patients/1/immunizations", headers=front_desk, expected=403)
+        self.request("POST", "/patients/1/immunizations", {
+            "cvx_code": "115", "source": "historical_record",
+            "administered_on": "2020-01-01",
+        }, headers=front_desk, expected=403)
+        self.request("GET", "/patients/1/immunizations", headers=clinician)
+        self.request("POST", "/clinical-reference/rxnorm/search",
+                     {"query": "lisinopril"}, headers=clinician)

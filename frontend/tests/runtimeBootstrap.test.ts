@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { pbkdf2Sync, webcrypto } from 'node:crypto'
-import { initializeRuntime, prepareDemoHashes } from '../public/runtime-bootstrap.mjs'
+import { initializeRuntime, prepareDemoHashes, derivePassword } from '../public/runtime-bootstrap.mjs'
 
 const runtimeURL = new URL('https://example.test/runtime/')
 
@@ -12,8 +12,13 @@ test('fetch the independent archive before Python core is ready, then initialize
   const archive = new ArrayBuffer(8)
   const runtime = {
     async loadPackage(packages: string[]) {
-      assert.deepEqual(packages, ['fastapi', 'sqlalchemy', 'cryptography'])
+      assert.deepEqual(packages, ['fastapi', 'sqlalchemy'])
       events.push('packages')
+    },
+    registerJsModule(name: string, module: { derivePassword: typeof derivePassword }) {
+      assert.equal(name, 'emr_crypto')
+      assert.equal(module.derivePassword, derivePassword)
+      events.push('crypto')
     },
     unpackArchive(bytes: ArrayBuffer, format: string) {
       assert.equal(bytes, archive)
@@ -25,7 +30,7 @@ test('fetch the independent archive before Python core is ready, then initialize
   let report: Record<string, number> | undefined
   const initializing = initializeRuntime({
     runtimeURL,
-    prepareHashes: async () => null,
+    prepareHashes: async () => ({ admin: 'test-hash' }),
     loadPyodide: async ({ indexURL }: { indexURL: string }) => {
       assert.equal(indexURL, runtimeURL.href)
       events.push('core')
@@ -42,9 +47,9 @@ test('fetch the independent archive before Python core is ready, then initialize
   assert.deepEqual(events, ['core', 'archive'])
   releaseCore()
   assert.equal(await initializing, runtime)
-  assert.deepEqual(events, ['core', 'archive', 'packages', 'unpack',
+  assert.deepEqual(events, ['core', 'archive', 'packages', 'crypto', 'unpack',
     'from backend.browser_demo import initialize_browser, browser_request',
-    'initialize_browser()',
+    'initialize_browser(' + JSON.stringify(JSON.stringify({ admin: 'test-hash' })) + ')',
     'from backend.synthetic_population import extend_browser_population; extend_browser_population()',
     'from backend.main import app'])
   assert.ok(report)
@@ -61,6 +66,7 @@ test('a failed application archive prevents database initialization', async () =
     prepareHashes: async () => null,
     loadPyodide: async () => ({
       loadPackage: async () => {},
+      registerJsModule: () => {},
       unpackArchive: () => { unpacked = true },
       runPythonAsync: async () => { throw new Error('Unexpected Python execution') },
     }),
@@ -98,6 +104,7 @@ test('native seed input is passed once to the browser initializer', async () => 
     prepareHashes: async () => hashes,
     loadPyodide: async () => ({
       loadPackage: async () => {},
+      registerJsModule: () => {},
       unpackArchive: () => {},
       runPythonAsync: async (source: string) => { calls.push(source) },
     }),
@@ -105,4 +112,30 @@ test('native seed input is passed once to the browser initializer', async () => 
   })
   assert.equal(calls.filter(source => source.startsWith('initialize_browser(')).length, 1)
   assert.equal(calls[1], 'initialize_browser(' + JSON.stringify(JSON.stringify(hashes)) + ')')
+})
+
+test('browser login derives the exact digest for entered UTF-8 passwords', async () => {
+  const salt = new Uint8Array(16).fill(42)
+  for (const password of ['Welcome-EMR-2026', 'wrong password', 'pássword 🔑']) {
+    const raw = new TextEncoder().encode(password)
+    const actual = await derivePassword(Array.from(raw), Array.from(salt), webcrypto)
+    assert.deepEqual(Buffer.from(actual), pbkdf2Sync(raw, salt, 600000, 32, 'sha256'))
+  }
+  await assert.rejects(derivePassword([1, 2, 3], salt, {}), /Secure browser/)
+})
+
+test('missing native seed prevents database creation', async () => {
+  const calls: string[] = []
+  await assert.rejects(initializeRuntime({
+    runtimeURL,
+    prepareHashes: async () => null,
+    loadPyodide: async () => ({
+      loadPackage: async () => {},
+      registerJsModule: () => {},
+      unpackArchive: () => {},
+      runPythonAsync: async (source: string) => { calls.push(source) },
+    }),
+    fetchAsset: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(0) }),
+  }), /Secure browser password initialization unavailable/)
+  assert.ok(calls.every(source => !source.startsWith('initialize_browser(')))
 })

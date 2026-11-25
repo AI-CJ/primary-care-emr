@@ -241,6 +241,12 @@ def initialize_browser(demo_hashes_json: str | None = None) -> None:
     if sys.platform != "emscripten":
         raise RuntimeError("Browser initialization is not a server operation")
 
+    # A secure browser context must supply freshly derived native hashes.
+    # Reject missing/invalid inputs before creating any records. Never use a
+    # weaker or non-native password implementation as a silent fallback.
+    if _validated_demo_hashes(demo_hashes_json) is None:
+        raise RuntimeError("Secure browser password initialization unavailable")
+
     # Requests are serialized by the dedicated worker. WASM has no native
     # thread pool, so synchronous handlers run in the worker itself.
     import anyio.to_thread

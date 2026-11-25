@@ -54,3 +54,34 @@ jobs:
                   raise SystemExit('Unresolved npm advisories in ' + name + ' dependency tree')
           print('No npm advisories in either dependency tree.')
           PY
+
+  python-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve and verify server environment
+        run: |
+          python -m venv /tmp/emr-server-audit
+          /tmp/emr-server-audit/bin/python -m pip install -r backend/requirements.txt
+          /tmp/emr-server-audit/bin/python -m pip check
+          /tmp/emr-server-audit/bin/python -m pip freeze > /tmp/emr-server-pins.txt
+      - name: Install isolated advisory scanner
+        run: |
+          python -m venv /tmp/emr-advisory-scanner
+          /tmp/emr-advisory-scanner/bin/python -m pip install pip-audit==2.9.0
+      - name: Audit server packages and browser wheels
+        run: |
+          /tmp/emr-advisory-scanner/bin/python -m scripts.audit_python_dependencies \
+            --server /tmp/emr-server-pins.txt --output /tmp/emr-python-review
+      - name: Archive Python dependency review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emr-python-dependency-review
+          path: /tmp/emr-python-review/
+          if-no-files-found: warn
+          retention-days: 30
