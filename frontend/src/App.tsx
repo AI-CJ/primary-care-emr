@@ -822,7 +822,7 @@ function App() {
 
   return (
     <>
-      <header className="session-bar">
+      <header className={`session-bar ${account.account_type === 'patient' ? 'patient-session-bar' : ''}`}>
         <div className="workspace-brand"><BrandMark /><strong>Primary Care EMR</strong><span className="workspace-product">{account.account_type === 'patient' ? 'Patient portal' : 'Clinical workspace'}</span></div>
         <div className="session-account"><strong>{account.username}</strong><span>{account.account_type === 'patient' ? 'Patient' : account.staff_role === 'admin' ? 'Administrator' : 'Clinician'}</span></div>
         <button type="button" onClick={() => void signOut()}>
