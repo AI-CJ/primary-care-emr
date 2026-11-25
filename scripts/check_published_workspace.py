@@ -54,13 +54,19 @@ def verify_workspace(url, revision):
                 route.abort()
 
         page.route("**/*", guard)
+        page.on("console", lambda message: print(message.text)
+                if message.text.startswith("EMR startup ") else None)
+        startup = monotonic()
         page.goto(url + "?revision=" + revision, wait_until="domcontentloaded")
         expect(page.get_by_role("note", name="Legal notice")).to_contain_text(
             "All provided patient records are fictional."
         )
         expect(page.get_by_text("Workspace ready.", exact=True)).to_be_visible(timeout=TIMEOUT)
+        print(f"Workspace preparation: {monotonic() - startup:.2f}s ({url})")
+        signin = monotonic()
         page.get_by_role("button", name="Sign in as Clinician").click()
         expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_visible(timeout=TIMEOUT)
+        print(f"Prepared clinician sign-in: {monotonic() - signin:.2f}s ({url})")
         expect(page.get_by_role("button", name="Audit activity", exact=True)).to_have_count(0)
         page.get_by_role("button", name=re.compile("Find a patient")).click()
         page.get_by_role("button", name=re.compile("Lee, Jordan")).click()
