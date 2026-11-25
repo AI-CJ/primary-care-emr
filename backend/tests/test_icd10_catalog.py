@@ -12,6 +12,7 @@ class DiagnosisCatalogTests(unittest.TestCase):
             "I10": DiagnosisCode("I10", "Essential (primary) hypertension"),
             "E119": DiagnosisCode("E11.9", "Type 2 diabetes mellitus without complications"),
             "E785": DiagnosisCode("E78.5", "Hyperlipidemia, unspecified"),
+            "QA00101": DiagnosisCode("QA0.0101", "SCN2A-related neurodevelopmental disorder"),
         }
         self.catalog = patch("backend.icd10_catalog.load_catalog", return_value=self.fixture)
         self.catalog.start()
@@ -29,6 +30,8 @@ class DiagnosisCatalogTests(unittest.TestCase):
 
     def test_exact_code_validation(self):
         self.assertEqual(lookup_code("e785").code, "E78.5")
+        self.assertEqual(lookup_code("QA00101").code, "QA0.0101")
+        self.assertEqual(search_codes("QA0.0101")[0].code, "QA0.0101")
         for invalid in ("E11", "E.11.9", "Q99ZZZZ", "I10."):
             with self.assertRaises(HTTPException) as error:
                 lookup_code(invalid)

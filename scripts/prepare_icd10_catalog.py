@@ -16,7 +16,7 @@ SOURCES = (
     "https://www.cms.gov/files/zip/2027-code-descriptions-tabular-order.zip",
     "https://ftp.cdc.gov/pub/health_statistics/nchs/publications/ICD10CM/2027/icd10cm-code-descriptions-2027.zip",
 )
-CODE = re.compile(r"[A-Z][0-9][A-Z0-9]{1,5}")
+CODE = re.compile(r"[A-Z][A-Z0-9]{2,6}")
 
 
 def parse_archive(content: bytes) -> dict[str, str]:
@@ -54,7 +54,7 @@ def parse_archive(content: bytes) -> dict[str, str]:
             if invalid or not 65_000 <= len(records) <= 100_000:
                 errors.append(f"{Path(filename).name}: {len(records)} valid and {invalid} invalid entries")
                 continue
-            if not {"I10", "E119", "E785", "Z0000", "Z130"} <= records.keys():
+            if not {"I10", "E119", "E785", "Z0000", "Z130", "QA00101"} <= records.keys():
                 errors.append(f"{Path(filename).name}: expected reference diagnoses missing")
                 continue
             return records

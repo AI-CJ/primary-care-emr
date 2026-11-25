@@ -299,7 +299,7 @@ def _audit_clinical_access(request: Request, status_code: int) -> None:
         subject_patient_id = numeric_id("patient_id")
     event_type = (
         "access_denied" if status_code in {401, 403}
-        else "clinical_read" if request.method == "GET"
+        else "clinical_read" if request.method == "GET" or route_template == "/diagnosis-codes/search"
         else "clinical_write"
     )
     with Session(engine) as session:
@@ -890,7 +890,7 @@ def read_patient_medications(patient_id: int):
         )
 
         medications = session.scalars(query).all()
-        return list(medications)
+        return [MedicationRead.model_validate(item) for item in medications]
 
 
 @app.get(
@@ -930,7 +930,7 @@ def create_patient_medication(
         session.add(medication)
         session.commit()
         session.refresh(medication)
-        return medication
+        return MedicationRead.model_validate(medication)
 
 
 @app.put(
@@ -959,7 +959,7 @@ def update_medication(
 
         session.commit()
         session.refresh(medication)
-        return medication
+        return MedicationRead.model_validate(medication)
 
 
 @app.get(
@@ -1430,7 +1430,7 @@ def read_patient_lab_orders(patient_id: int):
 )
 def read_encounter_lab_orders(encounter_id: int):
     with Session(engine) as session:
-        return list_lab_orders(session, encounter_id)
+        return [LabOrderRead.model_validate(order) for order in list_lab_orders(session, encounter_id)]
 
 
 @app.post(
@@ -1443,7 +1443,7 @@ def add_encounter_lab_order(encounter_id: int, order_data: LabOrderCreate):
         order = create_lab_order(session, encounter_id, order_data)
         session.commit()
         session.refresh(order)
-        return order
+        return LabOrderRead.model_validate(order)
 
 
 @app.put("/lab-orders/{order_id}/indications", response_model=LabOrderRead)
@@ -1452,7 +1452,7 @@ def replace_order_indications(order_id: int, selection: IndicationSelection):
         order = update_lab_order_indications(session, order_id, selection.problem_ids)
         session.commit()
         session.refresh(order)
-        return order
+        return LabOrderRead.model_validate(order)
 
 
 @app.post(
@@ -1464,7 +1464,7 @@ def cancel_order_request(order_id: int, cancellation: LabOrderCancel):
         order = cancel_lab_order(session, order_id, cancellation)
         session.commit()
         session.refresh(order)
-        return order
+        return LabOrderRead.model_validate(order)
 
 
 @app.get(

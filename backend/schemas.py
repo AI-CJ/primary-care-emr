@@ -1,5 +1,5 @@
 from datetime import date, datetime, time
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
@@ -217,9 +217,12 @@ class DiagnosisIndicationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+ProblemId = Annotated[int, Field(strict=True, gt=0)]
+
+
 class IndicationSelection(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    problem_ids: list[int] = Field(default_factory=list, max_length=20)
+    problem_ids: list[ProblemId] = Field(default_factory=list, max_length=20)
 
 
 class MedicationBase(BaseModel):
@@ -275,7 +278,7 @@ class MedicationBase(BaseModel):
 
 class MedicationCreate(MedicationBase):
     # Missing on an older client means preserve recorded links during an edit.
-    problem_ids: list[int] | None = Field(default=None, max_length=20)
+    problem_ids: list[ProblemId] | None = Field(default=None, max_length=20)
 
 
 class MedicationRead(MedicationBase):
@@ -643,7 +646,7 @@ class LabOrderBase(BaseModel):
 
 
 class LabOrderCreate(LabOrderBase):
-    problem_ids: list[int] = Field(default_factory=list, max_length=20)
+    problem_ids: list[ProblemId] = Field(default_factory=list, max_length=20)
 
 
 class LabOrderCancel(BaseModel):

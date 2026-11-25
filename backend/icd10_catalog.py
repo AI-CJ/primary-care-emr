@@ -6,6 +6,7 @@ lookup, not a diagnosis or a coding-guideline validator.
 from functools import lru_cache
 from pathlib import Path
 import re
+from heapq import nsmallest
 from typing import NamedTuple
 
 from fastapi import HTTPException
@@ -14,7 +15,7 @@ RELEASE = "FY2027"
 EFFECTIVE_FROM = "2026-10-01"
 EFFECTIVE_THROUGH = "2027-09-30"
 CATALOG_PATH = Path(__file__).resolve().parent / "data" / "icd10cm-fy2027.tsv"
-CODE_PATTERN = re.compile(r"[A-Z][0-9][A-Z0-9]{1,5}")
+CODE_PATTERN = re.compile(r"[A-Z][A-Z0-9]{2,6}")
 
 
 class DiagnosisCode(NamedTuple):
@@ -40,7 +41,7 @@ def load_catalog() -> dict[str, DiagnosisCode]:
                 if not CODE_PATTERN.fullmatch(code) or not title or code in records:
                     raise ValueError("Invalid diagnosis catalog entry")
                 records[code] = DiagnosisCode(display_code(code), title)
-        if not 65_000 <= len(records) <= 100_000 or not {"I10", "E119", "Z0000"} <= records.keys():
+        if not 65_000 <= len(records) <= 100_000 or not {"I10", "E119", "Z0000", "QA00101"} <= records.keys():
             raise ValueError("Incomplete diagnosis catalog")
         return records
     except (OSError, ValueError):
@@ -70,21 +71,22 @@ def search_codes(query: str, limit: int = 20) -> list[DiagnosisCode]:
     if len(query.strip()) < 2 or not words:
         return []
     limit = max(1, min(limit, 50))
-    matches = []
     normalized = " ".join(words)
-    for code, item, title in search_index():
-        if code == raw:
-            rank = 0
-        elif code.startswith(raw):
-            rank = 1
-        elif title == normalized:
-            rank = 2
-        elif title.startswith(normalized):
-            rank = 3
-        elif all(word in title for word in words):
-            rank = 4
-        else:
-            continue
-        matches.append((rank, len(title), code, item))
-    matches.sort(key=lambda match: match[:3])
-    return [match[3] for match in matches[:limit]]
+
+    def matches():
+        for code, item, title in search_index():
+            if code == raw:
+                rank = 0
+            elif code.startswith(raw):
+                rank = 1
+            elif title == normalized:
+                rank = 2
+            elif title.startswith(normalized):
+                rank = 3
+            elif all(word in title for word in words):
+                rank = 4
+            else:
+                continue
+            yield (rank, len(title), code, item)
+
+    return [match[3] for match in nsmallest(limit, matches(), key=lambda match: match[:3])]
