@@ -36,6 +36,7 @@ def upgrade():
         sa.Column("impression", sa.Text(), nullable=False),
         sa.Column("source", sa.String(200), nullable=False),
         sa.Column("shared_on", sa.Date(), nullable=True),
+        sa.CheckConstraint("reported_on >= performed_on", name="ck_imaging_report_chronology"),
         sa.CheckConstraint("shared_on IS NULL OR shared_on >= reported_on", name="ck_imaging_report_share_date"),
     )
     op.create_index("ix_imaging_reports_patient_id", "imaging_reports", ["patient_id"])
