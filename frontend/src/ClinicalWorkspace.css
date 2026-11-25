@@ -343,7 +343,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .next-visit-date { font-size: clamp(1.25rem,2.4vw,1.8rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.3; }
 .portal-next-visit button { min-height: 48px; padding: 12px 18px; border: 1px solid #bfd9cc; border-radius: 10px; background: #fff; color: #185d4d; font-weight: 700; cursor: pointer; }
 .portal-next-visit button:focus-visible { outline-color: #ffd7bd; }
-.portal-home-heading { margin: 30px 0 16px; font-size: 1.35rem; letter-spacing: -.02em; }
+.portal-home-heading { margin: 24px 0 12px; font-size: 1.35rem; letter-spacing: -.02em; }
 .portal-task-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 12px; }
 .portal-task-grid > .portal-task { grid-column:span 2; }
 .portal-task-grid > .portal-task:nth-last-child(2):nth-child(4), .portal-task-grid > .portal-task:nth-child(5) { grid-column:span 3; }
@@ -448,7 +448,6 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .timeline-count { margin:10px 0 0; color:var(--text-muted); font-size:.85rem; }
 .timeline-expand { margin-top:12px; width:100%; min-height:40px; }
 .portal-card .portal-unsaved { margin:0; padding:8px 10px; background:#fbf1e6; color:#734b20; border-left:3px solid #bb8450; border-radius:4px; }
-.portal-home > .section-nav { margin-top:16px; }
 @media(max-width:540px) { .directory-clear { order:3; flex:0 0 100%; } .directory-page .search-form { flex-wrap:wrap; } }
 
 /* Programmatic focus following account changes and keyboard bypass. */
@@ -572,3 +571,56 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 @media(min-width:900px) { .patient-workspace .section-nav { grid-template-columns: repeat(4,minmax(0,1fr)); } }
 @media(min-width:1160px) { .patient-workspace .section-nav { grid-template-columns: repeat(7,minmax(0,1fr)); } }
 @media(min-width:901px) { .portal-task-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } .portal-task-grid > .portal-task:nth-child(n) { grid-column: span 1; } }
+
+
+/* The home task cards are the navigation; no duplicate section strip. */
+.portal-home .portal-task-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.portal-home .portal-task-grid > .portal-task:nth-child(n) { grid-column: auto; }
+.portal-home .portal-task { align-items: center; min-height: 90px; }
+.portal-home .portal-task:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+@media (max-width: 900px) {
+  .portal-home .portal-task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .portal-home .portal-task-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .portal-home .portal-task { min-height: 78px; padding: 12px 14px; gap: 10px; }
+  .portal-home .portal-task-icon { width: 40px; height: 40px; }
+  .portal-home .portal-task-grid > .portal-task:nth-child(n) { grid-column: auto !important; }
+  .portal-home-heading { margin-top: 22px; font-size: 1.2rem; }
+}
+
+/* Compact narrow chart context without hiding identity, allergy status or actions. */
+@media (max-width: 650px) {
+  .chart-identity { padding: 14px; gap: 12px; }
+  .chart-identity-actions { display: flex; gap: 6px; }
+  .chart-identity-actions .chart-state { flex-basis: 100%; }
+  .chart-identity-actions button { flex: 1 1 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .chart-allergy-context { padding: 11px 13px; gap: 8px; }
+  .patient-chart > .section-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .patient-chart > .section-nav button { min-width: 0; overflow-wrap: anywhere; }
+  .patient-chart > .section-nav button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .clinical-snapshot-heading { gap: 8px; }
+  .snapshot-card { padding: 14px; }
+  .snapshot-card li { padding: 6px 0; }
+  .snapshot-card[aria-labelledby="snapshot-vitals"] ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; }
+  .snapshot-card[aria-labelledby="snapshot-vitals"] li { min-width: 0; overflow-wrap: anywhere; }
+}
+
+/* Worklist filters and page controls remain visible above the bounded queue. */
+.lab-queue-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, .35fr) auto; align-items: end; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: var(--surface-radius); background: #f6f9f7; margin: 0 0 12px; }
+.lab-queue-toolbar .form-field { margin: 0; }
+.lab-queue-toolbar input, .lab-queue-toolbar select { width: 100%; min-width: 0; min-height: 44px; }
+.lab-queue-toolbar button { min-height: 44px; }
+.lab-queue-pagebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 8px; }
+.lab-queue-pagebar .schedule-count { margin: 0; color: var(--text-muted); }
+.lab-queue-pagebar nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .85rem; color: var(--text-muted); }
+.lab-queue-pagebar button { min-height: 44px; }
+.lab-queue-pagebar .schedule-count:focus { outline: 2px solid var(--focus-ring); outline-offset: 3px; border-radius: 3px; }
+.pending-lab-list .lab-worklist-row { border: 1px solid var(--border); border-radius: var(--surface-radius); padding: 14px; margin: 8px 0; background: var(--surface); }
+.pending-lab-list .lab-worklist-row:nth-child(even) { background: #f8faf9; }
+.pending-lab-list .lab-worklist-row-editing { border-color: #8fb3a5; box-shadow: inset 3px 0 0 var(--deep-sea); }
+@media (max-width: 600px) {
+  .lab-queue-toolbar { grid-template-columns: minmax(0,1fr); padding: 12px; gap: 8px; }
+  .lab-queue-pagebar nav { width: 100%; justify-content: space-between; }
+  .pending-lab-list .lab-worklist-row { padding: 11px; }
+}
