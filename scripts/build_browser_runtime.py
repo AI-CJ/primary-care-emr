@@ -70,6 +70,7 @@ def main() -> None:
     with ZipFile(OUTPUT / "backend.zip", "w", ZIP_DEFLATED) as archive:
         archive.writestr("backend/__init__.py", "")
         archive.write(ROOT / "backend/data/icd10cm-fy2027.tsv", "backend/data/icd10cm-fy2027.tsv")
+        archive.write(ROOT / "backend/data/seed-reference.json", "backend/data/seed-reference.json")
         for source in sorted((ROOT / "backend").glob("*.py")):
             if source.name not in {"__init__.py", "seed.py", "bootstrap_staff.py", "bootstrap_patient.py"}:
                 archive.write(source, f"backend/{source.name}")
@@ -84,6 +85,8 @@ def main() -> None:
     catalog_size = (ROOT / "backend/data/icd10cm-fy2027.tsv").stat().st_size
     print(f"Runtime breakdown: core {core_size} bytes; wheels {package_size} bytes; "
           f"backend archive {archive_size} bytes; unpacked catalog {catalog_size} bytes.")
+    deferred = sum((OUTPUT / (name + ".zip")).stat().st_size for name in ("rxnorm", "cvx", "mvx"))
+    print(f"Deferred terminology assets: {deferred} bytes; excluded from initial workspace load.")
     size = sum(path.stat().st_size for path in OUTPUT.iterdir())
     print(f"Prepared {len(resolved)} pinned packages; runtime size {size / 1024 / 1024:.1f} MiB.")
 
