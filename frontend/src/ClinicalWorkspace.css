@@ -394,3 +394,9 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 @media(min-width:900px) { .patient-workspace .section-nav { grid-template-columns:repeat(6,minmax(0,1fr)); } }
 @media(max-width:700px) { .patient-workspace .portal-results-grid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:400px) { .patient-workspace .section-nav { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+.portal-card .portal-subheading { color:#24594a; font-size:1rem; margin:18px 0 8px; }
+.portal-records .portal-record-status { display:inline-block; justify-self:start; font-size:.875rem; font-weight:650; color:#235b49; border:1px solid #bad6c7; border-radius:5px; background:#e9f4ed; padding:3px 8px; }
+.portal-primary-action { border:1px solid #185d4d; border-radius:8px; background:#185d4d; color:white; padding:10px 18px; font:inherit; font-weight:650; cursor:pointer; }
+.portal-confirmation { color:#235b49; background:#e8f4eb; border-left:4px solid #27775c; padding:12px; border-radius:4px; }
+.portal-records .portal-patient-instructions { display:block; border-left:3px solid #8cbfa8; background:#f1f8f3; padding:12px; border-radius:4px; color:#294b40; }

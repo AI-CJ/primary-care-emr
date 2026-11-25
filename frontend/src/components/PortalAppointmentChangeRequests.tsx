@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { API_BASE_URL, apiFetch, getApiErrorMessage } from '../api'
 import { requestableAppointments } from '../appointmentChangeRequests'
 import { localDate } from '../date'
+import { formatPortalAppointment } from '../portalAppointments'
 import type { AppointmentChangeRequest, PortalAppointmentSummary } from '../types'
 
 type Data = { appointments: PortalAppointmentSummary[], requests: AppointmentChangeRequest[] }
@@ -74,7 +75,7 @@ export default function PortalAppointmentChangeRequests() {
 
   return (
     <section className="portal-card" aria-labelledby="portal-appointment-requests">
-      <h2 id="portal-appointment-requests">Appointment change requests</h2>
+      <h2 id="portal-appointment-requests">Request an appointment change</h2>
       <p className="portal-help">
         Ask to cancel or reschedule a scheduled visit. Staff must review requests and
         make the scheduling change separately. Contact the clinic directly for urgent needs.
@@ -96,7 +97,7 @@ export default function PortalAppointmentChangeRequests() {
               onChange={(event) => { setAppointmentId(event.target.value); setActionError(null) }}>
               <option value="">Choose an appointment</option>
               {eligible.map((appointment) => <option key={appointment.id} value={appointment.id}>
-                {appointment.scheduled_date} {appointment.start_time.slice(0, 5)}
+                {formatPortalAppointment(appointment)}
                 {' - '}{appointment.reason_for_visit}
               </option>)}
             </select>
@@ -106,12 +107,12 @@ export default function PortalAppointmentChangeRequests() {
               <option value="reschedule">Reschedule</option>
               <option value="cancel">Cancel</option>
             </select>
-            <button className="secondary-action-button" type="submit"
+            <button className="portal-primary-action" type="submit"
               disabled={!selected || saving}>{saving ? 'Sending...' : 'Send request'}</button>
           </form>
         )}
         {actionError && <p role="alert">{actionError}</p>}
-        {notice && <p role="status">{notice}</p>}
+        {notice && <p role="status" className="portal-confirmation">{notice}</p>}
         <div className="portal-change-history">
           <h3>My request history</h3>
           {data.requests.length === 0 ? <p>No requests submitted yet.</p> : (

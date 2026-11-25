@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL } from '../api'
 import { localDate } from '../date'
+import { groupPortalAppointments, formatPortalAppointment } from '../portalAppointments'
 import type { PortalAppointmentSummary } from '../types'
 import type { PortalSection } from '../portalNavigation'
 
@@ -36,8 +37,7 @@ export default function PortalHome({ onNavigate, patientId, active = true }: { o
         const response = await apiFetch(API_BASE_URL + path, { signal: controller.signal })
         if (!response.ok) throw new Error('Appointments unavailable')
         const records: PortalAppointmentSummary[] = await response.json()
-        const next = records.filter(item => ['scheduled', 'checked_in'].includes(item.status) && item.scheduled_date >= localDate())
-          .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date) || a.start_time.localeCompare(b.start_time) || a.id - b.id)[0]
+        const next = groupPortalAppointments(records, localDate()).upcoming[0]
         if (!controller.signal.aborted) setResult({ status: 'ready', next })
       } catch {
         if (!controller.signal.aborted) setResult({ status: 'error' })
@@ -48,10 +48,7 @@ export default function PortalHome({ onNavigate, patientId, active = true }: { o
   }, [patientId, active, refresh])
 
   const next = result.status === 'ready' ? result.next : undefined
-  const appointmentDate = next ? new Date(next.scheduled_date + 'T' + next.start_time) : undefined
-  const dateLabel = appointmentDate && !Number.isNaN(appointmentDate.getTime())
-    ? new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(appointmentDate)
-    : next ? next.scheduled_date + ' at ' + next.start_time : ''
+  const dateLabel = next ? formatPortalAppointment(next) : ''
 
   return <div className="portal-home">
     <section className="portal-next-visit" aria-labelledby="portal-next-visit-title">

@@ -1,23 +1,11 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PortalAppointmentSummary } from '../types'
+import { localDate } from '../date'
+import { groupPortalAppointments, formatPortalAppointment } from '../portalAppointments'
 
 type PortalAppointmentsProps = {
   patientId?: number
-}
-
-function localToday(): string {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function formatTime(value: string): string {
-  const [hours, minutes] = value.split(':')
-  const hour = Number(hours)
-  return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`
 }
 
 function PortalAppointments({ patientId }: PortalAppointmentsProps) {
@@ -62,35 +50,12 @@ function PortalAppointments({ patientId }: PortalAppointmentsProps) {
     return () => controller.abort()
   }, [patientId, refreshCount])
 
-  const today = localToday()
-  const upcoming = (appointments ?? [])
-    .filter((appointment) =>
-      (appointment.status === 'scheduled' || appointment.status === 'checked_in') &&
-      appointment.scheduled_date >= today
-    )
-    .sort((first, second) =>
-      first.scheduled_date.localeCompare(second.scheduled_date) ||
-      first.start_time.localeCompare(second.start_time) ||
-      first.id - second.id
-    )
-
-  const history = (appointments ?? [])
-    .filter((appointment) =>
-      appointment.status === 'completed' ||
-      appointment.status === 'cancelled' ||
-      appointment.status === 'no_show'
-    )
-    .sort((first, second) =>
-      second.scheduled_date.localeCompare(first.scheduled_date) ||
-      second.start_time.localeCompare(first.start_time) ||
-      second.id - first.id
-    )
-    .slice(0, 5)
+  const { upcoming, earlierOpen, history } = groupPortalAppointments(appointments ?? [], localDate())
 
   return (
     <section className="portal-card" aria-labelledby="portal-appointments">
       <h2 id="portal-appointments">My appointments</h2>
-      <p className="portal-help">Upcoming visits and recent appointment history. Contact the clinic to make changes.</p>
+      <p className="portal-help">Upcoming visits and appointment history. A request to change a visit does not change the scheduled appointment until the clinic acts.</p>
 
       {isLoading && <p role="status">Loading appointments...</p>}
       {error && (
@@ -114,22 +79,33 @@ function PortalAppointments({ patientId }: PortalAppointmentsProps) {
             <li key={appointment.id}>
               <strong>{appointment.reason_for_visit}</strong>
               <time dateTime={`${appointment.scheduled_date}T${appointment.start_time}`}>
-                {appointment.scheduled_date} at {formatTime(appointment.start_time)}
+                {formatPortalAppointment(appointment)}
               </time>
-              {appointment.status === 'checked_in' && <span>Checked in</span>}
+              <span className="portal-record-status">{appointment.status === 'checked_in' ? 'Checked in' : 'Scheduled'}</span>
             </li>
           ))}
         </ul>
       )}
+      {!isLoading && !error && earlierOpen.length > 0 && (
+        <div className="portal-lab-group">
+          <h3>Earlier appointments still marked open</h3>
+          <p className="portal-help">The clinic has not recorded a final status for these visits.</p>
+          <ul className="portal-records">{earlierOpen.map(appointment => <li key={appointment.id}>
+            <strong>{appointment.reason_for_visit}</strong>
+            <time dateTime={`${appointment.scheduled_date}T${appointment.start_time}`}>{formatPortalAppointment(appointment)}</time>
+            <span className="portal-record-status">{appointment.status === 'checked_in' ? 'Checked in' : 'Scheduled'}</span>
+          </li>)}</ul>
+        </div>
+      )}
       {!isLoading && !error && history.length > 0 && (
         <details>
-          <summary>Recent appointment history ({history.length})</summary>
+          <summary>Appointment history ({history.length})</summary>
           <ul className="portal-records">
             {history.map((appointment) => (
               <li key={appointment.id}>
                 <strong>{appointment.reason_for_visit}</strong>
                 <time dateTime={`${appointment.scheduled_date}T${appointment.start_time}`}>
-                  {appointment.scheduled_date} at {formatTime(appointment.start_time)}
+                  {formatPortalAppointment(appointment)}
                 </time>
                 <span>
                   Recorded status: {appointment.status === 'no_show'

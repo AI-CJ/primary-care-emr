@@ -76,6 +76,7 @@ export default function PortalMedications({ medications }: PortalMedicationsProp
 
       {showRecords && (
         <>
+          <h3 className="portal-subheading">Current medications ({active.length})</h3>
           {active.length === 0 ? (
             <p>No medications are currently marked as active in your chart.</p>
           ) : (
@@ -84,7 +85,7 @@ export default function PortalMedications({ medications }: PortalMedicationsProp
                 <li key={medication.id}>
                   <strong>{medication.name}{medication.strength ? ' · ' + medication.strength : ''}</strong>
                   {medication.dose && <span>Dose: {medication.dose}</span>}
-                  {medication.frequency && <span>Frequency: {medication.frequency}</span>}
+                  {medication.frequency && <span>How often: {medication.frequency}</span>}
                   {medication.instructions && <span>Instructions: {medication.instructions}</span>}
                 </li>
               ))}
