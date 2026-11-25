@@ -19,6 +19,7 @@ RX_RELEASE = "2026-11-02"
 RX_URL = "https://download.nlm.nih.gov/rxnorm/RxNorm_full_prescribe_11022026.zip"
 RX_MD5 = "cd240fc9655dcd2cb54b1e185f3d8702"
 CVX_URL = "https://www2.cdc.gov/vaccines/iis/iisstandards/downloads/CVX.txt"
+MVX_URL = "https://www2.cdc.gov/vaccines/iis/iisstandards/downloads/mvx.txt"
 TERM_TYPES = {"IN", "PIN", "MIN", "SCD", "SBD", "BN", "GPCK", "BPCK"}
 
 
@@ -82,6 +83,20 @@ def cvx_rows(path):
     return sorted(rows.values(), key=lambda row: int(row["code"]))
 
 
+def mvx_rows(path):
+    rows = {}
+    for line in path.read_bytes().decode("utf-8-sig").splitlines():
+        if not line.strip():
+            continue
+        code, name, _, status, updated = (field.strip() for field in line.split("|"))
+        if not re.fullmatch(r"[A-Z0-9]{2,3}", code) or not name or code in rows:
+            raise ValueError("Invalid MVX row")
+        rows[code] = {"code": code, "name": name, "kind": status, "updated": updated}
+    if len(rows) < 60 or not {"PFR", "MOD", "SKB", "UNK"} <= rows.keys():
+        raise ValueError("CDC MVX import unexpectedly incomplete")
+    return sorted(rows.values(), key=lambda row: row["code"])
+
+
 def write_catalog(name, release, rows, source, url):
     payload = {"release": release, "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
                "source_url": url, "rows": rows}
@@ -96,12 +111,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rxnorm", type=Path)
     parser.add_argument("--cvx", type=Path)
+    parser.add_argument("--mvx", type=Path)
     args = parser.parse_args()
     DATA.mkdir(parents=True, exist_ok=True)
     evidence = Path(os.environ.get("EMR_TERMINOLOGY_SOURCE_DIR", str(DATA / "terminology-sources")))
     evidence.mkdir(parents=True, exist_ok=True)
     rx = args.rxnorm or evidence / "RxNorm_full_prescribe_11022026.zip"
     cvx = args.cvx or evidence / "CVX.txt"
+    mvx = args.mvx or evidence / "mvx.txt"
+    if not mvx.exists():
+        download(MVX_URL, mvx)
     if not rx.exists():
         download(RX_URL, rx)
     if not cvx.exists():
@@ -112,6 +131,8 @@ def main():
     # The CDC live flat file changes over time. Record its exact content digest
     # as the release identity; retain the original file for reproducibility.
     write_catalog("cvx", "CDC-" + digest[:16], vaccines, cvx, CVX_URL)
+    write_catalog("mvx", "CDC-" + hashlib.sha256(mvx.read_bytes()).hexdigest()[:16],
+                  mvx_rows(mvx), mvx, MVX_URL)
 
 
 if __name__ == "__main__":
