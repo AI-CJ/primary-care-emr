@@ -1,3 +1,4 @@
+import { DiagnosisLabel } from './DiagnosisIndications'
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, EncounterProblem, Problem } from '../types'
@@ -135,6 +136,7 @@ function EncounterProblems({ encounter }: EncounterProblemsProps) {
                 <li className="encounter-problem-row" key={link.id}>
                   <div>
                     <strong>{link.problem_name_at_link}</strong>
+                    <p className="problem-code-line"><DiagnosisLabel code={link.icd10_code_at_link} /> {link.icd10_release_at_link}</p>
                     <p className="encounter-meta">
                       {link.problem_status_at_link === 'active' ? 'Active' : 'Resolved'} when linked
                     </p>
@@ -171,7 +173,7 @@ function EncounterProblems({ encounter }: EncounterProblemsProps) {
                       <option value="">Choose a problem</option>
                       {availableProblems.map((problem) => (
                         <option key={problem.id} value={problem.id}>
-                          {problem.name} ({problem.status === 'active' ? 'Active' : 'Resolved'})
+                          {problem.icd10_code ? problem.icd10_code + ' — ' : ''}{problem.name} ({problem.status === 'active' ? 'Active' : 'Resolved'})
                         </option>
                       ))}
                     </select>

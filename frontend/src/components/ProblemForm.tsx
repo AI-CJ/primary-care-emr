@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Problem, ProblemInput, ProblemStatus } from '../types'
+import DiagnosisPicker, { type SelectedDiagnosis } from './DiagnosisPicker'
 
 type ProblemFormProps = {
   patientId: number
@@ -10,6 +11,11 @@ type ProblemFormProps = {
 }
 
 function ProblemForm({ patientId, problem, onSaved, onCancel }: ProblemFormProps) {
+  const [name, setName] = useState(problem?.name ?? '')
+  const [diagnosis, setDiagnosis] = useState<SelectedDiagnosis | null>(() => problem?.icd10_code ? {
+    code: problem.icd10_code, title: problem.icd10_title ?? problem.name, release: problem.icd10_release ?? 'Version not recorded',
+  } : null)
+  const [allowUncoded, setAllowUncoded] = useState(Boolean(problem && !problem.icd10_code))
   const [status, setStatus] = useState<ProblemStatus>(problem?.status ?? 'active')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,12 +27,17 @@ function ProblemForm({ patientId, problem, onSaved, onCancel }: ProblemFormProps
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!diagnosis && !allowUncoded) {
+      setError('Select a diagnosis code or explicitly record the problem without a code.')
+      return
+    }
     setError(null)
     setIsSaving(true)
 
     const formData = new FormData(event.currentTarget)
     const problemData: ProblemInput = {
-      name: String(formData.get('name') ?? '').trim(),
+      name: name.trim(),
+      icd10_code: diagnosis?.code ?? null,
       status,
       onset_date: optionalText(formData, 'onset_date'),
       resolved_date:
@@ -61,16 +72,14 @@ function ProblemForm({ patientId, problem, onSaved, onCancel }: ProblemFormProps
 
   return (
     <form className="problem-form" onSubmit={handleSubmit}>
-      <label className="form-field">
-        <span>Problem *</span>
-        <input
-          name="name"
-          type="text"
-          required
-          maxLength={200}
-          defaultValue={problem?.name ?? ''}
-        />
-      </label>
+      <DiagnosisPicker value={name} selected={diagnosis} disabled={isSaving}
+        onChange={value => { setName(value); setDiagnosis(null); setAllowUncoded(false) }}
+        onSelect={item => { setName(item.title); setDiagnosis(item); setAllowUncoded(false); setError(null) }} />
+      {!diagnosis && <label className="uncoded-choice">
+        <input type="checkbox" checked={allowUncoded} disabled={isSaving}
+          onChange={event => setAllowUncoded(event.target.checked)} />
+        Record without a diagnosis code
+      </label>}
 
       <label className="form-field">
         <span>Status *</span>
@@ -117,7 +126,7 @@ function ProblemForm({ patientId, problem, onSaved, onCancel }: ProblemFormProps
       {error && <p className="form-error" role="alert">{error}</p>}
 
       <div className="problem-form-actions">
-        <button className="save-patient-button" type="submit" disabled={isSaving}>
+        <button className="save-patient-button" type="submit" disabled={isSaving || !name.trim() || (!diagnosis && !allowUncoded)}>
           {isSaving ? 'Saving...' : problem ? 'Save Changes' : 'Add Problem'}
         </button>
         <button

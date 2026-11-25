@@ -1,3 +1,4 @@
+import DiagnosisIndications, { DiagnosisLabel } from './DiagnosisIndications'
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL } from '../api'
 import type { Problem, Medication, Vital } from '../types'
@@ -53,7 +54,7 @@ export default function ClinicalSnapshot({ patientId, onReview }: { patientId: n
         {problems.state.status === 'error' && <Unavailable retry={problems.retry} />}
         {problems.state.status === 'ready' && (activeProblems.length ? <>
           <p className="snapshot-count">{activeProblems.length} active</p>
-          <ul>{activeProblems.slice(0, limit).map(item => <li key={item.id}><strong>{item.name}</strong>{item.onset_date && <small>Onset {item.onset_date}</small>}</li>)}</ul>
+          <ul>{activeProblems.slice(0, limit).map(item => <li key={item.id}><strong>{item.name}</strong><small><DiagnosisLabel code={item.icd10_code} /></small>{item.onset_date && <small>Onset {item.onset_date}</small>}</li>)}</ul>
           {activeProblems.length > limit && <p className="snapshot-overflow">{activeProblems.length - limit} more in the full health record.</p>}
         </> : <p>No active conditions recorded.</p>)}
       </section>
@@ -63,7 +64,7 @@ export default function ClinicalSnapshot({ patientId, onReview }: { patientId: n
         {medications.state.status === 'error' && <Unavailable retry={medications.retry} />}
         {medications.state.status === 'ready' && (activeMedications.length ? <>
           <p className="snapshot-count">{activeMedications.length} active</p>
-          <ul>{activeMedications.slice(0, limit).map(item => <li key={item.id}><strong>{[item.name, item.strength].filter(Boolean).join(' ')}</strong><small>{[item.dose, item.route, item.frequency].filter(Boolean).join(' · ') || 'Dose and schedule not recorded'}</small></li>)}</ul>
+          <ul>{activeMedications.slice(0, limit).map(item => <li key={item.id}><strong>{[item.name, item.strength].filter(Boolean).join(' ')}</strong><small>{[item.dose, item.route, item.frequency].filter(Boolean).join(' · ') || 'Dose and schedule not recorded'}</small><DiagnosisIndications records={item.indications} compact /></li>)}</ul>
           {activeMedications.length > limit && <p className="snapshot-overflow">{activeMedications.length - limit} more in the full health record.</p>}
         </> : <p>No active medications recorded.</p>)}
       </section>

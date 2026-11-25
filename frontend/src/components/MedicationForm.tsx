@@ -1,3 +1,4 @@
+import { DiagnosisIndicationPicker } from './DiagnosisIndications'
 import { useState, type FormEvent } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type {
@@ -22,6 +23,7 @@ function MedicationForm({
   const [status, setStatus] = useState<MedicationStatus>(
     medication?.status ?? 'active'
   )
+  const [problemIds, setProblemIds] = useState(medication?.indications?.map(item => item.problem_id) ?? [])
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,6 +41,7 @@ function MedicationForm({
 
     const medicationData: MedicationInput = {
       name: String(formData.get('name') ?? '').trim(),
+      problem_ids: problemIds,
       strength: optionalText(formData, 'strength'),
       dose: optionalText(formData, 'dose'),
       route: optionalText(formData, 'route'),
@@ -89,6 +92,8 @@ function MedicationForm({
           defaultValue={medication?.name ?? ''}
         />
       </label>
+
+      <DiagnosisIndicationPicker patientId={patientId} selected={problemIds} onChange={setProblemIds} disabled={isSaving} />
 
       <label className="form-field">
         <span>Strength</span>

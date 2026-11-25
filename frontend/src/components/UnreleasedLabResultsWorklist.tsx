@@ -1,8 +1,10 @@
+import DiagnosisIndications from './DiagnosisIndications'
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
-import type { LabResult } from '../types'
+import type { DiagnosisIndication, LabResult } from '../types'
 
 type UnreleasedLabResult = {
+  indications?: DiagnosisIndication[]
   order_id: number
   patient_id: number
   patient_name: string
@@ -309,6 +311,7 @@ function UnreleasedLabResultsWorklist({
                           )}
                         </div>
                       )}
+                    <DiagnosisIndications records={result.indications} compact />
                     </div>
                     <div className="pending-lab-patient">
                       <button
