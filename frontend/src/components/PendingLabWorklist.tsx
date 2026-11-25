@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import PendingLabActions, { type LabResolution } from './PendingLabActions'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { LabOrder } from '../types'
+import { filterLabQueue, labQueuePage, type LabQueueFilter } from '../labQueue'
 
 type PendingLabOrder = LabOrder & {
   patient_id: number
@@ -27,12 +28,31 @@ function PendingLabWorklist({
   const [activeOrder, setActiveOrder] = useState<number | null>(null)
   const [notice, setNotice] = useState('')
   const noticeRef = useRef<HTMLParagraphElement>(null)
+  const pageStatus = useRef<HTMLParagraphElement>(null)
+  const [query, setQuery] = useState('')
+  const [priority, setPriority] = useState<LabQueueFilter>('all')
+  const [requestedPage, setRequestedPage] = useState(0)
+  const matches = filterLabQueue(orders ?? [], query, priority)
+  const view = labQueuePage(matches, requestedPage)
+  const locked = activeOrder !== null
+
+  function clearFilters() {
+    setQuery('')
+    setPriority('all')
+    setRequestedPage(0)
+  }
+
+  function changePage(next: number) {
+    setRequestedPage(next)
+    requestAnimationFrame(() => pageStatus.current?.focus())
+  }
 
   useEffect(() => { if (notice) noticeRef.current?.focus() }, [notice])
 
   function resolved(order: PendingLabOrder, resolution: LabResolution) {
     setOrders(current => current?.filter(item => item.id !== order.id) ?? null)
     setActiveOrder(null)
+    setRequestedPage(labQueuePage(matches.filter(item => item.id !== order.id), view.page).page)
     setNotice(order.test_name + ' for ' + order.patient_name + (resolution.kind === 'cancelled'
       ? ' cancelled. The request and reason remain in the chart.'
       : ' result recorded. Review and release separately when appropriate.'))
@@ -91,7 +111,7 @@ function PendingLabWorklist({
           <button
             className="secondary-action-button"
             type="button"
-            onClick={() => setRefreshCount((count) => count + 1)}
+            onClick={() => { setRequestedPage(0); setRefreshCount((count) => count + 1) }}
             disabled={activeOrder !== null || (orders === null && error === null)}
           >
             Refresh
@@ -117,14 +137,35 @@ function PendingLabWorklist({
         )}
         {orders && (
           <>
-            <p className="schedule-count" role="status">
-              {orders.length} pending request{orders.length === 1 ? '' : 's'}
-            </p>
-            {orders.length === 0 ? (
-              <p className="empty-message">No pending lab requests.</p>
+            <div className="lab-queue-toolbar" role="group" aria-label="Filter pending lab requests">
+              <label className="form-field lab-queue-search"><span>Find a request</span>
+                <input type="search" placeholder="Patient, test or request number" value={query} disabled={locked}
+                  onChange={event => { setQuery(event.target.value); setRequestedPage(0) }} />
+              </label>
+              <label className="form-field"><span>Priority</span>
+                <select value={priority} disabled={locked} onChange={event => { setPriority(event.target.value as LabQueueFilter); setRequestedPage(0) }}>
+                  <option value="all">All priorities</option><option value="urgent">Urgent</option><option value="routine">Routine</option>
+                </select>
+              </label>
+              <button type="button" className="secondary-action-button" disabled={locked || (!query && priority === 'all')} onClick={clearFilters}>Clear filters</button>
+            </div>
+            <div className="lab-queue-pagebar">
+              <p ref={pageStatus} tabIndex={-1} className="schedule-count" role="status">
+                {orders.length} pending request{orders.length === 1 ? '' : 's'}
+                {matches.length !== orders.length && <> · {matches.length} matching</>}
+                {matches.length > 0 && <> · Showing {view.start + 1}–{view.end} of {matches.length}</>}
+              </p>
+              {view.pages > 1 && <nav aria-label="Pending lab pages">
+                <button type="button" className="secondary-action-button" disabled={locked || view.page === 0} onClick={() => changePage(view.page - 1)}>Previous</button>
+                <span>Page {view.page + 1} of {view.pages}</span>
+                <button type="button" className="secondary-action-button" disabled={locked || view.page + 1 >= view.pages} onClick={() => changePage(view.page + 1)}>Next</button>
+              </nav>}
+            </div>
+            {matches.length === 0 ? (
+              <p className="empty-message">{orders.length ? 'No pending requests match your filters.' : 'No pending lab requests.'}</p>
             ) : (
-              <ol className="pending-lab-list">
-                {orders.map((order) => (
+              <ol className="pending-lab-list" start={view.start + 1}>
+                {view.rows.map((order) => (
                   <li className={activeOrder === order.id ? "pending-lab-row lab-worklist-row lab-worklist-row-editing" : "pending-lab-row lab-worklist-row"} key={order.id}>
                     <div className="lab-worklist-details">
                       <div className="pending-lab-title">
