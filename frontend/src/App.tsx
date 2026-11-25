@@ -22,6 +22,7 @@ import EncounterList from './components/EncounterList'
 import FollowUpTasks from './components/FollowUpTasks'
 import OpenFollowUpTasksWorklist from './components/OpenFollowUpTasksWorklist'
 import MedicationList from './components/MedicationList'
+import Immunizations from './components/Immunizations'
 import PatientTimeline from './components/PatientTimeline'
 import ClinicalSnapshot from './components/ClinicalSnapshot'
 import PatientLifecycleControls from './components/PatientLifecycleControls'
@@ -87,10 +88,11 @@ function patientPronouns(
 }
 
 
-type ChartSection = 'summary' | 'health' | 'appointments' | 'notes' | 'orders' | 'care'
+type ChartSection = 'summary' | 'health' | 'immunizations' | 'appointments' | 'notes' | 'orders' | 'care'
 const chartSections: SectionOption<ChartSection>[] = [
   { id: 'summary', label: 'Summary' },
   { id: 'health', label: 'Health record' },
+  { id: 'immunizations', label: 'Immunizations' },
   { id: 'appointments', label: 'Appointments' },
   { id: 'notes', label: 'Visit notes' },
   { id: 'orders', label: 'Labs & referrals' },
@@ -516,6 +518,7 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
               <AllergyList patientId={selectedPatient.id} onChanged={() => setAllergyRevision(n => n + 1)} />
               <VitalList patientId={selectedPatient.id} />
             </>}
+            {chartSection === 'immunizations' && <Immunizations key={selectedPatient.id} patientId={selectedPatient.id} staff archived={Boolean(selectedPatient.archived_at)} />}
             {chartSection === 'care' && <>
               <CareGoals key={selectedPatient.id} patientId={selectedPatient.id} />
               <FollowUpTasks key={selectedPatient.id} patientId={selectedPatient.id} />
