@@ -273,7 +273,8 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
 
       if (request !== openRequest.current) return
       if (!response.ok) {
-        setError(await getApiErrorMessage(response))
+        const message = await getApiErrorMessage(response)
+        if (request === openRequest.current) setError(message)
         return
       }
 
@@ -320,9 +321,9 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
           <button
             className="back-button"
             type="button"
-            onClick={() =>
-              confirmNavigation() && (setIsAddingPatient(false), requestFocus())
-            }
+            onClick={() => {
+              if (confirmNavigation()) { setIsAddingPatient(false); requestFocus() }
+            }}
           >
             ← Back to patient search
           </button>
@@ -366,9 +367,9 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
           <button
             className="back-button"
             type="button"
-            onClick={() =>
-              confirmNavigation() && (setIsEditingPatient(false), requestFocus())
-            }
+            onClick={() => {
+              if (confirmNavigation()) { setIsEditingPatient(false); requestFocus() }
+            }}
           >
             ← Back to patient overview
           </button>

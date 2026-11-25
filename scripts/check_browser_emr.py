@@ -64,7 +64,8 @@ def capture_reference(page, name):
         return
     directory = Path(destination)
     directory.mkdir(parents=True, exist_ok=True)
-    page.evaluate("window.scrollTo(0, 0)")
+    page.evaluate("document.activeElement?.blur(); window.scrollTo(0, 0)")
+    page.mouse.move(1, 1)
     page.screenshot(path=str(directory / (name + ".png")), full_page=True,
                     animations="disabled", caret="hide")
 
@@ -100,7 +101,22 @@ def run():
             expect(page.locator(".dashboard-queue strong")).to_have_text(
                 [re.compile(r"^[0-9]+$")] * 6, timeout=TIMEOUT)
         capture_reference(page, "02-staff-dashboard")
+        # Each dashboard tile opens its real worklist.
+        destinations = (
+            ("Appointment requests", "Appointment change requests"),
+            ("Results to release", "Lab Results to Release"),
+            ("Open follow-ups", "Open Follow-ups"),
+            ("Pending labs", "Pending Lab Requests"),
+            ("Pending referrals", "Pending Referrals"),
+            ("Active care goals", "Active Care Goals"),
+        )
+        for title, heading in destinations:
+            page.locator(".dashboard-queue").filter(has_text=title).click()
+            expect(page.get_by_role("heading", name=heading, exact=True)).to_be_focused()
+            staff_section(page, "Dashboard")
+            expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_focused()
         page.get_by_role("button", name="Find a patient", exact=False).click()
+        expect(page.get_by_role("heading", name="Patient Search", exact=True)).to_be_focused()
         # The directory is populated without an initial search.
         expect(page.get_by_role("button", name="Lee, Jordan", exact=False)).to_be_visible(timeout=TIMEOUT)
         staff_section(page, "Clinic Schedule")
@@ -118,13 +134,28 @@ def run():
         if os.environ.get("EMR_SCREENSHOT_DIR"):
             expect(snapshot.get_by_role("region", name="Latest vital record")).to_contain_text("Recorded")
             expect(page.get_by_role("region", name="Chart allergy status").get_by_role("status")).to_have_count(0)
+        history = page.get_by_role("region", name="Clinical Activity")
+        rows = history.locator(".patient-timeline-row")
+        expect(rows).to_have_count(5)
+        expand = history.get_by_role("button", name=re.compile(r"Show all \d+ recent records"))
+        expect(expand).to_have_attribute("aria-expanded", "false")
+        expand.click()
+        collapse = history.get_by_role("button", name="Show recent activity", exact=True)
+        expect(collapse).to_have_attribute("aria-expanded", "true")
+        assert rows.count() > 5
+        collapse.click()
+        expect(rows).to_have_count(5)
         capture_reference(page, "03-patient-chart")
         snapshot.get_by_role("button", name="Open full health record").click()
         expect(page.get_by_role("navigation", name="Patient chart sections").get_by_role("button", name="Health record", exact=True)).to_have_attribute("aria-current", "page")
+        expect(page.locator(".chart-section-heading h2")).to_be_focused()
         expect(page.get_by_text("Essential hypertension", exact=True).first).to_be_visible()
         expect(page.get_by_text("Lisinopril 20 mg", exact=True).first).to_be_visible()
         page.get_by_role("button", name="+ Add Problem", exact=True).click()
         page.get_by_label("Problem *").fill("Seasonal allergies")
+        page.once("dialog", lambda dialog: dialog.dismiss())
+        sign_out(page)
+        expect(page.get_by_label("Problem *")).to_have_value("Seasonal allergies")
         page.once("dialog", lambda dialog: dialog.dismiss())
         page.get_by_role("navigation", name="Patient chart sections").get_by_role("button", name="Summary", exact=True).click()
         expect(page.get_by_label("Problem *")).to_have_value("Seasonal allergies")
@@ -207,9 +238,14 @@ def run():
         portal_section(page, "Settings")
         channel = page.get_by_label("Preferred contact method")
         expect(channel).to_have_value("portal")
+        save_preferences = page.get_by_role("button", name="Save preferences", exact=True)
+        expect(save_preferences).to_be_disabled()
         channel.select_option("email")
-        page.get_by_role("button", name="Save preferences", exact=True).click()
+        expect(save_preferences).to_be_enabled()
+        expect(page.get_by_text("You have unsaved changes.", exact=True)).to_be_visible()
+        save_preferences.click()
         expect(page.get_by_text("Your communication preferences were saved.")).to_be_visible()
+        expect(save_preferences).to_be_disabled()
         portal_section(page, "Appointments & visits")
         appointment = page.get_by_label("Scheduled visit")
         expect(appointment.locator("option")).not_to_have_count(1)
@@ -257,6 +293,15 @@ def run():
         mobile_nav.select_option("patients")
         search(other, "Avery")
         expect(other.get_by_text("No patients found.")).to_be_visible()
+        other.get_by_role("button", name="Clear search", exact=True).click()
+        other.get_by_role("button", name="Lee, Jordan", exact=False).click()
+        expect(mobile_nav).to_have_value("chart")
+        expect(other.get_by_role("heading", name="Jordan Lee", exact=True)).to_be_focused()
+        assert other.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        capture_reference(other, "07-staff-chart-mobile")
+        mobile_nav.select_option("patients")
+        expect(other.get_by_role("heading", name="Patient Search", exact=True)).to_be_focused()
+        expect(other.get_by_role("button", name="Lee, Jordan", exact=False)).to_be_visible()
         assert other.evaluate("document.documentElement.scrollWidth <= innerWidth")
         other.close()
 
@@ -280,6 +325,10 @@ def run():
             expect(page.locator(".next-visit-date time")).to_be_visible(timeout=TIMEOUT)
             capture_reference(page, "05-patient-home")
             page.set_viewport_size({"width": 360, "height": 800})
+            appointment = page.locator(".portal-next-visit").bounding_box()
+            navigation = page.get_by_role("navigation", name="Patient portal sections").bounding_box()
+            assert appointment["y"] < navigation["y"], "Upcoming care should precede navigation on mobile home"
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             capture_reference(page, "06-patient-home-mobile")
             page.set_viewport_size({"width": 1280, "height": 900})
         portal_section(page, "My health")

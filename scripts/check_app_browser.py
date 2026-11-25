@@ -58,7 +58,7 @@ def sign_in(page, username):
 def open_chart(page):
     expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_visible()
     page.get_by_role("button", name="Find a patient", exact=False).click()
-    expect(page.get_by_role("heading", name="Patient Search", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Patient Search", exact=True)).to_be_focused()
     page.get_by_role("searchbox", name="Search patients").fill("Jordan")
     page.get_by_role("button", name="Search", exact=True).click()
     page.get_by_role("button", name="Lee, Jordan", exact=False).click()
@@ -143,6 +143,10 @@ def run():
         channel.select_option("email")
         # Navigation must preserve an unsaved preference, then save it explicitly.
         mobile.get_by_role("navigation", name="Patient portal sections").get_by_role("button", name="My health", exact=True).click()
+        # The form is hidden but its draft still exists; signing out must ask first.
+        mobile.once("dialog", lambda dialog: dialog.dismiss())
+        mobile.get_by_role("button", name="Sign out", exact=True).click()
+        expect(mobile.get_by_role("heading", name="My health summary")).to_be_visible()
         mobile.get_by_role("navigation", name="Patient portal sections").get_by_role("button", name="Settings", exact=True).click()
         expect(channel).to_have_value("email")
         mobile.get_by_role("button", name="Save preferences", exact=True).click()
