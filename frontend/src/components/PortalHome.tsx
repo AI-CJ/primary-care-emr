@@ -9,6 +9,7 @@ import { WorkspaceIcon, type WorkspaceIconName } from './WorkspaceIcon'
 type AppointmentState = { status: 'loading' | 'error' } | { status: 'ready'; next: PortalAppointmentSummary | undefined }
 const actions: { section: PortalSection; title: string; description: string; icon: WorkspaceIconName }[] = [
   { section: 'health', title: 'My health', description: 'Medications, conditions, allergies and vital signs', icon: 'health' },
+  { section: 'immunizations', title: 'Vaccinations', description: 'Review your recorded vaccines and dates', icon: 'audit' },
   { section: 'visits', title: 'Appointments & visits', description: 'Review appointments and visit instructions', icon: 'calendar' },
   { section: 'results', title: 'Test results & referrals', description: 'See released results and referral information', icon: 'results' },
   { section: 'care', title: 'My care plan', description: 'Review your health goals and progress', icon: 'heart' },
