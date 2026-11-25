@@ -1,7 +1,7 @@
 import { type StaffDestination, staffDestinationLabels } from '../workspaceNavigation'
 
 const groups: { label: string; destinations: StaffDestination[] }[] = [
-  { label: 'Clinical', destinations: ['patients', 'schedule', 'past'] },
+  { label: 'Clinical', destinations: ['dashboard', 'patients', 'schedule', 'past'] },
   { label: 'Work queues', destinations: ['requests', 'labs', 'results', 'referrals', 'goals', 'followups'] },
   { label: 'Administration', destinations: ['audit'] },
 ]

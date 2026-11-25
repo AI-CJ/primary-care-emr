@@ -38,9 +38,11 @@ import SignIn, { type SignedInAccount } from './components/SignIn'
 import PatientPortal from './components/PatientPortal'
 import AuditReview from './components/AuditReview'
 import WorkspaceNavigation from './components/WorkspaceNavigation'
+import StaffDashboard from './components/StaffDashboard'
 import { type StaffDestination, staffDestinationLabels } from './workspaceNavigation'
 import SectionNavigation, { type SectionOption } from './components/SectionNavigation'
 import './ClinicalWorkspace.css'
+import { BrandMark } from './components/BrandArtwork'
 
 
 const sexAtBirthLabels: Record<
@@ -96,7 +98,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   const [search, setSearch] =
     useState('')
 
-  const [destination, setDestination] = useState<StaffDestination>('patients')
+  const [destination, setDestination] = useState<StaffDestination>('dashboard')
   const [chartSection, setChartSection] = useState<ChartSection>('summary')
   const [showPortalPreview, setShowPortalPreview] = useState(false)
   const dirtyForms = useRef(new WeakSet<HTMLFormElement>())
@@ -184,6 +186,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
     setNoteToStart(null)
     setAppointmentToReview(null)
     setError(null)
+    if (next === 'schedule' && destination === 'dashboard') setScheduleDay(localDate())
     if (next === 'patients') {
       setSearch('')
       void searchPatients('')
@@ -534,6 +537,8 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
   }
 
 
+  if (destination === 'dashboard') return <StaffDashboard onNavigate={navigate} />
+
   if (destination === 'requests') {
     return (
       <AppointmentChangeRequestsWorklist
@@ -817,8 +822,8 @@ function App() {
 
   return (
     <>
-      <header className="session-bar">
-        <div className="workspace-brand"><span className="workspace-mark" aria-hidden="true">+</span><strong>Primary Care EMR</strong><span className="workspace-product">{account.account_type === 'patient' ? 'Patient portal' : 'Clinical workspace'}</span></div>
+      <header className={`session-bar ${account.account_type === 'patient' ? 'patient-session-bar' : ''}`}>
+        <div className="workspace-brand"><BrandMark /><strong>Primary Care EMR</strong><span className="workspace-product">{account.account_type === 'patient' ? 'Patient portal' : 'Clinical workspace'}</span></div>
         <div className="session-account"><strong>{account.username}</strong><span>{account.account_type === 'patient' ? 'Patient' : account.staff_role === 'admin' ? 'Administrator' : 'Clinician'}</span></div>
         <button type="button" onClick={() => void signOut()}>
           Sign out

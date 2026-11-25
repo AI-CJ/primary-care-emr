@@ -5,6 +5,7 @@ import './PatientPortalPreview.css'
 import SectionNavigation from './SectionNavigation'
 import { type PortalSection, portalSections } from '../portalNavigation'
 import PortalAppointments from './PortalAppointments'
+import PortalHome from './PortalHome'
 import PortalVisits from './PortalVisits'
 import PortalVitals from './PortalVitals'
 import PortalLabResults from './PortalLabResults'
@@ -108,7 +109,8 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
           options={portalSections.filter((option) => option.id !== 'preferences')}
           current={section} onChange={setSection} />
 
-        {!isLoading && overview && (
+        {section === 'home' && <PortalHome patientId={patient.id} onNavigate={setSection} />}
+        {section !== 'home' && !isLoading && overview && (
           <div className="portal-grid" key={section}>
             {section === 'health' && <>
               <PortalProblemList problems={overview.problems} />
