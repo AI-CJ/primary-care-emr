@@ -77,6 +77,10 @@ def verify_workspace(url, revision):
         expect(page.get_by_role("region", name="Active conditions")).to_contain_text(
             "Essential hypertension"
         )
+        page.get_by_role("button", name="Health record", exact=True).click()
+        expect(page.get_by_role("region", name="Patient background")).to_contain_text("Remote wrist fracture")
+        page.get_by_role("button", name="Labs & referrals", exact=True).click()
+        expect(page.get_by_role("region", name="Prior imaging reports")).to_contain_text("Wrist radiographs")
         page.get_by_role("button", name="Sign out", exact=True).click()
         page.get_by_role("button", name="Switch to patient sign-in").click()
         page.get_by_role("button", name="Sign in as Jordan Lee").click()
@@ -86,6 +90,7 @@ def verify_workspace(url, revision):
         nav = page.get_by_role("navigation", name="Patient portal sections")
         nav.get_by_role("button", name="Test results & referrals", exact=True).click()
         expect(page.get_by_text("Lipid panel", exact=True)).to_be_visible()
+        expect(page.get_by_role("region", name="My shared imaging reports")).to_contain_text("Wrist radiographs")
         nav.get_by_role("button", name="Settings", exact=True).click()
         channel = page.get_by_label("Preferred contact method")
         expect(channel).to_have_value("portal")

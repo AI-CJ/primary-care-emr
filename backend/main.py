@@ -37,6 +37,7 @@ from backend.session_auth import create_session, get_session_account, revoke_ses
 from backend.models import UserAccount
 from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse, DiagnosisCodeSearch, IndicationSelection
 from backend.patient_timeline import list_patient_timeline
+from backend.chart_history import BackgroundRead, ImagingRead, SharedImagingRead, read_background, list_imaging
 from backend.portal_medications import list_portal_preview_medications
 from backend.portal_problems import list_portal_preview_problems
 from backend.portal_allergies import list_portal_preview_allergies
@@ -251,7 +252,7 @@ _AUTH_PATHS = {"/auth/login", "/auth/me", "/auth/logout"}
 _PATIENT_GET_PATHS = {
     "/portal/appointments", "/portal/problems", "/portal/medications",
     "/portal/allergies", "/portal/vitals", "/portal/care-goals",
-    "/portal/visits", "/portal/lab-orders", "/portal/referrals",
+    "/portal/visits", "/portal/lab-orders", "/portal/referrals", "/portal/imaging-reports",
     "/portal/communication-preferences", "/portal/appointment-change-requests",
 }
 _PATIENT_WRITE_PATHS = {
@@ -1049,6 +1050,30 @@ def update_allergy(
         session.commit()
         session.refresh(allergy)
         return allergy
+
+
+@app.get("/patients/{patient_id}/background", response_model=BackgroundRead | None)
+def read_patient_background(patient_id: int):
+    with Session(engine) as session:
+        return read_background(session, patient_id)
+
+
+@app.get("/patients/{patient_id}/imaging-reports", response_model=list[ImagingRead])
+def read_patient_imaging(patient_id: int):
+    with Session(engine) as session:
+        return list_imaging(session, patient_id)
+
+
+@app.get("/patients/{patient_id}/portal-preview/imaging-reports", response_model=list[SharedImagingRead])
+def read_portal_preview_imaging(patient_id: int):
+    with Session(engine) as session:
+        return list_imaging(session, patient_id, shared_only=True)
+
+
+@app.get("/portal/imaging-reports", response_model=list[SharedImagingRead])
+def read_portal_imaging(account: UserAccount = Depends(_current_patient_account)):
+    with Session(engine) as session:
+        return list_imaging(session, account.patient_id, shared_only=True)
 
 
 @app.get(

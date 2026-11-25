@@ -9,9 +9,9 @@ from backend.icd10_catalog import CATALOG_PATH, lookup_code
 from backend.models import (
     Base, Patient, Problem, Medication, MedicationIndication,
     Appointment, AppointmentStatusChange, Encounter, EncounterProblem,
-    Vital, LabOrder, LabOrderIndication, LabResult,
+    Vital, LabOrder, LabOrderIndication, LabResult, PatientBackground, ImagingReport,
 )
-from backend.synthetic_population import CONDITIONS, POPULATION_SIZE, add_clinic_population
+from backend.synthetic_population import ADDITIONAL_CONDITIONS, CONDITIONS, POPULATION_SIZE, add_clinic_population
 
 
 AS_OF = date(2026, 11, 25)
@@ -115,7 +115,49 @@ class SyntheticPopulationTests(TestCase):
 
     @skipUnless(CATALOG_PATH.exists(), "Prepare the pinned ICD-10-CM catalog to verify reference titles")
     def test_condition_codes_and_titles_exist_in_official_catalog(self):
-        for condition in CONDITIONS:
+        for condition in (*CONDITIONS, *ADDITIONAL_CONDITIONS):
             with self.subTest(code=condition.code):
                 code = lookup_code(condition.code)
                 self.assertEqual(code.title, condition.title)
+
+
+    def test_background_and_imaging_depth(self):
+        with Session(self.engine) as session:
+            patients = {p.id: p for p in session.scalars(select(Patient))}
+            backgrounds = {p.patient_id: p for p in session.scalars(select(PatientBackground))}
+            self.assertEqual(set(backgrounds), set(patients))
+            for background in backgrounds.values():
+                for value in (background.medical_history, background.surgical_history,
+                              background.family_history, background.social_history, background.care_context):
+                    self.assertGreater(len(value.strip()), 15)
+                self.assertLessEqual(background.reviewed_on, AS_OF)
+            self.assertGreater(len({b.social_history for b in backgrounds.values()}), 300)
+            self.assertGreater(len({b.care_context for b in backgrounds.values()}), 50)
+            reports = session.scalars(select(ImagingReport)).all()
+            self.assertGreater(len(reports), 50)
+            self.assertLess(len({r.patient_id for r in reports}), len(patients))
+            self.assertGreaterEqual(len({r.modality for r in reports}), 3)
+            self.assertTrue(any(r.shared_on is None for r in reports))
+            for report in reports:
+                self.assertLess(patients[report.patient_id].date_of_birth, report.performed_on)
+                self.assertLessEqual(report.performed_on, report.reported_on)
+                self.assertLessEqual(report.reported_on, backgrounds[report.patient_id].reviewed_on)
+                if report.shared_on:
+                    self.assertLessEqual(report.reported_on, report.shared_on)
+                    self.assertLessEqual(report.shared_on, AS_OF)
+                self.assertTrue(report.indication and report.findings and report.impression)
+            problems = {}
+            for p in session.scalars(select(Problem)):
+                problems.setdefault(p.patient_id, set()).add(p.icd10_code)
+            for codes in problems.values():
+                self.assertFalse({"E11.9", "R73.03"} <= codes)
+            for code, modality in (("M81.0", "DXA"), ("K76.0", "Ultrasound")):
+                expected = {patient_id for patient_id, codes in problems.items() if code in codes}
+                self.assertTrue(expected, code)
+                actual = {r.patient_id for r in reports if r.modality == modality}
+                self.assertTrue(expected <= actual)
+            old_meds = session.scalars(select(Medication).where(Medication.status == "discontinued")).all()
+            self.assertGreater(len(old_meds), 15)
+            for medication in old_meds:
+                self.assertLessEqual(medication.start_date, medication.end_date)
+                self.assertTrue(medication.instructions)
