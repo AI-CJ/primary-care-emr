@@ -3,7 +3,11 @@ import json
 import unittest
 from unittest.mock import patch
 
-from backend.browser_demo import BROWSER_PASSWORD, create_browser_engine, dispatch, seed_browser_database
+from backend.browser_demo import BROWSER_PASSWORD, create_browser_engine, dispatch, seed_browser_database, _validated_demo_hashes
+from backend.account_auth import hash_password, verify_password
+from backend.models import UserAccount
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from backend.main import app
 
 
@@ -74,3 +78,33 @@ class BrowserDemoTests(unittest.IsolatedAsyncioTestCase):
         finally:
             for engine in engines:
                 engine.dispose()
+
+    async def test_native_seed_hashes_are_browser_only_and_preserve_authentication(self):
+        hashes = {name: hash_password(BROWSER_PASSWORD) for name in
+                  ("admin", "clinician", "jordan.lee", "maria.thompson")}
+        raw = json.dumps(hashes)
+        with self.assertRaises(RuntimeError):
+            _validated_demo_hashes(raw)
+        engine = create_browser_engine()
+        try:
+            with patch("backend.browser_demo.sys.platform", "emscripten"):
+                self.assertEqual(_validated_demo_hashes(raw), hashes)
+                self.assertIsNone(_validated_demo_hashes(json.dumps(dict.fromkeys(hashes, hashes["admin"]))))
+                self.assertIsNone(_validated_demo_hashes(json.dumps({"admin": hashes["admin"]})))
+                self.assertIsNone(_validated_demo_hashes(raw.replace("600000", "1")))
+                seed_browser_database(engine, demo_hashes_json=raw)
+            with Session(engine) as session:
+                accounts = session.scalars(select(UserAccount)).all()
+                self.assertEqual({a.username: a.password_hash for a in accounts}, hashes)
+                self.assertTrue(all(verify_password(BROWSER_PASSWORD, a.password_hash) for a in accounts))
+            with patch("backend.main.engine", engine):
+                token = await self.login("clinician")
+                status, account = await self.request("GET", "/auth/me", token)
+                self.assertEqual(status, 200)
+                self.assertEqual(account["staff_role"], "clinician")
+                status, _ = await self.request("POST", "/auth/login", data={
+                    "username": "clinician", "password": "Wrong fictional password",
+                })
+                self.assertEqual(status, 401)
+        finally:
+            engine.dispose()
