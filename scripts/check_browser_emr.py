@@ -1,4 +1,5 @@
 """Exercise the deployed build without a networked API or shared database."""
+import re
 from playwright.sync_api import expect, sync_playwright
 
 URL = "http://127.0.0.1:4174/primary-care-emr/"
@@ -11,6 +12,8 @@ def sign_in(page, account):
 
 
 def search(page, name):
+    if page.get_by_role("heading", name="Dashboard", exact=True).is_visible():
+        staff_section(page, "Patients")
     page.get_by_role("searchbox", name="Search patients").fill(name)
     page.get_by_role("button", name="Search", exact=True).click()
 
@@ -67,6 +70,10 @@ def run():
         page.goto(URL)
         assert_notice(page)
         sign_in(page, "Administrator")
+        expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_visible()
+        expect(page.get_by_role("heading", name="Today's schedule", exact=True)).to_be_visible()
+        expect(page.locator(".dashboard-metrics dd").first).to_have_text(re.compile(r"^[0-9]+$"), timeout=TIMEOUT)
+        page.get_by_role("button", name="Find a patient", exact=False).click()
         # The directory is populated without an initial search.
         expect(page.get_by_role("button", name="Lee, Jordan", exact=False)).to_be_visible(timeout=TIMEOUT)
         staff_section(page, "Clinic Schedule")

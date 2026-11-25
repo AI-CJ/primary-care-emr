@@ -56,6 +56,8 @@ def sign_in(page, username):
 
 
 def open_chart(page):
+    expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_visible()
+    page.get_by_role("button", name="Find a patient", exact=False).click()
     expect(page.get_by_role("heading", name="Patient Search", exact=True)).to_be_visible()
     page.get_by_role("searchbox", name="Search patients").fill("Jordan")
     page.get_by_role("button", name="Search", exact=True).click()

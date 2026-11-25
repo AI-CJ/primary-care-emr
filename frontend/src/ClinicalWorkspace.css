@@ -266,3 +266,28 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
+
+/* Staff dashboard: task destinations backed by the same worklist APIs. */
+.staff-dashboard { max-width: 1440px; margin: 0 auto; padding: clamp(20px, 3vw, 40px); }
+.dashboard-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+.dashboard-heading h1 { font-size: clamp(1.8rem, 3vw, 2.5rem); letter-spacing: -.035em; line-height: 1.15; margin: 0; }
+.dashboard-schedule { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, auto); gap: 26px; align-items: center; padding: clamp(20px, 3vw, 32px); border-radius: 14px; background: linear-gradient(125deg, #20383f, #16594e); color: #f5fffb; }
+.dashboard-kicker { margin: 0 0 5px; color: #b8e5d9; font-size: .85rem; font-weight: 600; }
+.dashboard-schedule h2 { color: white; margin: 0; font-size: 1.35rem; }
+.dashboard-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 24px 0 0; }
+.dashboard-metrics div { min-width: 0; border-left: 2px solid #75b5a6; padding-left: 12px; }
+.dashboard-metrics dt { color: #ddf1eb; font-size: .8rem; }
+.dashboard-metrics dd { margin: 2px 0 0; font-size: 2rem; line-height: 1.2; font-weight: 700; }
+.dashboard-actions { display: grid; gap: 10px; }
+.dashboard-actions button { min-height: 44px; text-align: left; padding: 10px 14px; color: #16594e; background: #effbf5; font-weight: 650; border: 1px solid #a5cebf; border-radius: 8px; cursor: pointer; }
+.dashboard-actions button span { float: right; margin-left: 10px; }
+.dashboard-actions button:focus-visible { outline-color: #f2c4ae; }
+.dashboard-section-title { margin: 30px 0 0; font-size: 1.3rem; }
+.dashboard-queue-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 220px),1fr)); gap: 14px; margin-top: 16px; }
+.dashboard-queue { display: grid; gap: 10px; text-align: left; padding: 18px; background: #fff; border: 1px solid #cdded9; border-radius: 10px; color: #243238; cursor: pointer; }
+.dashboard-queue:hover { background: #eff7f3; border-color: #659e90; }
+.queue-heading { display: flex; justify-content: space-between; gap: 8px; font-weight: 650; }
+.queue-heading span { color: #286c60; }
+.dashboard-queue strong { color: #205e50; font-size: 1.65rem; line-height: 1.25; overflow-wrap: anywhere; }
+.dashboard-queue > span:last-child { color: #596a71; font-size: .85rem; }
+@media(max-width: 650px) { .dashboard-schedule { grid-template-columns: 1fr; } .dashboard-metrics { gap: 8px; } .dashboard-metrics div { padding-left: 6px; } .dashboard-metrics dt { overflow-wrap: anywhere; } }
