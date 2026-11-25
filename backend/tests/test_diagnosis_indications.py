@@ -73,7 +73,7 @@ class DiagnosisIndicationTests(unittest.TestCase):
 
     def test_finalized_lab_and_visit_snapshot(self):
         problem = self.request("POST", "/patients/1/problems", {"name": "Blood pressure", "icd10_code": "I10"}, 201).json()
-        visit = self.request("POST", "/patients/1/encounters", {"visit_date": date.today().isoformat(), "reason_for_visit": "Example review"}, 201).json()
+        visit = self.request("POST", "/patients/1/encounters", {"visit_date": date.today().isoformat(), "reason_for_visit": "Example review", "assessment": "Chart reviewed.", "plan": "Follow-up planned."}, 201).json()
         root = f"/encounters/{visit['id']}"
         self.request("POST", root + "/problems", {"problem_id": problem["id"]}, 201)
         order = self.request("POST", root + "/lab-orders", {"test_name": "Example panel", "problem_ids": [problem["id"]]}, 201).json()
