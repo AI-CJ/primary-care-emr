@@ -8,7 +8,7 @@ The initial redesign is informed by [NIST health IT interface guidance](https://
 
 ## Validation
 
-Exercise actual sign-in, chart access, appointment navigation, patient home, preferences and reset in both browser modes. Distinguish automated regression checks from actual clinician and patient usability studies. No claim of clinical approval, certification, or representative-user validation is made.
+Browser regression tests exercise sign-in, chart access, appointment navigation, patient home, preferences and reset in the isolated browser and API-backed execution modes. The [release audit](UX_AUDIT.md) records the exact verified revision, test results and coverage limits. These automated checks are not representative clinician or patient usability studies.
 
 ## Clinical chart context
 
@@ -19,3 +19,13 @@ Visit documentation groups the editable clinical note separately from patient-fa
 ## Patient reading and navigation
 
 Read-only portal sections load again on return; appointment request and settings forms retain local input while navigating. Section navigation moves keyboard focus to the newly displayed heading, with larger labeled controls and text and a responsive grid. Appointment grouping distinguishes upcoming or same-day open visits, earlier open visits and closed history; calendar labels preserve recorded dates and times rather than converting them across time zones. Date-only eligibility is unchanged and the server remains authoritative. All returned medication and appointment history remains available. Released lab results lead the results page, earlier released results are expandable, and pending, unreleased and cancelled requests are separate. The API remains responsible for release and ownership; free-text results are displayed without invented units, reference ranges or interpretation. This approach draws on [WCAG 2.2](https://www.w3.org/TR/WCAG22/) and the [review of laboratory presentation formats](https://www.jmir.org/2024/1/e53993/), while acknowledging the application does not have structured laboratory values. No new dependency or third-party asset was added. Automated tests cover appointment grouping, date formatting, lab grouping and patient navigation; full usability and accessibility evaluation still require representative users and assistive technology.
+
+## Browser startup
+
+The public application initializes its pinned Python runtime and tab-local database on the sign-in screen. Starting that work before credential submission overlaps initialization with the time a visitor spends choosing an account. The status text distinguishes preparation from account verification. The HTTP-backed application continues to authenticate through its server without the browser initialization step. Authentication parameters and reset semantics are unchanged.
+
+The release audit records measured preparation and sign-in times. The initial runtime load remains a trade-off of hosting the full application on a static site.
+
+## Reference captures
+
+The interactive browser CI job can save screenshots of the built application at the actual staff and patient workflow states. The images are captured from the isolated local workspace, not a design mockup or a real patient system. Reproduction instructions are in the [frontend guide](../frontend/README.md#capture-reference-screenshots).

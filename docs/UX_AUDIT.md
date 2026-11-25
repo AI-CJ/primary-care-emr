@@ -3,7 +3,8 @@
 **Audit date:** 24 November 2026 (Eastern time)  
 **Pre-sprint baseline:** `fb656cbe79d4a54bab062d22b8e8b13c2aa13313`  
 **Audited implementation:** `c14b57310902f1c5fbd70f84b313a1ecbc72f353`  
-**Disposition:** Implementation checks passed; this documentation commit and its eventual merge still require verification before release.
+**Disposition:** Released. The audited implementation and original audit commit were verified, merged and deployed at [`5a52bb8`](https://github.com/AI-CJ/primary-care-emr/commit/5a52bb84e2e86148cd228e4239e47c696a5e0a24).  
+**Release verification:** November 24, 2026, 11:25 PM Eastern.
 
 This is an engineering audit of an educational EMR, not a clinical safety certification, security penetration test, or declaration of WCAG conformance. Use fictional records only.
 
@@ -90,11 +91,31 @@ Research is cited in [UX_DESIGN.md](UX_DESIGN.md), including [NIST health IT int
 
 The already-merged patient portal redesign at `d4f724fbe4cc072a698d40b8046a1d9860643b22` passed all five jobs. Its [Pages deployment 45542706528](https://github.com/AI-CJ/primary-care-emr/actions/runs/45542706528) initially failed to locate the named artifact in GitHub's deployment service after build/upload. Retrying the failed deployment job succeeded on attempt 2. This was a deployment infrastructure issue, not a failing application test.
 
-The audited implementation passed its own pre-merge CI. The final audit commit must pass the same checks, followed by verification of the actual merged SHA and its Pages deployment. This report cannot establish the success of a future deployment. Independent retrieval of the [public application](https://ai-cj.github.io/primary-care-emr/) was unsuccessful in the audit environment (web access unavailable and DNS resolution failed), so direct visual inspection of the public site was not possible. GitHub deployment status and CI browser execution are separate evidence, and neither is represented as an independent public-site inspection.
+The final audit commit, `3c01b84c67096eb2942150ede93d958d11233256`, passed [Checks 45545956327](https://github.com/AI-CJ/primary-care-emr/actions/runs/45545956327). [PR 77](https://github.com/AI-CJ/primary-care-emr/pull/77) merged the audited implementation and its report into main at `5a52bb84e2e86148cd228e4239e47c696a5e0a24`.
 
-## Remaining limitations and release gate
+| Final release gate | Verified evidence |
+| --- | --- |
+| Merged implementation and audit | [PR 77](https://github.com/AI-CJ/primary-care-emr/pull/77) |
+| Main verification | [Checks 45546235206](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546235206): all five jobs passed |
+| Main backend | [Job 138976427577](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546235206/job/138976427577): migration step and 376 tests passed |
+| Main frontend | [Job 138976427559](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546235206/job/138976427559): lint, 33 tests and build passed |
+| Main browser workspace | [Job 138976427451](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546235206/job/138976427451): application workflow and packaged API tests passed |
+| Pages deployment | [Run 45546500308](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546500308): successful on attempt 1, November 24, 2026, 11:25 PM Eastern |
+
+The final main browser job recorded 6.97 seconds for fresh-tab preparation and 0.39 seconds for sign-in after preparation. The pre-merge and post-merge timings are two local CI observations; neither establishes a production latency target.
+
+Independent retrieval of the [public application](https://ai-cj.github.io/primary-care-emr/) was unsuccessful in the audit environment because direct network access was unavailable. The successful Pages deployment and the local Chromium test results establish different facts. Neither substitutes for independent inspection of the public site.
+
+## Documentation follow-up
+
+The root README, frontend guide, [workflow reference](WORKFLOWS.md), [original release record](V1_RELEASE.md) and design rationale now describe the same two execution modes, current role capabilities, startup behavior and verified release. The detailed API and lifecycle contracts were retained in the workflow reference. The browser smoke test gained optional reference screenshot capture, and CI archives those captures separately from the deployed application. No application components, styles, clinical behavior, dependency manifests or database migrations changed in this documentation follow-up.
+
+The application release evidence above is tied to its verified SHA. The documentation and capture changes have their own CI run; they do not retroactively change the original V1 tag or claim a fresh deployment before that run completes.
+
+## Remaining limitations
 
 - Preserve the educational-only scope, existing role checks and fictional data. Do not use this project to treat patients.
-- No known failures in the five completed checks at the audited implementation SHA. Do not equate passing tests with absence of defects.
+- The five verification jobs passed at the audited implementation and merged release SHAs. Passing tests are not evidence that every defect has been found.
+- The final main frontend installation reported **11 npm dependency advisories: nine moderate and two high**. See [frontend job 138976427559](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546235206/job/138976427559). The sprint introduced no new application dependencies. Advisory details, affected dependency paths, exploitability and remediation remain unverified; a separate dependency review is required.
 - Representative-user validation, screen-reader evaluation, complete accessibility/security audit, independent deployed-site screenshots and public-network latency benchmarks are not complete.
-- Merge only after all checks succeed on the final review branch; verify the merge SHA and deploy it successfully. If either fails, keep the last verified release and report the failure instead of declaring the sprint complete.
+- Future releases should pass the same automated gates and verify the deployed commit. Keep the last verified application available if a new build fails. Do not treat archived local CI captures as direct public-site verification.

@@ -1,6 +1,10 @@
-# Portfolio V1 Release
+# V1.0.0 release record
 
-> This document records the original V1.0.0 release boundary. The subsequent interactive Pages workspace is described in the [README](../README.md); it reuses the React and Python API code with a per-tab in-memory SQLite database and reset control. The local PostgreSQL application remains separate.
+**Released:** November 24, 2026  
+**Tagged commit:** [`492fd02`](https://github.com/AI-CJ/primary-care-emr/commit/492fd02a1e26a4e15b8532e8028fdcc59547f37e)  
+**Release:** [v1.0.0](https://github.com/AI-CJ/primary-care-emr/releases/tag/v1.0.0)
+
+> This is the historical record of the original tagged release, not a description of today's public interface. The subsequent browser-based clinical workspace and UX redesign are documented in the [README](../README.md), [design rationale](UX_DESIGN.md) and [release audit](UX_AUDIT.md). The V1 tag is unchanged.
 
 Primary Care EMR V1 is a synthetic-data portfolio release that demonstrates the day-to-day workflows of a small outpatient primary care clinic. It is not approved for clinical use and must not receive real patient information.
 
@@ -20,7 +24,7 @@ The source application includes:
 - non-destructive patient chart archive and reactivation controls;
 - PostgreSQL migrations, automated backend tests, frontend lint/tests, production builds, and Chromium workflow checks.
 
-The public GitHub Pages site is intentionally a static, read-only presentation layer. It demonstrates the product design with fictional records but does not connect to FastAPI or PostgreSQL. The complete API-backed application remains available in this repository for local execution and technical review.
+At this release, GitHub Pages published a static, read-only presentation. The complete API-backed application was available for local execution. The current public site has since replaced the static presentation with the React interface and clinical routes running in an isolated browser worker; it does not connect to an external clinical database.
 
 ## Verification
 
@@ -105,7 +109,7 @@ The project does not include:
 
 ## Release acceptance checklist
 
-Verified on the release-candidate branch and current `main` history:
+Release checks for the original V1.0.0 tag:
 
 - [x] the latest verified `main` commit passes GitHub Actions;
 - [x] the Alembic upgrade chain succeeds against PostgreSQL;
@@ -113,13 +117,13 @@ Verified on the release-candidate branch and current `main` history:
 - [x] frontend lint, tests, and production build pass;
 - [x] authenticated staff and patient boundaries are verified;
 - [x] archived charts reject active mutation paths while retaining history;
-- [ ] the static public demo is reachable and clearly labeled;
+- [x] the static public artifact deployed successfully through GitHub Pages;
 - [x] keyboard, reduced-motion, responsive, and basic contrast checks are complete;
 - [x] setup and workflow checks run successfully from clean CI checkouts;
 - [x] known limitations remain visible in the repository and demo;
-- [ ] a release tag is created from the verified deployed commit.
+- [x] the `v1.0.0` release tag points to the verified deployed commit.
 
-The Pages workflow deploys only after the `Checks` workflow succeeds. After a successful public deployment, it creates the `v1.0.0` tag and GitHub release automatically if they do not already exist. The two unchecked items therefore depend on first-time GitHub Pages enablement and successful URL verification, not additional application development.
+The original [verification run](https://github.com/AI-CJ/primary-care-emr/actions/runs/45463209604) succeeded. [Pages deployment 45463610626](https://github.com/AI-CJ/primary-care-emr/actions/runs/45463610626) succeeded on its second attempt after Pages was enabled; the V1 release was published on November 24, 2026. This establishes successful deployment, not an independent visual inspection of the historical live site. Subsequent application releases deploy from verified main commits while retaining the original tag.
 
 ## Post-V1 work
 

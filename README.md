@@ -1,92 +1,100 @@
 # Primary Care EMR
 
-[![Checks](https://github.com/AI-CJ/primary-care-emr/actions/workflows/checks.yml/badge.svg)](https://github.com/AI-CJ/primary-care-emr/actions/workflows/checks.yml)
+[![Checks](https://github.com/AI-CJ/primary-care-emr/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/AI-CJ/primary-care-emr/actions/workflows/checks.yml)
 
-Primary Care EMR is a full stack portfolio project that models the day to day work of a small outpatient clinic.
+Primary Care EMR is a full-stack electronic medical record and patient portal for a fictional outpatient primary care practice. It brings scheduling, longitudinal charts, visit documentation, clinical orders and care coordination together in a single application.
 
-It includes patient charts, scheduling, visit notes, labs, referrals, care goals, staff worklists, and a separate patient portal preview. All patient records in the project are fictional.
+**[Open the live application](https://ai-cj.github.io/primary-care-emr/)** · [Design rationale](docs/UX_DESIGN.md) · [Engineering audit](docs/UX_AUDIT.md)
 
-> This project is for learning and portfolio use. It is not approved for real clinical use and must not be used with real patient information.
+> Educational portfolio project. All patient records are fictional. Do not enter real patient information or personal credentials. Neither the public nor local application is approved for clinical use.
 
-## At a glance
+## Try the application
 
-| Area | What works now |
+| Role | Explore |
 | --- | --- |
-| Patient chart | Demographics, problems, medications, allergies, vitals, care goals, follow up tasks, and a clinical timeline |
-| Scheduling | Appointments, rescheduling, conflict checks, check in, completion, cancellation, no show, and daily schedule views |
-| Visit notes | Appointment linked notes, clinical data links, finalization, addenda, and patient instructions |
-| Labs | Lab requests, results, cancellation, history, staff review, and release to the portal preview |
-| Referrals | New referrals, cancellation, completion, history, and a pending referral worklist |
-| Staff worklists | Daily schedule, past appointments, pending labs, unreleased results, pending referrals, active goals, and open follow ups |
-| Patient portal | Staff preview for nine clinical areas; authenticated patient sign-in with patient-scoped appointments, finalized visits, conditions, medication history, allergies, recent vitals, care goals, lab requests/released results, and referrals |
+| Administrator | Clinical workflows, chart archive/reactivation, audit activity and CSV export |
+| Clinician | Daily schedule, patient records, visit notes, clinical orders and care tasks |
+| Patient | Upcoming appointments, health records, shared results, care goals and communication preferences |
 
-The staff side is the most complete part of the project. The signed-in patient portal currently shows appointments, finalized visits, health conditions, medication history, allergies, recent vitals, care goals, lab requests/released results, and referrals; the staff-only preview uses separate chart-scoped routes. Clinical information remains read-only; signed-in patients can submit appointment change requests and save their own communication preferences. Staff previews remain separate from the patient portal.
+Select a staff account, or use **Switch to patient sign-in** to open the portal as Jordan Lee or Maria Thompson. The public workspace prepares its Python runtime while the sign-in page is open. Wait for **Workspace ready** if you want to avoid most of the initialization delay after clicking an account.
 
-## How it fits together
+Changes remain in the same tab when you switch accounts. Use **Demo reset** in the legal notice to restore the starting records. Refreshing or closing the tab also clears changes. No orders, messages or referrals are transmitted to outside services.
 
-The browser talks to a FastAPI backend over HTTP. FastAPI validates requests with Pydantic, SQLAlchemy handles database access, and PostgreSQL stores the data.
+## What the application does
+
+### Clinical workspace
+
+- Dashboard with today's schedule and outstanding work queues drawn from the API, rather than hard-coded counts.
+- Searchable patient directory and chart sections for the clinical summary, health record, appointments, visit notes, labs/referrals and care plan.
+- Patient identity, recorded allergy status, active problems and medications, the latest dated vital record and a longitudinal activity timeline.
+- Appointment scheduling, conflict detection, rescheduling, check-in, completion, cancellation and no-show tracking.
+- Structured visit notes, linked clinical-record snapshots, draft review, finalization, append-only addenda and patient-facing instructions.
+- Lab requests and results, explicit result release, referral follow-up, care goals, task tracking and staff worklists.
+- Administrator-only chart archive/reactivation and audit review, with historical clinical records retained.
+
+### Patient portal
+
+The patient portal has its own lighter visual treatment, larger controls and plain-language navigation. Home highlights the next recorded appointment and common tasks; separate sections cover health records, appointments and visits, test results and referrals, care plans, and settings.
+
+Patients can review their own clinical history, distinguish current and historical medications, view results shared by the clinic, submit appointment change requests and save communication preferences. Clinical records are read-only from the patient account. An appointment request does not change the appointment until staff act. Staff also have a chart-scoped read-only preview of the portal.
+
+### Design and accessibility
+
+The clinical and patient interfaces use a shared palette of gunmetal, emerald and sea-glass colors, with original inline SVG artwork. The clinician view favors compact information and predictable navigation; the patient view favors readability, explicit task labels and generous touch targets. Design decisions draw on health IT usability research and WCAG 2.2. See the [design rationale](docs/UX_DESIGN.md) for implementation choices and references. Full accessibility conformance has not been established.
+
+## Architecture
+
+The same React frontend and FastAPI clinical routes support two execution modes. The public site does not require a hosted database.
 
 ```text
-React + TypeScript
-        |
-        | HTTP / JSON
-        v
-FastAPI + Pydantic
-        |
-        | SQLAlchemy
-        v
-PostgreSQL
+Local / API-backed application
+  React + TypeScript ── HTTP / JSON ── FastAPI + Pydantic
+                                         │ SQLAlchemy
+                                         ▼
+                                    PostgreSQL 17
+                                    Alembic migrations
+
+Public GitHub Pages application
+  React + TypeScript ── worker messages ── Python / Pyodide
+                                            │ FastAPI + SQLAlchemy
+                                            ▼
+                                       In-memory SQLite
+                                       One database per tab
 ```
 
-Database changes are tracked with Alembic migrations. Larger backend workflows have their own modules instead of living in one large file.
-
-## Stack
-
-| Layer | Tools |
+| Layer | Technology |
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, CSS |
-| Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy |
-| Database | PostgreSQL 17, psycopg |
-| Database changes | Alembic |
-| Local services | Docker Compose |
-| Checks | GitHub Actions, Python unit tests, ESLint, TypeScript build |
+| Clinical API | Python 3.12, FastAPI, Pydantic, SQLAlchemy |
+| Local database | PostgreSQL 17, psycopg, Alembic |
+| Public runtime | Pyodide, WebAssembly, Web Worker, SQLite |
+| Development and delivery | Docker Compose, GitHub Actions, GitHub Pages |
+| Verification | Python unittest, Node test runner, ESLint, TypeScript, Playwright/Chromium |
 
-## Run it locally
+The API-backed application uses server-side authorization and database transaction safeguards. The public build exercises the same route logic and validations in a browser worker, but its local role checks are illustrative rather than a security boundary against someone controlling their own browser. SQLite uses ORM metadata and serialized requests, not PostgreSQL's migration and concurrency guarantees.
 
-You will need Python 3.12, Node.js, npm, Docker, Docker Compose, and Git.
+## Run locally
 
-### Clone the project
+Use Python 3.12, Node.js 22 (a current 22.x release), npm, Git, Docker and Docker Compose. The commands below use a Linux/WSL shell, as in the development environment.
+
+### 1. Prepare the database
 
 ```bash
 git clone https://github.com/AI-CJ/primary-care-emr.git
 cd primary-care-emr
-```
-
-### Set up PostgreSQL
-
-Create your local environment file from the example.
-
-```bash
 cp .env.example .env
 ```
 
-The example uses:
-
-```env
-POSTGRES_DB=emr
-POSTGRES_USER=emr_user
-POSTGRES_PASSWORD=change_me
-```
-
-Use a password made only for local development. The real `.env` file is ignored by Git.
-
-Start PostgreSQL with Docker Compose.
+Replace the example password in `.env` with a local-only value. The file is ignored by Git. Start PostgreSQL and confirm the database is ready:
 
 ```bash
 docker compose up -d
+docker compose exec database sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
-### Set up the backend
+### 2. Start the backend
+
+From the repository root:
 
 ```bash
 python3 -m venv backend/.venv
@@ -95,19 +103,18 @@ python -m pip install -r backend/requirements.txt
 alembic upgrade head
 python -m backend.seed
 python -m backend.bootstrap_staff --username demo.clinician --role clinician
+python -m backend.bootstrap_staff --username demo.admin --role admin
 python -m backend.bootstrap_patient --username demo.patient --patient-id 1
 uvicorn backend.main:app --reload
 ```
 
-Both account commands prompt for a local-only password. The patient command links an account to an existing synthetic chart; replace patient ID 1 with an ID from your own seed records if needed. Do not use real patient data or a real clinical password. Only clinicians and administrators can enter the staff workspace. Patient accounts can sign in to a separate portal for read-only clinical summaries (appointments, finalized visits, conditions, medications, allergies, vitals, care goals, labs, referrals) and their own editable communication preferences.
+Account setup prompts for passwords (12–128 characters). The patient ID example assumes a fresh database seeded by this project; confirm the chart ID before linking an account if the database already contains records. The local seed creates three fictional patients, while the public workspace provides a richer pre-populated clinical dataset.
 
-The API runs at `http://127.0.0.1:8000`.
+API: `http://127.0.0.1:8000` · OpenAPI documentation: `http://127.0.0.1:8000/docs`.
 
-FastAPI docs are available at `http://127.0.0.1:8000/docs`.
+### 3. Start the frontend
 
-### Set up the frontend
-
-Open another terminal.
+In another terminal, from the repository root:
 
 ```bash
 cd frontend
@@ -115,161 +122,11 @@ npm ci
 npm run dev
 ```
 
-Vite normally starts the frontend at `http://localhost:5173`.
+Open `http://localhost:5173` and sign in with a local account. See the [frontend guide](frontend/README.md) for build modes and the [workflow reference](docs/WORKFLOWS.md) for route behavior and configuration.
 
-## Tests
+### Reproduce the public browser build
 
-Run the backend tests from the repository root while the Python virtual environment is active.
-
-```bash
-python -m unittest discover -s backend/tests -p 'test_*.py'
-```
-
-Run the frontend checks from the `frontend` folder.
-
-```bash
-npm run lint
-npm test
-npm run build
-```
-
-GitHub Actions runs the backend test suite and frontend build on pushes to `main` and on pull requests.
-
-The current tests cover appointment rules, visit note behavior, care goals, follow up tasks, labs, referrals, the patient timeline, patient-account bootstrap, and patient portal access limits.
-
-## Data safety
-
-This repository uses synthetic data only.
-
-Do not add real patient names, dates of birth, contact details, medical histories, medications, lab results, insurance information, billing information, identifiers, screenshots, or logs.
-
-The project models health care workflows, but it does not claim to be HIPAA compliant or ready for a real clinic.
-
-Authentication responses and clinical API responses, including access denials, send `Cache-Control: no-store` to discourage HTTP caches from retaining tokens, account details, or patient records. This complements server-side authorization; it is not a substitute for secure transport or production security review.
-
-Authentication outcomes and clinical endpoint access now produce durable audit events
-containing a timestamp, event type, HTTP method/status, a route template, and,
-when applicable, an actor account ID and numeric resource/patient IDs.
-Failed logins do not retain the submitted username. The audit table never stores
-passwords, bearer tokens, query strings, request bodies, clinical text, IP
-addresses, or raw URLs. Events cannot be edited or deleted through the API,
-but database administrators could change them; this is not a tamper-proof or
-compliance-ready audit solution. Unexpected exceptions raised by clinical endpoint handlers are recorded as
-HTTP 500 events without storing exception messages or clinical content.
-Authentication failures and other errors outside the clinical dispatch path
-are not all covered, and clinical changes and their HTTP audit events do not
-share a database transaction. A read-only `GET /admin/audit-events` endpoint lets authenticated administrators
-review this minimal metadata, newest first, with a bounded `limit` (1–100),
-`before_id` cursor and optional `event_type` filter. Clinicians, front desk
-accounts and patients cannot use it. Audit reviews and denied attempts are
-themselves logged, and the response is marked `no-store`. Administrators can
-also download one page at a time as a CSV attachment using
-`GET /admin/audit-events/export` with the same filters and a 100-row maximum.
-Exports contain the same limited metadata, are audited, and use `no-store` and
-`nosniff` headers. This is not a bulk backup or an immutable evidence store. Create a
-local administrator with `python -m backend.bootstrap_staff --username demo.admin --role admin`.
-
-An administrator-only `GET /admin/audit-events/activity?hours=24` endpoint
-also summarizes recent event volume, failed logins, denied access, and HTTP
-server errors. Its window can be set to 1–168 hours, and the response contains
-no account, route, or patient identifiers. Review requests are audited and
-marked `no-store`. This is a historical summary, not an alerting service,
-intrusion detector, or incident response system.
-
-Production retention, active security alerting, and an operationally reviewed
-bulk archival/export process remain open release tasks.
-
-The patient portal also supports `GET` and `PUT /portal/communication-preferences`
-for a full replacement of preferred contact method (`portal`, `phone`, or
-`email`) and opt-in choices for appointment reminders and general care
-updates. Patient identity is derived from their authenticated session; no
-patient ID is accepted as an input. Defaults are opt-out and do not create a
-database row until the patient saves. Only these preferences are mutable;
-clinical records remain read-only. This demo stores preferences but does
-not send email, SMS, phone messages, notifications, or reminders.
-
-
-### Patient appointment change requests (API)
-
-An authenticated patient can request a cancellation or reschedule of one of their
-own current or future scheduled appointments. Requests are a separate, persistent
-administrative queue: they do not change the appointment itself. Each request has
-a constrained action choice, without clinical free-text; duplicate pending requests
-for one appointment are prevented with a database constraint.
-
-Patients can POST to /portal/appointment-change-requests with appointment_id
-and kind (cancel or reschedule), and GET the same route to see only their own
-request history. Clinicians and administrators can GET
-/worklists/appointment-change-requests (oldest 100 pending requests) and POST
-/appointment-change-requests/{request_id}/review to mark a request reviewed.
-Review means acknowledged, not fulfilled: staff must change the schedule using
-the existing appointment workflow. The patient portal now has a request form and status history, and the staff
-workspace has an appointment-request queue with chart links and acknowledgment
-controls. Submitting or reviewing a request does not alter a scheduled visit.
-The patient form offers only eligible scheduled visits without another pending
-request; the server independently checks ownership and eligibility. Staff
-must make any scheduling changes separately in the patient chart. Notifications
-and automatic scheduling actions remain out of scope. This is not an
-emergency communications service.
-
-### Patient chart archive and reactivation (API)
-
-Administrators can POST to `/patients/{patient_id}/archive` and
-`/patients/{patient_id}/reactivate`. Archive preserves the complete chart
-and append-only lifecycle events, refuses charts with scheduled or checked-in
-appointments, and revokes any existing patient portal sessions. Archived
-patients cannot sign in to the portal or receive newly bootstrapped portal
-accounts. Reactivation does not restore revoked sessions: the patient must
-sign in again. Admins can review up to 100 newest lifecycle events via
-`GET /patients/{patient_id}/lifecycle`; other roles cannot access these
-administrative controls. Staff chart reads remain available for historical
-review, and patient responses expose `archived_at` to identify inactive
-charts. These are synthetic records; no deletion is performed.
-
-Archived charts now reject staff demographic edits and all appointment
-creation, rescheduling, and status actions with HTTP 409. Those writes and
-archive/reactivation share a locked patient row, so scheduling cannot race
-archival on PostgreSQL. Historical chart and appointment reads remain available.
-Care goal creation, completion, discontinuation and progress updates also reject
-archived charts. Archived care goals are hidden from the active-goals worklist,
-while their historical chart and progress reads remain available. Follow-up task
-creation, completion, cancellation, and due-date changes also reject archived
-charts; the open follow-up worklist excludes archived patients without altering
-task history or due-date change records. Lab order creation, cancellation, result
-recording and result release also reject archived charts. Pending orders and
-unreleased results for archived charts are hidden from their active worklists;
-historical orders and results remain readable and reactivation restores access.
-Referral creation, cancellation, and completion likewise reject archived charts;
-pending referrals from archived patients are excluded from the worklist while
-historical referral reads remain available. Reactivation restores referral writes.
-Patient-level problem, medication, allergy, and vital creation and updates also
-reject archived charts with HTTP 409 using the same patient-row lock. Historical
-reads remain available, and reactivation restores these writes.
-Standalone and appointment-linked visit note creation, draft edits,
-finalization and addendum creation also reject archived charts. These writes
-lock the patient before the visit row, preserve historical reads and retain
-finalized-note immutability after reactivation.
-Clinical-record links and unlinks for problems, medications, allergies, and vitals
-also reject archived charts. Patient appointment change submissions and staff review
-take the chart lock, preserve request history, and exclude archived charts from the
-pending queue. The staff overview exposes chart status and explicit administrator-only
-archive/reactivation confirmation controls.
-Patient portal account creation, successful login, and preference writes coordinate
-with archival using the same patient-row lock. Preference writes are refused for
-archived charts even if authorization was checked earlier in the request.
-These lifecycle safeguards are not a complete clinical-record retention policy.
-
-## Project status
-
-The portfolio V1 is released. The public website runs the same React application and clinical API in an isolated browser worker rather than the earlier static preview.
-
-### Interactive public workspace
-
-[Open Primary Care EMR](https://ai-cj.github.io/primary-care-emr/). Choose Administrator, Clinician, or a patient account on the sign-in page. Changes to charts, appointments, visit notes, results, referrals, care goals, follow-ups, and portal preferences are processed by the existing Python API using a private in-memory SQLite database per tab. The **Demo reset** button discards that database and restores the initial records and accounts. Refreshing or closing the tab also discards changes; sign-out alone does not.
-
-The browser build uses a pinned Pyodide runtime and queues requests in a single worker. No clinical data is sent to an external service, and no shared PostgreSQL database is exposed. The locally installed application still uses FastAPI, PostgreSQL and the Alembic migration chain. The browser database uses ORM metadata and serialized operations rather than PostgreSQL-specific migration and concurrency guarantees. Neither version is a clinical system or a HIPAA compliance claim.
-
-To reproduce the interactive build:
+From the repository root, with Python and Node.js available:
 
 ```bash
 python scripts/build_browser_runtime.py
@@ -279,12 +136,58 @@ VITE_EMR_BROWSER=1 npm run build
 npm run preview
 ```
 
-The Pages workflow publishes this build after all Checks jobs pass. The original presentation in `demo/` is retained as a historical design preview and is not the current deployed application. See [the V1 release boundary](docs/V1_RELEASE.md) for the original release scope and known limitations.
+Open the local URL printed by Vite. No PostgreSQL service is required for this build. Runtime assets are prepared from pinned package versions; the packaged API runs in the tab rather than using a remote clinical server.
 
-Live e prescribing, real insurance claims, outside EHR connections, and real patient data are outside the scope of this project.
+## Testing and deployment
+
+```bash
+# From the repository root, with the Python environment active
+python -m unittest discover -s backend/tests -p 'test_*.py'
+
+# Frontend checks
+cd frontend
+npm ci
+npm run lint
+npm test
+npm run build
+```
+
+Use only a disposable test database when exercising database-backed tests and browser workflows. The [CI workflow](.github/workflows/checks.yml) specifies the PostgreSQL test settings, migration checks and browser commands for both execution modes.
+
+The redesigned application at commit [`5a52bb8`](https://github.com/AI-CJ/primary-care-emr/commit/5a52bb84e2e86148cd228e4239e47c696a5e0a24) passed all five CI jobs: 376 backend tests, 33 frontend tests, the migration chain, lint/build, and the browser workflow checks. GitHub Pages successfully deployed that commit on November 24, 2026 (Eastern time).
+
+[Verification run](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546235206) · [Deployment run](https://github.com/AI-CJ/primary-care-emr/actions/runs/45546500308) · [Audit details](docs/UX_AUDIT.md)
+
+The public build initializes a 19.4 MiB runtime package (before transfer compression). Startup preparation begins before sign-in. CI measurements ranged from 6.97 to 10.07 seconds for fresh-tab preparation and 0.39 to 0.88 seconds for sign-in once prepared. These are two local CI observations, not a public-network performance benchmark.
+
+## Reference screenshots
+
+The browser workflow captures the actual rendered application using the fictional records in an isolated tab. Open a successful [Checks run](https://github.com/AI-CJ/primary-care-emr/actions/workflows/checks.yml?query=branch%3Amain) and download its `emr-workspace-screenshots` artifact for the staff sign-in, dashboard, patient chart and patient portal views. These are rendered application captures, not design mockups. Artifacts are retained for 30 days; the [frontend guide](frontend/README.md#capture-reference-screenshots) explains how to reproduce them.
+
+## Repository guide
+
+| Path | Purpose |
+| --- | --- |
+| `frontend/` | React application, shared styles, staff and patient views, frontend tests |
+| `backend/` | FastAPI routes, models, schemas, authentication, clinical workflow logic and backend tests |
+| `scripts/` | Browser runtime packaging and end-to-end verification |
+| `docs/UX_DESIGN.md` | Research-informed design choices |
+| `docs/UX_AUDIT.md` | Audit findings, test evidence and release verification |
+| `docs/WORKFLOWS.md` | API contracts, access rules, lifecycle behavior and hosting configuration |
+| `docs/V1_RELEASE.md` | Historical scope of the tagged V1 release |
+| `demo/` | Historical static preview, retained for reference; not the deployed application |
+
+## Safety and known limitations
+
+- Only fictional records belong in the application, logs, screenshots and repository.
+- The public workspace is disposable and has no durable shared storage. Its browser-side access checks are not production-grade security.
+- The API-backed build models role restrictions, session revocation, chart lifecycle safeguards and privacy-minimal audit events. It has not undergone a clinical security review, penetration test or HIPAA compliance assessment.
+- The November 24 build reported 11 npm dependency advisories (nine moderate, two high). Their affected dependency paths and production exposure require investigation; a passing functional test suite does not resolve them.
+- Representative clinician and patient usability testing, comprehensive screen-reader checks, direct inspection of the deployed site and public-network performance measurements remain outstanding.
+- Real prescribing, insurance claims, billing, secure messaging, external clinical integrations and clinical decision support are outside the current release scope.
+
+The repository is public; established frameworks and runtime packages retain their own licenses. No repository-level license is declared. See [workflow details](docs/WORKFLOWS.md) and the [audit](docs/UX_AUDIT.md) for more information.
 
 ## Why I built it
 
-I started this project because I wanted to learn how a larger software system is built from the ground up.
-
-Small coding exercises are useful, but they do not show what happens when data models, workflows, migrations, validation, tests, and user screens all depend on each other. This project gives me a place to work through those problems in one system and document what I learn along the way.
+I started this project to learn how a larger software system is built from the ground up. Small exercises rarely show how data models, clinical workflows, migrations, validation, tests and user interfaces depend on one another. This project brings those problems together in one system.
