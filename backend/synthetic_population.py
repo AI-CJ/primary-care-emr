@@ -10,7 +10,7 @@ from random import Random
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.chart_context_seed import seed_chart_backgrounds
+from backend.chart_context_seed import daily_context, seed_chart_backgrounds
 from backend.models import (
     Allergy, Appointment, AppointmentStatusChange, CareGoal, CareGoalProgress,
     Encounter, EncounterProblem, FollowUpTask, LabOrder, LabOrderIndication,
@@ -123,6 +123,94 @@ CONDITIONS = (
 )
 
 
+# Additional, selectively assigned authored scenarios. They are not diagnoses
+# calculated for actual patients, and the generator excludes conflicting labels.
+ADDITIONAL_CONDITIONS = (
+    Condition("R73.03", "Prediabetes", "Prediabetes", 30,
+              "Discussed prior borderline glucose measurements and meal routines.",
+              "Review interval glucose measurements",
+              lab=("Hemoglobin A1c", "Hemoglobin A1c {value:.1f}%.", "Prediabetes follow-up")),
+    Condition("E66.9", "Obesity, unspecified", "Obesity", 18,
+              "Discussed weight history and patient-defined functional goals.",
+              "Review agreed health and activity goals"),
+    Condition("F32.A", "Depression, unspecified depression type", "Depression", 18,
+              "Discussed mood, sleep, daily functioning and supports.",
+              "Review functioning and mood at follow-up",
+              referral=("Behavioral health", "Discuss ongoing support")),
+    Condition("L30.9", "Dermatitis, unspecified", "Dermatitis", 18,
+              "Reports intermittent pruritic skin patches; reviewed exposure history.",
+              "Review skin symptoms and documented triggers"),
+    Condition("G56.01", "Carpal tunnel syndrome, right upper limb", "Right carpal tunnel syndrome", 25,
+              "Reports intermittent right hand paresthesias during repetitive tasks.",
+              "Review hand symptoms and functional limitations"),
+    Condition("M81.0", "Age-related osteoporosis without current pathological fracture", "Age-related osteoporosis", 65,
+              "Reviewed previous bone density testing and fall history.",
+              "Review bone health and functional safety"),
+    Condition("K76.0", "Fatty (change of) liver, not elsewhere classified", "Hepatic steatosis", 35,
+              "Reviewed prior liver imaging and laboratory history.",
+              "Review prior liver assessment and interval laboratory results"),
+    Condition("K58.9", "Irritable bowel syndrome without diarrhea", "Irritable bowel syndrome without diarrhea", 18,
+              "Reports intermittent abdominal discomfort and variable bowel habits.",
+              "Review symptom diary and functional impact"),
+)
+
+HISTORICAL_MEDICATIONS = {
+    "I10": ("Lisinopril", "10 mg", "oral", "Daily", "Previous medication stopped after persistent cough."),
+    "E78.5": ("Atorvastatin", "10 mg", "oral", "Nightly", "Previous strength replaced at medication review."),
+    "K21.9": ("Famotidine", "20 mg", "oral", "Daily as needed", "Previous regimen changed after symptom review."),
+    "F41.9": ("Escitalopram", "5 mg", "oral", "Daily", "Previous medication stopped after reported intolerance."),
+}
+
+VISIT_DETAILS = {
+    "I10": ("Home readings vary with schedule; no new symptoms reported.",
+            "Brought several home readings but some dates are missing.",
+            "Reviewed difficulty keeping a consistent home measurement routine."),
+    "E11.9": ("Glucose log is incomplete on busy days.",
+              "Reports that meal timing varies; discussed recorded readings.",
+              "Brought interval glucose records and questions about their variation."),
+    "M17.11": ("Stairs and prolonged standing remain difficult; shorter walks are better tolerated.",
+               "Reports morning stiffness and limits on longer walks.",
+               "Discussed variable knee discomfort during usual household activities."),
+    "M54.50": ("Back symptoms vary with prolonged sitting and activity.",
+               "Discussed limits on bending and lifting during daily tasks.",
+               "Reports intermittent flares with longer periods of standing."),
+    "G43.909": ("Reviewed headache diary; timing varies with sleep and daily routine.",
+                "Reports intermittent headaches that interfere with some planned activities.",
+                "Discussed prior headache episodes and changes in their frequency."),
+    "G47.33": ("Reports variable sleep quality and questions about equipment comfort.",
+               "Discussed the practical barriers to maintaining the sleep routine.",
+               "Reviewed reported device use and daytime symptoms."),
+    "F41.9": ("Reports stress around changing daily responsibilities; discussed supports.",
+              "Sleep and concentration vary during stressful periods.",
+              "Reviewed which daily activities are most affected by symptoms."),
+    "K21.9": ("Symptoms vary with meal timing and lying down after meals.",
+              "Reviewed intermittent symptoms and the previous medication history.",
+              "Reports fewer symptoms on some days; discussed the symptom diary."),
+}
+
+
+def _add_complexity(chart: "Chart", rng: Random) -> None:
+    existing = {condition.code for condition in chart.conditions}
+    active_count = len(existing - {"J06.9"})
+    if active_count >= 4:
+        return
+    bmi = chart.weight / (chart.height / 100) ** 2
+    eligible = []
+    for condition in ADDITIONAL_CONDITIONS:
+        if chart.age < condition.minimum_age:
+            continue
+        if condition.code == "R73.03" and ("E11.9" in existing or bmi < 25):
+            continue
+        if condition.code == "E66.9" and bmi < 30:
+            continue
+        if condition.code == "K76.0" and not (bmi >= 30 or "E11.9" in existing):
+            continue
+        eligible.append(condition)
+    if eligible and rng.random() < .57:
+        chosen = rng.choice(eligible)
+        chart.conditions.append(chosen)
+
+
 @dataclass
 class Chart:
     patient: Patient
@@ -190,6 +278,7 @@ def _result(code: str, template: str, rng: Random) -> str:
     bounds = {
         "I10": (.65, 1.25), "E78.5": (78, 172), "E11.9": (6.1, 8.6),
         "E03.9": (.8, 5.8), "D50.9": (10.2, 12.4), "E55.9": (14, 29),
+        "R73.03": (5.7, 6.4),
     }
     return template.format(value=rng.uniform(*bounds[code]))
 
@@ -247,10 +336,15 @@ def add_clinic_population(session: Session, *, as_of: date,
             (as_of.month, as_of.day) < (patient.date_of_birth.month, patient.date_of_birth.day))
         charts.append(_chart(patient, age, rng))
 
+    # A separate random stream preserves the original generated identities.
+    complexity = Random(SEED + 71)
+    for chart in charts:
+        _add_complexity(chart, complexity)
+
     # Batch by dependency layer instead of flushing on every record.
     for i, chart in enumerate(charts):
         patient_id = chart.patient.id
-        visit_count = rng.choices([1, 2, 3], [22, 50, 28])[0]
+        visit_count = rng.choices([1, 2, 3, 4], [22, 44, 26, 8])[0]
         # Eight non-overlapping slots per historical clinic day; separate
         # 180-day bands prevent overlapping historical visits.
         latest = as_of - timedelta(days=35 + i // 8)
@@ -294,6 +388,8 @@ def add_clinic_population(session: Session, *, as_of: date,
         patient_id = chart.patient.id
         active = [(c, p) for c, p in zip(chart.conditions, chart.problems) if p.status == "active"]
         hypertensive = any(c.code == "I10" for c, _ in active)
+        history_rng = Random(SEED + chart.patient.id * 31)
+        employment, barrier = daily_context(chart.patient, as_of)
         for c, problem in active:
             if c.medication and rng.random() < .82:
                 name, dose, route, frequency = c.medication
@@ -301,6 +397,15 @@ def add_clinic_population(session: Session, *, as_of: date,
                                        dose=dose, route=route, frequency=frequency, status="active",
                                        start_date=chart.visits[0].scheduled_date,
                                        indications=[MedicationIndication(**_snapshot(problem))]))
+                if c.code in HISTORICAL_MEDICATIONS and history_rng.random() < .35:
+                    name, dose, route, frequency, reason = HISTORICAL_MEDICATIONS[c.code]
+                    end = chart.visits[0].scheduled_date - timedelta(days=1)
+                    start_date = max(problem.onset_date, end - timedelta(days=60))
+                    session.add(Medication(patient_id=patient_id, name=name, strength=dose,
+                                           dose=dose, route=route, frequency=frequency,
+                                           status="discontinued", start_date=start_date, end_date=end,
+                                           instructions=reason,
+                                           indications=[MedicationIndication(**_snapshot(problem))]))
         for j, appointment in enumerate(chart.visits):
             day = appointment.scheduled_date
             # Relative event times preserve ordering around the clinic-local
@@ -323,13 +428,21 @@ def add_clinic_population(session: Session, *, as_of: date,
                               temperature_c=round(rng.uniform(36.3, 37.2), 1),
                               oxygen_saturation=rng.randint(95, 100), height_cm=chart.height,
                               weight_kg=weight))
-            primary = active[0][0] if active and j == len(chart.visits) - 1 else None
+            primary = active[j % len(active)][0] if active else None
             concerns = (primary.concern if primary else rng.choice([
                 "Reviewed interval health history and current concerns.",
                 "Discussed activity, sleep and routine preventive care.",
                 "Reviewed home routines and questions about the health record.",
                 "Reports no new concerns at this visit; reviewed interval history.",
             ]))
+            if primary and primary.code in VISIT_DETAILS:
+                concerns += " " + history_rng.choice(VISIT_DETAILS[primary.code])
+            if j == 0:
+                concerns += " " + employment
+            else:
+                concerns += " Compared with the previous recorded visit and reviewed interval questions."
+            if j == len(chart.visits) - 1:
+                concerns += " " + barrier
             assessment = ("Reviewed " + ", ".join(c.name.lower() for c, _ in active) + "."
                           if active else "Routine preventive assessment; no active problem documented.")
             if any(p.status == "resolved" and p.resolved_date <= day for p in chart.problems):
@@ -374,12 +487,12 @@ def add_clinic_population(session: Session, *, as_of: date,
                             icd10_release_at_link=problem.icd10_release,
                             problem_status_at_link=problem.status,
                             linked_at=note.finalized_at - timedelta(minutes=10)))
-        if not latest:
-            continue
         for condition, problem in zip(chart.conditions, chart.problems):
-            if condition.lab and rng.random() < .8:
+            # Earlier monitoring provides a trajectory, not just a single result.
+            # Historical tests have results; some most recent orders remain pending.
+            if condition.lab and problem.onset_date <= note.visit_date and rng.random() < (.8 if latest else .4):
                 name, template, reason = condition.lab
-                status = rng.choices(["resulted", "ordered"], [92, 8])[0]
+                status = rng.choices(["resulted", "ordered"], [92, 8])[0] if latest else "resulted"
                 order = LabOrder(encounter_id=note.id, test_name=name, priority="routine",
                                  clinical_reason=reason, status=status,
                                  ordered_at=note.finalized_at - timedelta(minutes=10),
@@ -387,7 +500,7 @@ def add_clinic_population(session: Session, *, as_of: date,
                 session.add(order)
                 if status == "resulted":
                     orders.append((order, note.visit_date, _result(condition.code, template, rng)))
-            if condition.referral and rng.random() < .18:
+            if latest and condition.referral and rng.random() < .18:
                 specialty, reason = condition.referral
                 session.add(Referral(encounter_id=note.id, specialty=specialty, reason=reason,
                                      priority="routine", status="requested",
