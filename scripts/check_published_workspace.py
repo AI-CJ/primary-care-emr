@@ -102,6 +102,7 @@ def verify_workspace(url, revision):
         # A live clinician can clear a duplicate request without erasing history.
         page.get_by_role("navigation", name="Staff workspace").get_by_role("button", name="Dashboard", exact=True).click()
         page.locator(".dashboard-queue").filter(has_text="Pending labs").click()
+        page.get_by_role("searchbox", name="Find a request").fill("Jordan Lee Basic metabolic panel")
         pending = page.locator(".pending-lab-row").filter(has_text="Basic metabolic panel").filter(has_text="Jordan Lee")
         expect(pending).to_be_visible(timeout=TIMEOUT)
         pending.get_by_role("button", name="Cancel request", exact=True).click()

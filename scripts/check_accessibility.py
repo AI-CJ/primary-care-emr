@@ -212,8 +212,11 @@ def run():
         inspect_screen(page, "Patient home")
         assert_exposed(page, "navigation", "Patient portal sections")
         assert_solid_contrast(page.get_by_role("navigation", name="Patient portal sections")
-                              .get_by_role("button", name="Home", exact=True))
+                              .get_by_role("button", name="My health", exact=True))
         nav = page.get_by_role("navigation", name="Patient portal sections")
+        expect(nav.get_by_role("button")).to_have_count(6)
+        health = assert_exposed(page, "button", "My health")[0]
+        assert "Medications, conditions" in ax_value(health, "description")
         keyboard_click(page, nav.get_by_role("button", name="Settings", exact=True))
         expect(page.locator(".portal-section-heading h2")).to_be_focused()
         channel = page.get_by_role("combobox", name="Preferred contact method")

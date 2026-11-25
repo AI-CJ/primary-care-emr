@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { apiFetch, API_BASE_URL } from '../api'
 import { localDate } from '../date'
 import { groupPortalAppointments, formatPortalAppointment } from '../portalAppointments'
@@ -12,11 +12,12 @@ const actions: { section: PortalSection; title: string; description: string; ico
   { section: 'immunizations', title: 'Vaccinations', description: 'Review your recorded vaccines and dates', icon: 'audit' },
   { section: 'visits', title: 'Appointments & visits', description: 'Review appointments and visit instructions', icon: 'calendar' },
   { section: 'results', title: 'Test results & referrals', description: 'See released results and referral information', icon: 'results' },
-  { section: 'care', title: 'My care plan', description: 'Review your health goals and progress', icon: 'heart' },
-  { section: 'preferences', title: 'Communication preferences', description: 'Choose how you receive clinic updates', icon: 'settings' },
+  { section: 'care', title: 'Care plan', description: 'Review your health goals and progress', icon: 'heart' },
+  { section: 'preferences', title: 'Settings', description: 'Choose how you receive clinic updates', icon: 'settings' },
 ]
 
-export default function PortalHome({ onNavigate, patientId, active = true, navigation }: { onNavigate: (section: PortalSection) => void; patientId?: number; active?: boolean; navigation?: ReactNode }) {
+export default function PortalHome({ onNavigate, patientId, active = true }: { onNavigate: (section: PortalSection) => void; patientId?: number; active?: boolean }) {
+  const taskId = useId()
   const [result, setResult] = useState<AppointmentState>({ status: 'loading' })
   const [refresh, setRefresh] = useState(0)
   useEffect(() => {
@@ -51,12 +52,13 @@ export default function PortalHome({ onNavigate, patientId, active = true, navig
       </div>
       <button className="next-visit-action" type="button" onClick={() => onNavigate('visits')}>View appointments <span aria-hidden="true">→</span></button>
     </section>
-    {navigation}
-    <h2 className="portal-home-heading">What would you like to do?</h2>
-    <div className="portal-task-grid">{actions.filter(action => patientId === undefined || action.section !== 'preferences').map(action =>
-      <button className="portal-task" type="button" key={action.section} onClick={() => onNavigate(action.section)}>
+    <h2 className="portal-home-heading">Your health at a glance</h2>
+    <nav className="portal-task-grid" aria-label={patientId === undefined ? 'Patient portal sections' : 'Patient portal preview sections'}>{actions.filter(action => patientId === undefined || action.section !== 'preferences').map(action =>
+      <button className="portal-task" type="button" key={action.section}
+        aria-labelledby={taskId + action.section + "-title"} aria-describedby={taskId + action.section + "-description"}
+        onClick={() => onNavigate(action.section)}>
         <span className="portal-task-icon"><WorkspaceIcon name={action.icon} size={26} /></span>
-        <span><strong>{action.title}</strong><small>{action.description}</small></span><span className="portal-task-arrow" aria-hidden="true">›</span>
-      </button>)}</div>
+        <span><strong id={taskId + action.section + "-title"}>{action.title}</strong><small id={taskId + action.section + "-description"}>{action.description}</small></span><span className="portal-task-arrow" aria-hidden="true">›</span>
+      </button>)}</nav>
   </div>
 }
