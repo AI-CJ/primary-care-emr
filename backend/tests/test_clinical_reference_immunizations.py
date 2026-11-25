@@ -104,3 +104,21 @@ class ClinicalReferenceTests(TestCase):
         self.assertTrue(self.request("GET", path)[0]["voided_at"])
         replacement = self.request("POST", path, payload, expected=201)
         self.assertNotEqual(replacement["id"], row["id"])
+
+    def test_demographic_correction_preserves_vaccination_chronology(self):
+        demographics = {"first_name": "Synthetic", "last_name": "Fixture",
+                        "sex_at_birth": "unknown", "date_of_birth": "1990-01-01"}
+        patient = self.request("POST", "/patients", demographics, expected=201)
+        path = f"/patients/{patient['id']}"
+        row = self.request("POST", path + "/immunizations", {
+            "cvx_code": "115", "source": "historical_record",
+            "administered_on": "2010-01-01",
+        }, expected=201)
+        corrected = dict(demographics, date_of_birth="2011-01-01")
+        self.request("PUT", path, corrected, expected=409)
+        self.assertEqual(self.request("GET", path)["date_of_birth"], "1990-01-01")
+        self.request("PUT", path, dict(demographics, preferred_name="Test"))
+        self.request("POST", f"/immunizations/{row['id']}/void",
+                     {"reason": "Synthetic fixture correction"})
+        self.assertEqual(self.request("PUT", path, corrected)["date_of_birth"], "2011-01-01")
+        self.assertTrue(self.request("GET", path + "/immunizations")[0]["voided_at"])
