@@ -52,6 +52,8 @@ jobs:
           path: /tmp/icd10-source/
           if-no-files-found: warn
           retention-days: 7
+      - name: Prepare official medication and vaccine catalogs
+        run: python -m scripts.prepare_medication_vaccine_catalogs
       - name: Verify PostgreSQL migration chain
         run: |
           alembic upgrade head
@@ -164,6 +166,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Prepare official diagnosis catalog
         run: python -m scripts.prepare_icd10_catalog
+      - name: Prepare official medication and vaccine catalogs
+        run: python -m scripts.prepare_medication_vaccine_catalogs
       - name: Migrate and seed disposable PostgreSQL
         run: |
           alembic upgrade head
@@ -206,6 +210,15 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Prepare self-hosted Python runtime
         run: python scripts/build_browser_runtime.py
+      - name: Archive vaccine reference source evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: medication-vaccine-source-evidence
+          path: |
+            backend/data/terminology-sources/CVX.txt
+            backend/data/terminology-sources/mvx.txt
+          if-no-files-found: error
+          retention-days: 30
       - name: Build interactive application
         working-directory: frontend
         run: |
