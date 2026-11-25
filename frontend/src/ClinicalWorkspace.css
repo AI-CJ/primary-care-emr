@@ -527,3 +527,17 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   .section-nav button[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -2px; }
   .dashboard-queue, .portal-task { border: 1px solid ButtonText; }
 }
+
+/* Historical information is separated from the current reconciliation. */
+.chart-history-card { grid-column: 1 / -1; overflow-wrap: anywhere; min-width: 0; }
+.chart-background-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0 0; }
+.chart-background-grid > div { min-width: 0; padding: 14px; background: var(--mist); border: 1px solid var(--border); border-radius: var(--control-radius); }
+.chart-background-grid > div:last-child { grid-column: 1 / -1; }
+.chart-background-grid dt, .chart-report-details dt { color: var(--onyx); font-weight: 650; margin-bottom: 5px; }
+.chart-background-grid dd, .chart-report-details dd { margin: 0; line-height: 1.6; }
+.chart-imaging-list { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+.chart-imaging-list details { border: 1px solid var(--border); border-radius: var(--control-radius); padding: 0 14px; background: var(--surface); }
+.chart-imaging-list summary { cursor: pointer; min-height: 44px; padding: 12px 0; color: var(--deep-sea); }
+.chart-imaging-list summary span { display: block; padding-left: 18px; font-size: .875rem; color: var(--text-muted); }
+.chart-report-details { display: grid; gap: 12px; margin: 0; padding: 12px 0 16px; border-top: 1px solid var(--border); }
+@media (max-width: 650px) { .chart-background-grid { grid-template-columns: minmax(0, 1fr); } }
