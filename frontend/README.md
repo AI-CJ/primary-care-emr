@@ -46,3 +46,25 @@ npm run build
 The [CI workflow](../.github/workflows/checks.yml) also builds and exercises the browser-only and PostgreSQL-backed applications. UI changes should retain labeled controls, focus visibility, loading/error states and clear clinical status text. Keep patient-facing language readable; do not rely on color alone to communicate status.
 
 See [design decisions](../docs/UX_DESIGN.md) and [the release audit](../docs/UX_AUDIT.md). The application is for fictional patient records only.
+
+## Capture reference screenshots
+
+The browser smoke test can save actual application screenshots to a separate output directory. It runs only against the locally served browser build and uses the fictional starting records. Prepare the browser-mode build using the root README, then run these commands from the repository root in a disposable environment:
+
+```bash
+python -m pip install playwright==1.51.0
+python -m playwright install chromium
+mkdir -p /tmp/emr-pages
+ln -s "$PWD/frontend/dist" /tmp/emr-pages/primary-care-emr
+python -m http.server 4174 --bind 127.0.0.1 --directory /tmp/emr-pages
+```
+
+In another terminal, from the repository root with the same Python environment active:
+
+```bash
+EMR_SCREENSHOT_DIR=/tmp/emr-screenshots python scripts/check_browser_emr.py
+```
+
+The test saves staff and patient sign-in, dashboard, chart, and desktop/mobile patient home captures. Stop the temporary HTTP server when finished. Use a fresh temporary serving directory (or remove the previous symlink) before repeating the setup.
+
+Successful Checks runs upload these PNGs as the `emr-workspace-screenshots` artifact for 30 days. The images are not shipped with the application and require no additional frontend asset requests. They record the tested build rather than an independent inspection of the public site.

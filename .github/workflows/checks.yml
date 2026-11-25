@@ -209,5 +209,12 @@ jobs:
             if curl --fail --silent http://127.0.0.1:4174/primary-care-emr/ > /dev/null; then break; fi
             sleep 1
           done
-          python scripts/check_browser_emr.py
+          EMR_SCREENSHOT_DIR=/tmp/emr-screenshots python scripts/check_browser_emr.py
           python scripts/check_browser_clinical_api.py
+      - name: Archive reference screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: emr-workspace-screenshots
+          path: /tmp/emr-screenshots/*.png
+          if-no-files-found: error
+          retention-days: 30

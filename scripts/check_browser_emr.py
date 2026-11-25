@@ -1,5 +1,7 @@
 """Exercise the deployed build without a networked API or shared database."""
+import os
 import re
+from pathlib import Path
 from time import monotonic
 from playwright.sync_api import expect, sync_playwright
 
@@ -55,6 +57,18 @@ def assert_notice(page):
     expect(notice).to_contain_text("Not approved for clinical use")
 
 
+def capture_reference(page, name):
+    """Capture the actual local build when reference screenshots are requested."""
+    destination = os.environ.get("EMR_SCREENSHOT_DIR")
+    if not destination:
+        return
+    directory = Path(destination)
+    directory.mkdir(parents=True, exist_ok=True)
+    page.evaluate("window.scrollTo(0, 0)")
+    page.screenshot(path=str(directory / (name + ".png")), full_page=True,
+                    animations="disabled", caret="hide")
+
+
 def run():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
@@ -75,12 +89,17 @@ def run():
         expect(page.get_by_text("Workspace ready.", exact=True)).to_be_visible(timeout=TIMEOUT)
         expect(page.get_by_role("button", name="Sign out", exact=True)).to_have_count(0)
         print(f"Browser workspace prepared in {monotonic() - start:.2f}s (local CI, fresh tab).")
+        capture_reference(page, "01-staff-sign-in")
         start = monotonic()
         sign_in(page, "Administrator")
         print(f"Prepared workspace sign-in in {monotonic() - start:.2f}s (local CI).")
         expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_visible()
         expect(page.get_by_role("heading", name="Today's schedule", exact=True)).to_be_visible()
         expect(page.locator(".dashboard-metrics dd").first).to_have_text(re.compile(r"^[0-9]+$"), timeout=TIMEOUT)
+        if os.environ.get("EMR_SCREENSHOT_DIR"):
+            expect(page.locator(".dashboard-queue strong")).to_have_text(
+                [re.compile(r"^[0-9]+$")] * 6, timeout=TIMEOUT)
+        capture_reference(page, "02-staff-dashboard")
         page.get_by_role("button", name="Find a patient", exact=False).click()
         # The directory is populated without an initial search.
         expect(page.get_by_role("button", name="Lee, Jordan", exact=False)).to_be_visible(timeout=TIMEOUT)
@@ -96,6 +115,10 @@ def run():
         snapshot = page.get_by_role("region", name="Clinical snapshot")
         expect(snapshot.get_by_role("region", name="Active conditions")).to_contain_text("Essential hypertension")
         expect(snapshot.get_by_role("region", name="Active medications")).to_contain_text("Lisinopril")
+        if os.environ.get("EMR_SCREENSHOT_DIR"):
+            expect(snapshot.get_by_role("region", name="Latest vital record")).to_contain_text("Recorded")
+            expect(page.get_by_role("region", name="Chart allergy status").get_by_role("status")).to_have_count(0)
+        capture_reference(page, "03-patient-chart")
         snapshot.get_by_role("button", name="Open full health record").click()
         expect(page.get_by_role("navigation", name="Patient chart sections").get_by_role("button", name="Health record", exact=True)).to_have_attribute("aria-current", "page")
         expect(page.get_by_text("Essential hypertension", exact=True).first).to_be_visible()
@@ -170,6 +193,9 @@ def run():
         expect(note.get_by_role("button", name="Edit visit note", exact=False)).to_have_count(0)
         sign_out(page)
         patient_mode(page)
+        if os.environ.get("EMR_SCREENSHOT_DIR"):
+            expect(page.get_by_text("Workspace ready.", exact=True)).to_be_visible(timeout=TIMEOUT)
+        capture_reference(page, "04-patient-sign-in")
         sign_in(page, "Jordan Lee")
         expect(page.get_by_role("heading", name="Your patient portal", exact=True)).to_be_visible()
         expect(page.get_by_role("heading", name="Your next appointment", exact=True)).to_be_visible()
@@ -250,6 +276,12 @@ def run():
         sign_out(page)
         patient_mode(page)
         sign_in(page, "Jordan Lee")
+        if os.environ.get("EMR_SCREENSHOT_DIR"):
+            expect(page.locator(".next-visit-date time")).to_be_visible(timeout=TIMEOUT)
+            capture_reference(page, "05-patient-home")
+            page.set_viewport_size({"width": 360, "height": 800})
+            capture_reference(page, "06-patient-home-mobile")
+            page.set_viewport_size({"width": 1280, "height": 900})
         portal_section(page, "My health")
         expect(page.get_by_text("Essential hypertension", exact=True).first).to_be_visible()
         expect(page.get_by_text("Seasonal allergies", exact=True)).to_have_count(0)
