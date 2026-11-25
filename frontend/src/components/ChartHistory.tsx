@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { apiFetch, API_BASE_URL } from '../api'
 import { formatPortalDate } from '../portalAppointments'
 
@@ -65,8 +65,8 @@ const labels: [keyof Omit<Background, 'patient_id' | 'reviewed_on'>, string][] =
 
 export function PatientBackground({ patientId }: { patientId: number }) {
   const heading = useId()
-  const [validate] = useState(() => (data: Background | null) =>
-    data === null || (data.patient_id === patientId && labels.every(([field]) => typeof data[field] === 'string')))
+  const validate = useCallback((data: Background | null) =>
+    data === null || (data.patient_id === patientId && labels.every(([field]) => typeof data[field] === 'string')), [patientId])
   const { state, retry } = useHistory<Background | null>('/patients/' + patientId + '/background', validate)
   return <section className="overview-card chart-history-card" aria-labelledby={heading}>
     <div className="overview-card-header"><h2 id={heading}>Patient background</h2></div>
@@ -92,8 +92,8 @@ export function ImagingHistory({ patientId, staff = false }: { patientId?: numbe
   const path = staff ? '/patients/' + patientId + '/imaging-reports'
     : patientId === undefined ? '/portal/imaging-reports'
       : '/patients/' + patientId + '/portal-preview/imaging-reports'
-  const [validate] = useState(() => (data: Imaging[]) => validReports(data) &&
-    (!staff || data.every(report => report.patient_id === patientId)))
+  const validate = useCallback((data: Imaging[]) => validReports(data) &&
+    (!staff || data.every(report => report.patient_id === patientId)), [patientId, staff])
   const { state, retry } = useHistory<Imaging[]>(path, validate)
   return <section className={staff ? 'overview-card chart-history-card' : 'portal-card chart-history-card'} aria-labelledby={heading}>
     <h2 id={heading}>{staff ? 'Prior imaging reports' : 'My shared imaging reports'}</h2>
