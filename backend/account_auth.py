@@ -93,8 +93,23 @@ def create_user_account(
     patient_id: int | None = None,
 ) -> UserAccount:
     username = normalize_username(username)
-    password_hash = hash_password(password)
+    return _create_user_account_with_hash(
+        session, username=username, password_hash=hash_password(password),
+        account_type=account_type, staff_role=staff_role, patient_id=patient_id,
+    )
 
+
+def _create_user_account_with_hash(
+    session: Session,
+    *,
+    username: str,
+    password_hash: str,
+    account_type: str,
+    staff_role: str | None = None,
+    patient_id: int | None = None,
+) -> UserAccount:
+    """Shared account invariants; pre-derived hashes are internal, never API input."""
+    username = normalize_username(username)
     if account_type == "staff":
         if staff_role not in _STAFF_ROLES or patient_id is not None:
             raise ValueError("Staff accounts need a valid staff role and no patient link")
