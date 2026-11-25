@@ -3,6 +3,7 @@
 import asyncio
 from datetime import date, datetime, time, timedelta, timezone
 import json
+import base64
 import sys
 from urllib.parse import unquote, urlsplit
 
@@ -11,7 +12,9 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from backend.account_auth import create_user_account
+from backend.account_auth import (
+    create_user_account, _create_user_account_with_hash, _PASSWORD_SCHEME, _PASSWORD_ITERATIONS,
+)
 from backend.diagnosis_indications import diagnosis_snapshot
 from backend.models import (
     Allergy, Appointment, AppointmentStatusChange, Base, CareGoal,
@@ -36,10 +39,38 @@ def create_browser_engine() -> Engine:
     return engine
 
 
-def seed_browser_database(engine: Engine) -> None:
+def _validated_demo_hashes(raw: str | None) -> dict[str, str] | None:
+    """Accept only ephemeral, fixed demo identities, never a server credential."""
+    if raw is None:
+        return None
+    if sys.platform != "emscripten":
+        raise RuntimeError("Native demo seed hashes are browser-only")
+    try:
+        entries = json.loads(raw)
+        if not isinstance(entries, dict) or set(entries) != {"admin", "clinician", "jordan.lee", "maria.thompson"}:
+            return None
+        salts = set()
+        for value in entries.values():
+            if not isinstance(value, str) or len(value) > 255:
+                return None
+            scheme, rounds, salt, digest = value.split("$")
+            if scheme != _PASSWORD_SCHEME or int(rounds) != _PASSWORD_ITERATIONS:
+                return None
+            salt_bytes = base64.b64decode(salt, altchars=b"-_", validate=True)
+            digest_bytes = base64.b64decode(digest, altchars=b"-_", validate=True)
+            if len(salt_bytes) != 16 or len(digest_bytes) != 32:
+                return None
+            salts.add(salt_bytes)
+        return entries if len(salts) == 4 else None
+    except (ValueError, TypeError):
+        return None
+
+
+def seed_browser_database(engine: Engine, *, demo_hashes_json: str | None = None) -> None:
     """Create a reproducible starting chart, never use an external database."""
     if engine.dialect.name != "sqlite" or engine.url.database not in (None, "", ":memory:"):
         raise ValueError("Browser records require an in-memory SQLite database")
+    demo_hashes = _validated_demo_hashes(demo_hashes_json)
     Base.metadata.create_all(engine)
     today = date.today()
     previous = today - timedelta(days=30)
@@ -57,12 +88,17 @@ def seed_browser_database(engine: Engine) -> None:
                         date_of_birth=date(2001, 11, 5), sex_at_birth="unknown")
         session.add_all([jordan, maria, devin])
         session.flush()
+        def seed_account(username, **identity):
+            if demo_hashes is None:
+                return create_user_account(session, username=username, password=BROWSER_PASSWORD, **identity)
+            return _create_user_account_with_hash(
+                session, username=username, password_hash=demo_hashes[username], **identity,
+            )
+
         for username, role in (("admin", "admin"), ("clinician", "clinician")):
-            create_user_account(session, username=username, password=BROWSER_PASSWORD,
-                                account_type="staff", staff_role=role)
+            seed_account(username, account_type="staff", staff_role=role)
         for username, patient in (("jordan.lee", jordan), ("maria.thompson", maria)):
-            create_user_account(session, username=username, password=BROWSER_PASSWORD,
-                                account_type="patient", patient_id=patient.id)
+            seed_account(username, account_type="patient", patient_id=patient.id)
 
         hypertension = Problem(patient_id=jordan.id, name="Essential hypertension", status="active",
                                onset_date=today - timedelta(days=180), icd10_code="I10",
@@ -201,7 +237,7 @@ async def dispatch(app, request: dict) -> dict:
     return {"status": status, "headers": headers, "body": b"".join(chunks).decode("utf-8")}
 
 
-def initialize_browser() -> None:
+def initialize_browser(demo_hashes_json: str | None = None) -> None:
     if sys.platform != "emscripten":
         raise RuntimeError("Browser initialization is not a server operation")
 
@@ -215,7 +251,7 @@ def initialize_browser() -> None:
     anyio.to_thread.run_sync = run_sync
     from backend.database import engine
 
-    seed_browser_database(engine)
+    seed_browser_database(engine, demo_hashes_json=demo_hashes_json)
 
 
 async def browser_request(raw: str) -> str:
