@@ -9,9 +9,11 @@ from backend.icd10_catalog import CATALOG_PATH, lookup_code
 from backend.models import (
     Base, Patient, Problem, Medication, MedicationIndication,
     Appointment, AppointmentStatusChange, Encounter, EncounterProblem,
-    Vital, LabOrder, LabOrderIndication, LabResult, PatientBackground, ImagingReport,
+    Vital, LabOrder, LabOrderIndication, LabResult, PatientBackground, ImagingReport, Immunization,
 )
 from backend.synthetic_population import ADDITIONAL_CONDITIONS, CONDITIONS, POPULATION_SIZE, add_clinic_population
+from backend.clinical_reference import reference_code
+from backend.vaccine_seed import MEDICATION_NAMES, VACCINE_CODES
 
 
 AS_OF = date(2026, 11, 25)
@@ -161,3 +163,33 @@ class SyntheticPopulationTests(TestCase):
             for medication in old_meds:
                 self.assertLessEqual(medication.start_date, medication.end_date)
                 self.assertTrue(medication.instructions)
+
+
+    def test_vaccination_and_medication_reference_integrity(self):
+        with Session(self.engine) as session:
+            patients = {p.id: p for p in session.scalars(select(Patient))}
+            records = list(session.scalars(select(Immunization)))
+            self.assertGreater(len(records), 600)
+            covered = {r.patient_id for r in records}
+            self.assertGreater(len(covered), 300)
+            self.assertLess(len(covered), len(patients))
+            self.assertTrue(VACCINE_CODES <= {r.cvx_code for r in records})
+            self.assertEqual(len(records), len({(r.patient_id, r.cvx_code, r.administered_on) for r in records}))
+            for row in records:
+                release, item = reference_code("cvx", row.cvx_code)
+                self.assertEqual(row.cvx_release, release)
+                self.assertEqual(row.vaccine_name, item["name"])
+                self.assertLessEqual(patients[row.patient_id].date_of_birth, row.administered_on)
+                self.assertLessEqual(row.administered_on, AS_OF)
+                self.assertIsNone(row.voided_at)
+                if row.manufacturer_code:
+                    mvx_release, maker = reference_code("mvx", row.manufacturer_code)
+                    self.assertEqual(row.manufacturer_name, maker["name"])
+                    self.assertEqual(row.mvx_release, mvx_release)
+            for medication in session.scalars(select(Medication)):
+                if medication.name.casefold() in MEDICATION_NAMES:
+                    self.assertIsNotNone(medication.rxnorm_cui)
+                    release, item = reference_code("rxnorm", medication.rxnorm_cui)
+                    self.assertEqual(item["name"].casefold(), medication.name.casefold())
+                    self.assertEqual(item["kind"], "IN")
+                    self.assertEqual(medication.rxnorm_release, release)

@@ -11,7 +11,7 @@ from backend.schemas import EncounterMedicationLinkCreate, DiagnosisIndicationRe
 
 SNAPSHOT_FIELDS = (
     "name", "strength", "dose", "route", "frequency", "status",
-    "start_date", "end_date", "instructions",
+    "start_date", "end_date", "instructions", "rxnorm_cui", "rxnorm_release", "rxnorm_kind",
 )
 
 

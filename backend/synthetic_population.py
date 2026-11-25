@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.chart_context_seed import daily_context, seed_chart_backgrounds
+from backend.vaccine_seed import seed_vaccination_history
 from backend.models import (
     Allergy, Appointment, AppointmentStatusChange, CareGoal, CareGoalProgress,
     Encounter, EncounterProblem, FollowUpTask, LabOrder, LabOrderIndication,
@@ -523,6 +524,7 @@ def add_clinic_population(session: Session, *, as_of: date,
                               reported_at=reported,
                               released_at=reported + timedelta(hours=1) if rng.random() < .9 else None))
     seed_chart_backgrounds(session, as_of=as_of)
+    seed_vaccination_history(session, as_of=as_of)
 
 
 def extend_browser_population() -> None:

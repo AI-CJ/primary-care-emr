@@ -4,3 +4,9 @@ __pycache__/
 *.py[cod]
 backend/data/icd10cm-fy2027.tsv
 backend/data/icd10cm-fy2027.tmp
+backend/data/rxnorm.json
+backend/data/cvx.json
+backend/data/mvx.json
+backend/data/terminology-sources/
+backend/data/*.tmp
+backend/data/seed-reference.json

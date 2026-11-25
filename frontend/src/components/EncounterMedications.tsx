@@ -150,6 +150,7 @@ function EncounterMedications({ encounter }: EncounterMedicationsProps) {
                       {link.route_at_link && ' · ' + link.route_at_link}
                       {link.frequency_at_link && ' · ' + link.frequency_at_link}
                     </p>
+                    {link.rxnorm_cui_at_link && <p className="encounter-meta">RxCUI {link.rxnorm_cui_at_link} at time of linking</p>}
                     <DiagnosisIndications records={link.indications_at_link} />
                     {(link.start_date_at_link || link.end_date_at_link) && (
                       <p className="encounter-meta">

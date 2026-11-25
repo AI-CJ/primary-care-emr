@@ -1,4 +1,5 @@
 import { DiagnosisIndicationPicker } from './DiagnosisIndications'
+import ReferencePicker, { type ReferenceChoice } from './ReferencePicker'
 import { useState, type FormEvent } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type {
@@ -23,6 +24,11 @@ function MedicationForm({
   const [status, setStatus] = useState<MedicationStatus>(
     medication?.status ?? 'active'
   )
+  const [name, setName] = useState(medication?.name ?? '')
+  const [selected, setSelected] = useState<ReferenceChoice | null>(medication?.rxnorm_cui ? {
+    code: medication.rxnorm_cui, name: medication.name, kind: medication.rxnorm_kind ?? '',
+    release: medication.rxnorm_release ?? 'Historical reference',
+  } : null)
   const [problemIds, setProblemIds] = useState(medication?.indications?.map(item => item.problem_id) ?? [])
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +46,8 @@ function MedicationForm({
     const formData = new FormData(event.currentTarget)
 
     const medicationData: MedicationInput = {
-      name: String(formData.get('name') ?? '').trim(),
+      name: name.trim(),
+      rxnorm_cui: selected?.code ?? null,
       problem_ids: problemIds,
       strength: optionalText(formData, 'strength'),
       dose: optionalText(formData, 'dose'),
@@ -82,16 +89,11 @@ function MedicationForm({
 
   return (
     <form className="medication-form" onSubmit={handleSubmit}>
-      <label className="form-field">
-        <span>Medication *</span>
-        <input
-          name="name"
-          type="text"
-          required
-          maxLength={200}
-          defaultValue={medication?.name ?? ''}
-        />
-      </label>
+      <ReferencePicker kind="rxnorm" label="Medication *" name="name" required
+        value={name} selected={selected} disabled={isSaving}
+        onChange={value => { setName(value); setSelected(null) }}
+        onSelect={choice => { setName(choice.name); setSelected(choice) }} />
+      {!selected && name.trim() && <p className="diagnosis-help">No RxNorm code selected. The medication will be recorded as uncoded text.</p>}
 
       <DiagnosisIndicationPicker patientId={patientId} selected={problemIds} onChange={setProblemIds} disabled={isSaving} />
 

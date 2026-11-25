@@ -68,6 +68,9 @@ export type MedicationStatus =
   | 'discontinued'
 
 export type Medication = {
+  rxnorm_cui?: string | null
+  rxnorm_release?: string | null
+  rxnorm_kind?: string | null
   indications?: DiagnosisIndication[]
   id: number
   patient_id: number
@@ -82,7 +85,7 @@ export type Medication = {
   instructions: string | null
 }
 
-export type MedicationInput = Omit<Medication, 'id' | 'patient_id' | 'indications'> & { problem_ids?: number[] }
+export type MedicationInput = Omit<Medication, 'id' | 'patient_id' | 'indications' | 'rxnorm_release' | 'rxnorm_kind'> & { problem_ids?: number[] }
 
 export type PortalMedicationSummary = Pick<
   Medication,
@@ -175,6 +178,9 @@ export type EncounterProblem = {
 }
 
 export type EncounterMedication = {
+  rxnorm_cui_at_link?: string | null
+  rxnorm_release_at_link?: string | null
+  rxnorm_kind_at_link?: string | null
   indications_at_link?: DiagnosisIndication[]
   id: number
   encounter_id: number

@@ -33,12 +33,16 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - name: Confirm checked-out revision passed Checks
+        id: verified-checks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           revision=$(git rev-parse HEAD)
           count=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/checks.yml/runs?branch=main&head_sha=$revision&status=success" --jq '.total_count')
           test "$count" -ge 1
+          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/checks.yml/runs?branch=main&head_sha=$revision&status=success" --jq '.workflow_runs[0].id')
+          test -n "$run_id"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
         with:
@@ -51,6 +55,13 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - name: Reuse verified CDC terminology source files
+        uses: actions/download-artifact@v4
+        with:
+          name: medication-vaccine-source-evidence
+          path: backend/data/terminology-sources
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.verified-checks.outputs.run_id }}
       - name: Prepare browser runtime
         run: python scripts/build_browser_runtime.py
       - name: Build public application

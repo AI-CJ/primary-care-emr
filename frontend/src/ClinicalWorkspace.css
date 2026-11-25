@@ -541,3 +541,24 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .chart-imaging-list summary span { display: block; padding-left: 18px; font-size: .875rem; color: var(--text-muted); }
 .chart-report-details { display: grid; gap: 12px; margin: 0; padding: 12px 0 16px; border-top: 1px solid var(--border); }
 @media (max-width: 650px) { .chart-background-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Clinical references and immunizations share the existing chart palette. */
+.reference-picker .diagnosis-options li { align-items: flex-start; }
+.reference-picker .diagnosis-options small { display: block; margin-top: 4px; }
+.immunization-card { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; }
+.immunization-form { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: var(--control-radius); background: var(--mist); margin: 14px 0; min-width: 0; }
+.immunization-form .form-grid { min-width: 0; }
+.immunization-form input, .immunization-form textarea, .immunization-form select { max-width: 100%; min-width: 0; }
+.immunization-list { list-style: none; display: grid; gap: 12px; padding: 0; margin: 16px 0 0; }
+.immunization-list > li { min-width: 0; border: 1px solid var(--border); border-radius: var(--surface-radius); padding: 16px; }
+.immunization-row-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.immunization-row-heading strong { flex: 1 1 240px; min-width: 0; color: var(--onyx); }
+.immunization-details { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 14px 0; }
+.immunization-details dt { color: var(--text-muted); font-size: .83rem; font-weight: 650; }
+.immunization-details dd { margin: 4px 0 0; }
+.immunization-voided { background: #f8f2ee; }
+.immunization-voided .portal-record-status { color: #873c2e; background: #fff5ef; border-color: #dfbdaf; }
+.immunization-list button { min-height: 44px; }
+@media(max-width:650px) { .immunization-details { grid-template-columns: minmax(0,1fr); } .immunization-list > li, .immunization-form { padding: 12px; } }
+@media(min-width:900px) { .patient-workspace .section-nav { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+@media(min-width:901px) { .portal-task-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } .portal-task-grid > .portal-task:nth-child(n) { grid-column: span 1; } }

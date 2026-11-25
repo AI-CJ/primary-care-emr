@@ -136,6 +136,9 @@ function MedicationList({ patientId }: MedicationListProps) {
                     {medication.frequency && ' · ' + medication.frequency}
                   </p>
 
+                  <p className="medication-meta">{medication.rxnorm_cui
+                    ? <>RxCUI <span className="diagnosis-code">{medication.rxnorm_cui}</span></>
+                    : 'No RxNorm code recorded'}</p>
                   <DiagnosisIndications records={medication.indications} />
 
                   {(medication.start_date || medication.end_date) && (

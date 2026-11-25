@@ -1,10 +1,11 @@
 import type { SectionOption } from './components/SectionNavigation'
 
-export type PortalSection = 'home' | 'health' | 'visits' | 'results' | 'care' | 'preferences'
+export type PortalSection = 'home' | 'health' | 'immunizations' | 'visits' | 'results' | 'care' | 'preferences'
 
 export const portalSections: SectionOption<PortalSection>[] = [
   { id: 'home', label: 'Home' },
   { id: 'health', label: 'My health' },
+  { id: 'immunizations', label: 'Vaccinations' },
   { id: 'visits', label: 'Appointments & visits' },
   { id: 'results', label: 'Test results & referrals' },
   { id: 'care', label: 'Care plan' },
@@ -14,6 +15,7 @@ export const portalSections: SectionOption<PortalSection>[] = [
 export const portalSectionDescriptions: Record<PortalSection, string> = {
   home: 'Find your next appointment and choose what you want to do.',
   health: 'Review your health conditions, medications, allergies and recorded vital signs.',
+  immunizations: 'Review your recorded vaccination history and documented dates.',
   visits: 'Review scheduled appointments, visit summaries and appointment change requests.',
   results: 'Find test results shared by the clinic, lab requests and specialist referrals.',
   care: 'Follow your care goals and progress.',

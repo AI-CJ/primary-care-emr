@@ -277,11 +277,15 @@ class MedicationBase(BaseModel):
 
 
 class MedicationCreate(MedicationBase):
+    rxnorm_cui: str | None = Field(default=None, pattern=r'^[0-9]{1,20}$')
     # Missing on an older client means preserve recorded links during an edit.
     problem_ids: list[ProblemId] | None = Field(default=None, max_length=20)
 
 
 class MedicationRead(MedicationBase):
+    rxnorm_cui: str | None = None
+    rxnorm_release: str | None = None
+    rxnorm_kind: str | None = None
     id: int
     patient_id: int
     indications: list[DiagnosisIndicationRead] = Field(default_factory=list)
@@ -585,6 +589,9 @@ class EncounterMedicationLinkCreate(BaseModel):
 
 
 class EncounterMedicationRead(EncounterMedicationLinkCreate):
+    rxnorm_cui_at_link: str | None = None
+    rxnorm_release_at_link: str | None = None
+    rxnorm_kind_at_link: str | None = None
     id: int
     encounter_id: int
     name_at_link: str

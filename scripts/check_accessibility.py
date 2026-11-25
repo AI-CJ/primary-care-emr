@@ -238,7 +238,7 @@ def run():
         # Narrow CSS viewport tests reflow; not a claim of actual browser zoom.
         for width in (768, 360, 320):
             page.set_viewport_size({"width": width, "height": 800})
-            for section in ("Home", "Appointments & visits", "Test results & referrals",
+            for section in ("Home", "Appointments & visits", "Vaccinations", "Test results & referrals",
                             "My health", "Care plan", "Settings"):
                 keyboard_click(page, nav.get_by_role("button", name=section, exact=True))
                 inspect_screen(page, f"Patient {section} at {width}px")

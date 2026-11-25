@@ -72,6 +72,9 @@ class Medication(Base):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(200))
+    rxnorm_cui: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    rxnorm_release: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    rxnorm_kind: Mapped[str | None] = mapped_column(String(12), nullable=True)
     strength: Mapped[str | None] = mapped_column(String(100), nullable=True)
     dose: Mapped[str | None] = mapped_column(String(100), nullable=True)
     route: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -252,6 +255,9 @@ class EncounterMedication(Base):
         ForeignKey("medications.id", ondelete="RESTRICT"), index=True, nullable=False
     )
     name_at_link: Mapped[str] = mapped_column(String(200), nullable=False)
+    rxnorm_cui_at_link: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    rxnorm_release_at_link: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    rxnorm_kind_at_link: Mapped[str | None] = mapped_column(String(12), nullable=True)
     strength_at_link: Mapped[str | None] = mapped_column(String(100), nullable=True)
     dose_at_link: Mapped[str | None] = mapped_column(String(100), nullable=True)
     route_at_link: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -681,3 +687,33 @@ class ImagingReport(Base):
     impression: Mapped[str] = mapped_column(Text(), nullable=False)
     source: Mapped[str] = mapped_column(String(200), nullable=False)
     shared_on: Mapped[date | None] = mapped_column(nullable=True)
+
+
+class Immunization(Base):
+    """Recorded vaccination event; corrections retain the original record."""
+    __tablename__ = "immunizations"
+    __table_args__ = (
+        CheckConstraint("source IN ('clinic', 'historical_record', 'patient_reported')", name="ck_immunization_source"),
+        CheckConstraint("dose_number IS NULL OR dose_number > 0", name="ck_immunization_dose"),
+        CheckConstraint("(voided_at IS NULL AND void_reason IS NULL) OR (voided_at IS NOT NULL AND void_reason IS NOT NULL)", name="ck_immunization_void"),
+        Index("uq_immunization_active_event", "patient_id", "cvx_code", "administered_on",
+              unique=True, postgresql_where=text("voided_at IS NULL"), sqlite_where=text("voided_at IS NULL")),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id", ondelete="RESTRICT"), index=True, nullable=False)
+    cvx_code: Mapped[str] = mapped_column(String(3), nullable=False)
+    vaccine_name: Mapped[str] = mapped_column(Text(), nullable=False)
+    cvx_release: Mapped[str] = mapped_column(String(64), nullable=False)
+    administered_on: Mapped[date] = mapped_column(nullable=False)
+    source: Mapped[str] = mapped_column(String(24), nullable=False)
+    manufacturer_code: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    manufacturer_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    mvx_release: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    lot_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    dose_number: Mapped[int | None] = mapped_column(nullable=True)
+    route: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    site: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    voided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    void_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
