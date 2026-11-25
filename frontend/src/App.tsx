@@ -23,6 +23,7 @@ import FollowUpTasks from './components/FollowUpTasks'
 import OpenFollowUpTasksWorklist from './components/OpenFollowUpTasksWorklist'
 import MedicationList from './components/MedicationList'
 import PatientTimeline from './components/PatientTimeline'
+import ClinicalSnapshot from './components/ClinicalSnapshot'
 import PatientLifecycleControls from './components/PatientLifecycleControls'
 import PatientPortalPreview from './components/PatientPortalPreview'
 import PatientLabHistory from './components/PatientLabHistory'
@@ -488,6 +489,7 @@ function StaffApp({ isAdmin }: { isAdmin: boolean }) {
           </div>
           <div className="overview-grid" key={selectedPatient.id + ':' + chartSection}>
             {chartSection === 'summary' && <>
+              <ClinicalSnapshot patientId={selectedPatient.id} onReview={() => selectChartSection('health')} />
               <PatientTimeline key={selectedPatient.id} patientId={selectedPatient.id} />
               <PatientLifecycleControls key={selectedPatient.id} patientId={selectedPatient.id}
                 onChanged={(patient) => {
