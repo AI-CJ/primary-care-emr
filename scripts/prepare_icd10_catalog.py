@@ -13,6 +13,7 @@ OUTPUT = ROOT / "backend/data/icd10cm-fy2027.tsv"
 SOURCES = (
     "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2027/icd10cm-code-descriptions-2027.zip",
     "https://www.cms.gov/files/zip/2027-code-descriptions-tabular-order.zip",
+    "https://ftp.cdc.gov/pub/health_statistics/nchs/publications/ICD10CM/2027/icd10cm-code-descriptions-2027.zip",
 )
 CODE = re.compile(r"[A-Z][0-9][A-Z0-9]{1,5}")
 
@@ -20,16 +21,16 @@ CODE = re.compile(r"[A-Z][0-9][A-Z0-9]{1,5}")
 def parse_archive(content: bytes) -> dict[str, str]:
     with ZipFile(BytesIO(content)) as archive:
         matches = [name for name in archive.namelist()
-                   if re.fullmatch(r"icd10cm-codes-2027\.txt", Path(name).name, re.I)]
+                   if re.fullmatch(r"icd10cm[-_]codes[-_]2027\.txt", Path(name).name, re.I)]
         if len(matches) == 1:
-            lines = archive.read(matches[0]).decode("utf-8-sig").splitlines()
+            lines = archive.read(matches[0]).decode("utf-8-sig", errors="strict").splitlines()
             pairs = [line.split(maxsplit=1) for line in lines if line.strip()]
         else:
             # The tabular order file marks reportable codes with a 1 in column 15.
             orders = [name for name in archive.namelist()
-                      if re.fullmatch(r"icd10cm-order-2027\.txt", Path(name).name, re.I)]
+                      if re.fullmatch(r"icd10cm[-_]order[-_]2027\.txt", Path(name).name, re.I)]
             if len(orders) != 1:
-                raise ValueError("Expected a FY 2027 ICD-10-CM descriptions file")
+                raise ValueError("Expected a FY 2027 ICD-10-CM descriptions file; archive members: " + ", ".join(archive.namelist()[:20]))
             pairs = [(line[6:13].strip(), line[77:].strip())
                      for line in archive.read(orders[0]).decode("utf-8-sig").splitlines()
                      if len(line) > 77 and line[14] == "1"]
@@ -37,7 +38,7 @@ def parse_archive(content: bytes) -> dict[str, str]:
     for code, title in pairs:
         title = " ".join(title.split())
         if not CODE.fullmatch(code) or not title or code in records:
-            raise ValueError("Unexpected or duplicate code in official descriptions")
+            raise ValueError(f"Unexpected or duplicate diagnosis code: {code!r}")
         records[code] = title
     if not 65_000 <= len(records) <= 100_000:
         raise ValueError(f"Unexpected number of reportable codes: {len(records)}")
@@ -61,14 +62,16 @@ def prepare(archive_path: Path | None = None, force: bool = False) -> None:
                         raise ValueError("Description archive exceeds expected size")
                     candidates.append((url, content))
                     break
-                except (OSError, ValueError):
+                except (OSError, ValueError) as error:
+                    print(f"Download from {url} failed: {type(error).__name__}: {error}", flush=True)
                     if attempt == 0:
                         time.sleep(2)
             if candidates:
                 try:
                     parse_archive(candidates[-1][1])
                     break
-                except (ValueError, BadZipFile, UnicodeError):
+                except (ValueError, BadZipFile, UnicodeError) as error:
+                    print(f"Archive from {url} rejected: {type(error).__name__}: {error}", flush=True)
                     candidates.clear()
     if not candidates:
         raise RuntimeError("Could not retrieve the official FY 2027 diagnosis archive")
