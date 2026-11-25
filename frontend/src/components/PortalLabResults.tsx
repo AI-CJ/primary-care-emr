@@ -1,11 +1,24 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
-import type { PortalLabOrder, PortalLabResult } from '../types'
+import type { PortalLabOrder } from '../types'
+import { groupPortalLabOrders, type ReleasedOrder } from '../portalLabGroups'
+import { formatPortalDate } from '../portalAppointments'
 import { portalLabOrdersPath } from '../portalLabOrderRoutes'
 
 type PortalLabResultsProps = {
   // Staff preview supplies a chart ID. Patient sign-in uses the session-scoped route.
   patientId?: number
+}
+
+function ReleasedResults({ records }: { records: ReleasedOrder[] }) {
+  return <ul className="portal-records portal-released-results">{records.map(order =>
+    <li key={order.id}>
+      <strong>{order.test_name}</strong>
+      <span className="portal-record-status">Shared by the clinic</span>
+      <span>Reported <time dateTime={order.result.reported_at}>{formatPortalDate(order.result.reported_at.slice(0,10))}</time></span>
+      <span>Collected <time dateTime={order.result.collected_on}>{formatPortalDate(order.result.collected_on)}</time></span>
+      <div className="portal-result-text"><strong>Result as recorded</strong><p>{order.result.result_text}</p></div>
+    </li>)}</ul>
 }
 
 function PortalLabResults({ patientId }: PortalLabResultsProps) {
@@ -48,39 +61,14 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
     return () => controller.abort()
   }, [patientId, refreshCount])
 
-  const pendingRequests = (orders ?? [])
-    .filter((order) => order.status === 'ordered')
-    .sort((first, second) =>
-      second.ordered_at.localeCompare(first.ordered_at) || second.id - first.id)
-    .slice(0, 5)
-
-  const recentResults = (orders ?? [])
-    .filter((order): order is PortalLabOrder & { result: PortalLabResult } =>
-      order.status === 'resulted' && order.result !== null)
-    .sort((a, b) =>
-      b.result.reported_at.localeCompare(a.result.reported_at) || b.id - a.id)
-    .slice(0, 3)
-
-  const awaitingRelease = (orders ?? [])
-    .filter((order) => order.status === 'resulted' && order.result === null)
-    .sort((first, second) =>
-      second.ordered_at.localeCompare(first.ordered_at) || second.id - first.id)
-    .slice(0, 5)
-
-  const cancelledRequests = (orders ?? [])
-    .filter((order) => order.status === 'cancelled')
-    .sort((first, second) =>
-      (second.cancelled_at ?? second.ordered_at).localeCompare(
-        first.cancelled_at ?? first.ordered_at) || second.id - first.id)
-    .slice(0, 5)
+  const { recent: recentResults, older: olderResults, pending: pendingRequests, awaitingRelease, cancelled: cancelledRequests } = groupPortalLabOrders(orders ?? [])
 
   return (
     <section className="portal-card" aria-labelledby="portal-lab-results">
       <h2 id="portal-lab-results">My lab requests and results</h2>
       <p className="portal-help">
-        Recent lab requests, reported results, and cancelled requests from finalized visits in your chart.
-        A recorded request does not confirm that a test has been scheduled or collected.
-        Result details appear only after a clinic staff member releases them to the patient portal.
+        Results are shown as recorded by your clinic. Ask your care team about what a result means for you.
+        Details appear only after clinic staff share them. A lab request does not confirm that a test has been scheduled or collected.
       </p>
 
       {isLoading && <p role="status">Loading lab records...</p>}
@@ -96,45 +84,32 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
           </button>
         </div>
       )}
-      {!isLoading && !error && pendingRequests.length === 0 && recentResults.length === 0 && awaitingRelease.length === 0 && cancelledRequests.length === 0 && (
+      {!isLoading && !error && pendingRequests.length === 0 && recentResults.length === 0 && olderResults.length === 0 && awaitingRelease.length === 0 && cancelledRequests.length === 0 && (
         <p>No lab requests or results from finalized visits are available.</p>
+      )}
+      {!isLoading && !error && recentResults.length > 0 && (
+        <div className="portal-lab-group">
+          <h3>Results shared by your clinic ({recentResults.length + olderResults.length})</h3>
+          <ReleasedResults records={recentResults} />
+          {olderResults.length > 0 && <details>
+            <summary>Earlier results ({olderResults.length})</summary>
+            <ReleasedResults records={olderResults} />
+          </details>}
+        </div>
       )}
       {!isLoading && !error && pendingRequests.length > 0 && (
         <div className="portal-lab-group">
-          <h3>Requests without results</h3>
+          <h3>Requests without results ({pendingRequests.length})</h3>
           <ul className="portal-records">
             {pendingRequests.map((order) => (
               <li key={order.id}>
                 <strong>{order.test_name}</strong>
                 <span>
                   Requested <time dateTime={order.ordered_at}>
-                    {order.ordered_at.slice(0, 10)}
+                    {formatPortalDate(order.ordered_at.slice(0, 10))}
                   </time>
                 </span>
-                <span>No result has been recorded in this chart.</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {!isLoading && !error && recentResults.length > 0 && (
-        <div className="portal-lab-group">
-          <h3>Recent results</h3>
-          <ul className="portal-records">
-            {recentResults.map((order) => (
-              <li key={order.id}>
-                <strong>{order.test_name}</strong>
-                <span>
-                  Reported <time dateTime={order.result.reported_at}>
-                    {order.result.reported_at.slice(0, 10)}
-                  </time>
-                </span>
-                <span>
-                  Collected <time dateTime={order.result.collected_on}>
-                    {order.result.collected_on}
-                  </time>
-                </span>
-                <span>Result: {order.result.result_text}</span>
+                <span className="portal-record-status">No result recorded</span>
               </li>
             ))}
           </ul>
@@ -142,13 +117,13 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
       )}
       {!isLoading && !error && awaitingRelease.length > 0 && (
         <div className="portal-lab-group">
-          <h3>Results awaiting release</h3>
+          <h3>Results not yet shared ({awaitingRelease.length})</h3>
           <p className="portal-help">These results are recorded but are not yet available to patients.</p>
           <ul className="portal-records">
             {awaitingRelease.map((order) => (
               <li key={order.id}>
                 <strong>{order.test_name}</strong>
-                <span>Result not yet released by the clinic.</span>
+                <span className="portal-record-status">Result not yet released by the clinic.</span>
               </li>
             ))}
           </ul>
@@ -167,13 +142,13 @@ function PortalLabResults({ patientId }: PortalLabResultsProps) {
                 <strong>{order.test_name}</strong>
                 <span>
                   Requested <time dateTime={order.ordered_at}>
-                    {order.ordered_at.slice(0, 10)}
+                    {formatPortalDate(order.ordered_at.slice(0, 10))}
                   </time>
                 </span>
                 {order.cancelled_at ? (
                   <span>
                     Recorded as cancelled on <time dateTime={order.cancelled_at}>
-                      {order.cancelled_at.slice(0, 10)}
+                      {formatPortalDate(order.cancelled_at.slice(0, 10))}
                     </time>
                   </span>
                 ) : (

@@ -68,8 +68,8 @@ export default function PortalCommunicationPreferences() {
     <section className="portal-card" aria-labelledby="portal-communication">
       <h2 id="portal-communication">Communication preferences</h2>
       <p className="portal-help">
-        Choose how you prefer to receive clinic updates.
-        These choices do not send messages or schedule reminders.
+        Choose how you prefer to receive clinic updates. These settings record your preferences only;
+        they do not send messages or schedule reminders.
       </p>
       {loading && <p role="status">Loading communication preferences...</p>}
       {error && <p role="alert">{error}</p>}
@@ -92,6 +92,8 @@ export default function PortalCommunicationPreferences() {
             <option value="phone">Phone</option>
             <option value="email">Email</option>
           </select>
+          <fieldset className="portal-preferences-group">
+            <legend>Types of updates</legend>
           <label className="portal-preferences-check">
             <input type="checkbox" checked={preferences.appointment_reminders}
               disabled={saving}
@@ -110,10 +112,11 @@ export default function PortalCommunicationPreferences() {
               }} />
             General care updates
           </label>
-          <button className="secondary-action-button" type="submit" disabled={saving}>
+          </fieldset>
+          <button className="portal-primary-action" type="submit" disabled={saving}>
             {saving ? 'Saving...' : 'Save preferences'}
           </button>
-          {notice && <p role="status">{notice}</p>}
+          {notice && <p role="status" className="portal-confirmation">{notice}</p>}
         </form>
       )}
     </section>
