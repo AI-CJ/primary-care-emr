@@ -10,6 +10,7 @@ import PortalVisits from './PortalVisits'
 import PortalVitals from './PortalVitals'
 import PortalLabResults from './PortalLabResults'
 import PortalReferrals from './PortalReferrals'
+import { ImagingHistory } from './ChartHistory'
 import PortalCareGoals from './PortalCareGoals'
 import PortalProblemList from './PortalProblemList'
 import PortalMedications from './PortalMedications'
@@ -143,6 +144,7 @@ function PatientPortalPreview({ patient, onBack }: PatientPortalPreviewProps) {
             {section === 'results' && <>
               <PortalLabResults key={patient.id} patientId={patient.id} />
               <PortalReferrals patientId={patient.id} />
+              <ImagingHistory key={patient.id} patientId={patient.id} />
             </>}
             {section === 'care' && <PortalCareGoals goals={overview.careGoals} />}
           </div>
