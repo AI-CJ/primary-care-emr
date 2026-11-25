@@ -122,3 +122,31 @@ class ClinicalReferenceTests(TestCase):
                      {"reason": "Synthetic fixture correction"})
         self.assertEqual(self.request("PUT", path, corrected)["date_of_birth"], "2011-01-01")
         self.assertTrue(self.request("GET", path + "/immunizations")[0]["voided_at"])
+
+    def test_front_desk_cannot_read_or_write_clinical_reference_records(self):
+        from backend.account_auth import create_user_account
+        from sqlalchemy.orm import Session
+
+        with Session(self.engine) as session:
+            create_user_account(session, username="fixture.frontdesk",
+                                password=BROWSER_PASSWORD, account_type="staff",
+                                staff_role="front_desk")
+            session.commit()
+        front_desk = self.login("fixture.frontdesk")
+        clinician = self.login("clinician")
+        for path, payload in (
+            ("/diagnosis-codes/search", {"query": "I10"}),
+            ("/clinical-reference/rxnorm/search", {"query": "lisinopril"}),
+            ("/clinical-reference/cvx/search", {"query": "115"}),
+            ("/clinical-reference/mvx/search", {"query": "PMC"}),
+        ):
+            self.request("POST", path, payload, headers=front_desk, expected=403)
+            self.request("POST", path, payload, headers=self.patient, expected=403)
+        self.request("GET", "/patients/1/immunizations", headers=front_desk, expected=403)
+        self.request("POST", "/patients/1/immunizations", {
+            "cvx_code": "115", "source": "historical_record",
+            "administered_on": "2020-01-01",
+        }, headers=front_desk, expected=403)
+        self.request("GET", "/patients/1/immunizations", headers=clinician)
+        self.request("POST", "/clinical-reference/rxnorm/search",
+                     {"query": "lisinopril"}, headers=clinician)
