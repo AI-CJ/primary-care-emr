@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
 from random import Random
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.models import (
@@ -59,7 +60,7 @@ CONDITIONS = (
               "Home blood pressure readings were brought to the visit.",
               "Review the home blood pressure log",
               ("Amlodipine", "5 mg", "oral", "Daily"),
-              ("Basic metabolic panel", "Creatinine {value:.2f} mg/dL; potassium 4.2 mmol/L.", "Medication monitoring")),
+              ("Basic metabolic panel", "Creatinine {value:.2f} mg/dL; potassium 4.2 mmol/L.", "Review renal function in hypertension")),
     Condition("E78.5", "Hyperlipidemia, unspecified", "Hyperlipidemia", 30,
               "Discussed previous cholesterol results and interval activity.",
               "Review lipid results at follow-up",
@@ -206,15 +207,33 @@ def add_clinic_population(session: Session, *, as_of: date,
         return
 
     rng = Random(SEED)
-    names = rng.sample([(first, last) for first in FIRST_NAMES for last in LAST_NAMES],
-                       total - REFERENCE_PATIENTS)
+    names = set()
     charts = []
-    for first, last in names:
+    for _ in range(total - REFERENCE_PATIENTS):
         age = _age(rng)
         sex = rng.choices(["female", "male", "unknown", "intersex"],
                           weights=[48, 48, 3, 1])[0]
-        pronouns = rng.choices(["she/her", "he/him", "they/them", None],
-                              weights=[44, 44, 7, 5])[0]
+        if sex in ("female", "male"):
+            usual = "she/her" if sex == "female" else "he/him"
+            alternate = "he/him" if sex == "female" else "she/her"
+            pronouns = rng.choices([usual, alternate, "they/them", None],
+                                  weights=[90, 2, 5, 3])[0]
+        else:
+            pronouns = rng.choice(["she/her", "he/him", "they/them", None])
+        # Mix conventionally gendered and gender-neutral names. A name is
+        # never used as a clinical input.
+        neutral = FIRST_NAMES[FIRST_NAMES.index("Alex"):]
+        if pronouns == "she/her":
+            candidates = FIRST_NAMES[:FIRST_NAMES.index("Adrian")] + neutral
+        elif pronouns == "he/him":
+            candidates = FIRST_NAMES[FIRST_NAMES.index("Adrian"):]
+        else:
+            candidates = FIRST_NAMES
+        while True:
+            first, last = rng.choice(candidates), rng.choice(LAST_NAMES)
+            if (first, last) not in names:
+                names.add((first, last))
+                break
         # Preserve individual variation while avoiding an automatic clinical
         # inference from a person's name or pronouns.
         patient = Patient(first_name=first, last_name=last, date_of_birth=_dob(age, as_of, rng),
@@ -283,10 +302,13 @@ def add_clinic_population(session: Session, *, as_of: date,
                                        indications=[MedicationIndication(**_snapshot(problem))]))
         for j, appointment in enumerate(chart.visits):
             day = appointment.scheduled_date
-            stamp = _timestamp(day)
+            # Relative event times preserve ordering around the clinic-local
+            # appointment; synthetic UTC offset is fixed for this dataset.
+            start = datetime.combine(day, appointment.start_time, tzinfo=timezone.utc) + timedelta(hours=5)
+            stamp = start + timedelta(minutes=30)
             for prior, status, at in (
-                (None, "scheduled", _timestamp(day - timedelta(days=14))),
-                ("scheduled", "checked_in", _timestamp(day, 13)),
+                (None, "scheduled", start - timedelta(days=14)),
+                ("scheduled", "checked_in", start - timedelta(minutes=5)),
                 ("checked_in", "completed", stamp),
             ):
                 session.add(AppointmentStatusChange(appointment_id=appointment.id,
@@ -350,7 +372,7 @@ def add_clinic_population(session: Session, *, as_of: date,
                             problem_name_at_link=problem.name, icd10_code_at_link=problem.icd10_code,
                             icd10_release_at_link=problem.icd10_release,
                             problem_status_at_link=problem.status,
-                            linked_at=_timestamp(note.visit_date, 15)))
+                            linked_at=note.finalized_at - timedelta(minutes=10)))
         if not latest:
             continue
         for condition, problem in zip(chart.conditions, chart.problems):
@@ -359,7 +381,7 @@ def add_clinic_population(session: Session, *, as_of: date,
                 status = rng.choices(["resulted", "ordered"], [92, 8])[0]
                 order = LabOrder(encounter_id=note.id, test_name=name, priority="routine",
                                  clinical_reason=reason, status=status,
-                                 ordered_at=_timestamp(note.visit_date, 15),
+                                 ordered_at=note.finalized_at - timedelta(minutes=10),
                                  indications=[LabOrderIndication(**_snapshot(problem))])
                 session.add(order)
                 if status == "resulted":
@@ -368,7 +390,7 @@ def add_clinic_population(session: Session, *, as_of: date,
                 specialty, reason = condition.referral
                 session.add(Referral(encounter_id=note.id, specialty=specialty, reason=reason,
                                      priority="routine", status="requested",
-                                     requested_at=_timestamp(note.visit_date, 15)))
+                                     requested_at=note.finalized_at - timedelta(minutes=10)))
     for chart, goal in goals:
         day = chart.visits[-1].scheduled_date
         session.add(CareGoalProgress(goal_id=goal.id, note="Discussed goal and planned follow-up.",
@@ -386,3 +408,22 @@ def add_clinic_population(session: Session, *, as_of: date,
         session.add(LabResult(lab_order_id=order.id, collected_on=day, result_text=result,
                               reported_at=reported,
                               released_at=reported + timedelta(hours=1) if rng.random() < .9 else None))
+
+
+def extend_browser_population() -> None:
+    """Extend only the fixed, freshly created tab-local demonstration dataset."""
+    import sys
+    from backend.database import engine
+
+    if sys.platform != "emscripten" or engine.dialect.name != "sqlite" or engine.url.database not in (None, "", ":memory:"):
+        raise RuntimeError("Population extension is restricted to the browser demo")
+    with Session(engine) as session:
+        patients = session.scalars(select(Patient).order_by(Patient.id)).all()
+        if [(p.first_name, p.last_name) for p in patients] != [
+            ("Jordan", "Lee"), ("Maria", "Thompson"), ("Devin", "Brooks")
+        ]:
+            raise RuntimeError("Expected the original three reference charts")
+        add_clinic_population(session, as_of=date.today(), reference_patients=tuple(patients[1:]))
+        if session.scalar(select(func.count()).select_from(Patient)) != POPULATION_SIZE:
+            raise RuntimeError("Synthetic patient population did not initialize")
+        session.commit()
