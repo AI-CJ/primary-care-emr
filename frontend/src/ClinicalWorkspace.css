@@ -152,7 +152,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .chart-state-archived { color: #8c4937; }
 .chart-state-archived::before { background: #b56b52; }
 .directory-chevron { color: var(--slate-blue); font-size: 1.2rem; line-height: 1; }
-.directory-status { margin: 14px 0 0; color: var(--text-muted); font-size: 0.82rem; }
+.directory-status { margin: 0; color: var(--text-muted); font-size: 0.82rem; }
+.directory-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+.directory-pagination nav { display: flex; gap: 8px; }
+.directory-pagination button { min-height: 44px; }
 .empty-message { padding: 28px 14px; color: var(--text-muted); }
 
 /* Chart header and navigation: context before tasks. */
