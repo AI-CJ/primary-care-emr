@@ -48,6 +48,8 @@ def link_encounter_problem(
         problem_id=problem.id,
         problem_name_at_link=problem.name,
         problem_status_at_link=problem.status,
+        icd10_code_at_link=problem.icd10_code,
+        icd10_release_at_link=problem.icd10_release,
     )
     session.add(link)
     session.flush()

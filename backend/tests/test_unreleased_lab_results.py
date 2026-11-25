@@ -95,7 +95,7 @@ class UnreleasedLabResultsTests(unittest.TestCase):
         self.assertEqual(
             set(response[0].model_dump()),
             {"order_id", "patient_id", "patient_name", "test_name",
-             "priority", "visit_date", "ordered_at", "reported_at"},
+             "priority", "visit_date", "ordered_at", "reported_at", "indications"},
         )
         self.assertNotIn("Private synthetic result", repr(response))
         self.assertNotIn("Fictional follow-up", repr(response))

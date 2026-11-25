@@ -1,7 +1,7 @@
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, String, Text, UniqueConstraint, func, text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, String, Text, UniqueConstraint, func, text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -53,7 +53,10 @@ class Problem(Base):
         ForeignKey("patients.id"),
         index=True,
     )
-    name: Mapped[str] = mapped_column(String(200))
+    name: Mapped[str] = mapped_column(String(512))
+    icd10_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    icd10_title: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    icd10_release: Mapped[str | None] = mapped_column(String(16), nullable=True)
     status: Mapped[str] = mapped_column(String(20))
     onset_date: Mapped[date | None] = mapped_column(nullable=True)
     resolved_date: Mapped[date | None] = mapped_column(nullable=True)
@@ -77,6 +80,22 @@ class Medication(Base):
     start_date: Mapped[date | None] = mapped_column(nullable=True)
     end_date: Mapped[date | None] = mapped_column(nullable=True)
     instructions: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    indications: Mapped[list["MedicationIndication"]] = relationship(
+        lazy="selectin", cascade="all, delete-orphan", order_by="MedicationIndication.problem_id"
+    )
+
+
+class MedicationIndication(Base):
+    """Clinician-selected diagnosis with the name/code recorded at selection."""
+
+    __tablename__ = "medication_indications"
+    __table_args__ = (UniqueConstraint("medication_id", "problem_id", name="uq_medication_indication"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    medication_id: Mapped[int] = mapped_column(ForeignKey("medications.id", ondelete="RESTRICT"), index=True)
+    problem_id: Mapped[int] = mapped_column(ForeignKey("problems.id", ondelete="RESTRICT"), index=True)
+    problem_name: Mapped[str] = mapped_column(String(512))
+    icd10_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    icd10_release: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
 
 class Allergy(Base):
@@ -175,7 +194,9 @@ class EncounterProblem(Base):
     problem_id: Mapped[int] = mapped_column(
         ForeignKey("problems.id", ondelete="RESTRICT"), index=True, nullable=False
     )
-    problem_name_at_link: Mapped[str] = mapped_column(String(200), nullable=False)
+    problem_name_at_link: Mapped[str] = mapped_column(String(512), nullable=False)
+    icd10_code_at_link: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    icd10_release_at_link: Mapped[str | None] = mapped_column(String(16), nullable=True)
     problem_status_at_link: Mapped[str] = mapped_column(String(20), nullable=False)
     linked_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -239,6 +260,7 @@ class EncounterMedication(Base):
     start_date_at_link: Mapped[date | None] = mapped_column(nullable=True)
     end_date_at_link: Mapped[date | None] = mapped_column(nullable=True)
     instructions_at_link: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    indications_at_link: Mapped[list[dict]] = mapped_column(JSON, default=list, nullable=False, server_default=text("'[]'"))
     linked_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -292,6 +314,22 @@ class LabOrder(Base):
         DateTime(timezone=True), nullable=True
     )
     cancellation_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    indications: Mapped[list["LabOrderIndication"]] = relationship(
+        lazy="selectin", cascade="all, delete-orphan", order_by="LabOrderIndication.problem_id"
+    )
+
+
+class LabOrderIndication(Base):
+    """The recorded diagnosis for a test request, retained with its history."""
+
+    __tablename__ = "lab_order_indications"
+    __table_args__ = (UniqueConstraint("lab_order_id", "problem_id", name="uq_lab_order_indication"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lab_order_id: Mapped[int] = mapped_column(ForeignKey("lab_orders.id", ondelete="RESTRICT"), index=True)
+    problem_id: Mapped[int] = mapped_column(ForeignKey("problems.id", ondelete="RESTRICT"), index=True)
+    problem_name: Mapped[str] = mapped_column(String(512))
+    icd10_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    icd10_release: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
 
 class LabResult(Base):

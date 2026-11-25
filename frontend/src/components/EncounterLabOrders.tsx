@@ -1,3 +1,4 @@
+import DiagnosisIndications, { DiagnosisIndicationPicker } from './DiagnosisIndications'
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, LabOrder, LabOrderInput, LabOrderPriority } from '../types'
@@ -20,6 +21,10 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
   const [testName, setTestName] = useState('')
   const [priority, setPriority] = useState<LabOrderPriority>('routine')
   const [clinicalReason, setClinicalReason] = useState('')
+  const [problemIds, setProblemIds] = useState<number[]>([])
+  const [editingIndicationOrder, setEditingIndicationOrder] = useState<number | null>(null)
+  const [editProblemIds, setEditProblemIds] = useState<number[]>([])
+  const [savingIndications, setSavingIndications] = useState(false)
   const isFinalized = encounter.finalized_at !== null
 
   useEffect(() => {
@@ -64,6 +69,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
       test_name: name,
       priority,
       clinical_reason: clinicalReason.trim() || null,
+      problem_ids: problemIds,
     }
 
     setIsSaving(true)
@@ -87,6 +93,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
       setTestName('')
       setPriority('routine')
       setClinicalReason('')
+      setProblemIds([])
       setSuccessMessage('Lab request recorded for this visit.')
     } catch (requestError) {
       console.error(requestError)
@@ -94,6 +101,26 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  async function saveIndications(event: FormEvent<HTMLFormElement>, order: LabOrder) {
+    event.preventDefault()
+    if (isFinalized || savingIndications) return
+    setSavingIndications(true)
+    setActionError(null)
+    try {
+      const response = await apiFetch(API_BASE_URL + '/lab-orders/' + order.id + '/indications', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problem_ids: editProblemIds }),
+      })
+      if (!response.ok) throw new Error(await getApiErrorMessage(response))
+      const saved: LabOrder = await response.json()
+      setOrders(current => current.map(item => item.id === saved.id ? saved : item))
+      setEditingIndicationOrder(null)
+      setSuccessMessage('Lab indications updated.')
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Unable to update indications.')
+    } finally { setSavingIndications(false) }
   }
 
   async function handleCancel(event: FormEvent<HTMLFormElement>, order: LabOrder) {
@@ -153,6 +180,19 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
                       {order.ordered_at.slice(0, 16).replace('T', ' ')}
                     </time>
                   </p>
+                  <DiagnosisIndications records={order.indications} />
+                  {!isFinalized && order.status === 'ordered' && (editingIndicationOrder === order.id
+                    ? <form className="indication-edit-form" onSubmit={event => void saveIndications(event, order)}>
+                        <DiagnosisIndicationPicker patientId={encounter.patient_id} selected={editProblemIds}
+                          onChange={setEditProblemIds} disabled={savingIndications} />
+                        <button type="submit" className="secondary-action-button" disabled={savingIndications}>Save indications</button>
+                        <button type="button" className="secondary-action-button" disabled={savingIndications}
+                          onClick={() => setEditingIndicationOrder(null)}>Cancel edit</button>
+                      </form>
+                    : <button type="button" className="secondary-action-button" disabled={savingIndications}
+                        onClick={() => { setEditingIndicationOrder(order.id); setEditProblemIds(order.indications?.map(item => item.problem_id) ?? []) }}>
+                        Edit indications
+                      </button>)}
                   {order.clinical_reason && (
                     <p className="encounter-lab-reason">Reason: {order.clinical_reason}</p>
                   )}
@@ -249,6 +289,7 @@ function EncounterLabOrders({ encounter }: EncounterLabOrdersProps) {
                   <option value="urgent">Urgent</option>
                 </select>
               </label>
+              <DiagnosisIndicationPicker patientId={encounter.patient_id} selected={problemIds} onChange={setProblemIds} disabled={isSaving} />
               <label className="form-field">
                 <span>Clinical reason (optional)</span>
                 <textarea

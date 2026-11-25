@@ -121,6 +121,25 @@ with archival using the same patient-row lock. Preference writes are refused for
 archived charts even if authorization was checked earlier in the request.
 These lifecycle safeguards are not a complete clinical-record retention policy.
 
+## Diagnosis coding and clinical indications
+
+Clinicians and administrators can search the locally indexed FY 2027 catalog with
+`POST /diagnosis-codes/search` (body `{"query":"I10"}`). Search text stays in
+the API request body; the audit records the route and response status, not the
+query. The patient portal cannot access this route.
+
+Chart problems accept an optional `icd10_code`; the API validates it against
+the reference and records its official description and release. Uncoded historical
+records remain valid. Medication and lab order create requests accept
+`problem_ids` (up to 20 distinct IDs). Medication updates preserve links if this
+field is omitted or null; an empty list clears them. Staff responses expose
+`indications` containing selected problem IDs, names, codes and releases.
+`PUT /lab-orders/{order_id}/indications` replaces indications only for a pending
+order on an unfinalized visit. All writes enforce chart ownership and archival
+rules. Visit links capture the recorded coding details when linked; finalized
+records are not rewritten by subsequent problem edits. Patient projections do
+not expose the staff coding fields. See [ICD-10-CM reference](ICD10_REFERENCE.md).
+
 ## Configuration
 
 The API-backed application reads these settings from its environment or local `.env` file. Keep credentials out of version control.

@@ -1,3 +1,4 @@
+import DiagnosisIndications from './DiagnosisIndications'
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { PatientLabOrder } from '../types'
@@ -99,6 +100,7 @@ function PatientLabHistory({ patientId }: PatientLabHistoryProps) {
                 {' · '}
                 Request #{order.id}
               </p>
+              <DiagnosisIndications records={order.indications} />
               {order.clinical_reason && (
                 <p className="patient-lab-details">
                   Reason: {order.clinical_reason}

@@ -11,6 +11,8 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.icd10_catalog import RELEASE, search_codes
+from backend.diagnosis_indications import problem_values, select_indications, replace_indications
 from backend.settings import cors_origins
 from backend.patient_lifecycle import (
     PatientLifecycleEventRead, archive_patient, reactivate_patient,
@@ -33,7 +35,7 @@ from backend.audit_review import (
 )
 from backend.session_auth import create_session, get_session_account, revoke_session
 from backend.models import UserAccount
-from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse
+from backend.schemas import AuthAccountRead, AuthLoginRequest, AuthLoginResponse, DiagnosisCodeSearch, IndicationSelection
 from backend.patient_timeline import list_patient_timeline
 from backend.portal_medications import list_portal_preview_medications
 from backend.portal_problems import list_portal_preview_problems
@@ -97,6 +99,7 @@ from backend.lab_orders import (
     read_lab_result,
     record_lab_result,
     release_lab_result,
+    update_lab_order_indications,
 )
 from backend.referrals import (
     cancel_referral,
@@ -120,7 +123,7 @@ from backend.scheduling import (
 )
 from backend.models import (
     Allergy, Appointment, AppointmentStatusChange, Encounter,
-    EncounterAddendum, Medication, Patient, Problem, Vital,
+    EncounterAddendum, Medication, MedicationIndication, Patient, Problem, Vital,
 )
 from backend.schemas import (
     AllergyCreate,
@@ -296,7 +299,7 @@ def _audit_clinical_access(request: Request, status_code: int) -> None:
         subject_patient_id = numeric_id("patient_id")
     event_type = (
         "access_denied" if status_code in {401, 403}
-        else "clinical_read" if request.method == "GET"
+        else "clinical_read" if request.method == "GET" or route_template == "/diagnosis-codes/search"
         else "clinical_write"
     )
     with Session(engine) as session:
@@ -770,6 +773,12 @@ def read_follow_up_due_date_changes(task_id: int):
         return list_follow_up_due_date_changes(session, task_id)
 
 
+@app.post("/diagnosis-codes/search")
+def read_diagnosis_codes(payload: DiagnosisCodeSearch):
+    # POST keeps typed clinical search terms out of ordinary URL/access logs.
+    return {"release": RELEASE, "results": [item._asdict() for item in search_codes(payload.query)]}
+
+
 @app.get(
     "/patients/{patient_id}/problems",
     response_model=list[ProblemRead],
@@ -824,7 +833,7 @@ def create_patient_problem(
 
         problem = Problem(
             patient_id=patient_id,
-            **problem_data.model_dump(),
+            **problem_values(problem_data),
         )
 
         session.add(problem)
@@ -852,7 +861,7 @@ def update_problem(
 
         lock_active_patient(session, problem.patient_id)
 
-        for field, value in problem_data.model_dump().items():
+        for field, value in problem_values(problem_data, problem).items():
             setattr(problem, field, value)
 
         session.commit()
@@ -881,7 +890,7 @@ def read_patient_medications(patient_id: int):
         )
 
         medications = session.scalars(query).all()
-        return list(medications)
+        return [MedicationRead.model_validate(item) for item in medications]
 
 
 @app.get(
@@ -914,13 +923,14 @@ def create_patient_medication(
 
         medication = Medication(
             patient_id=patient_id,
-            **medication_data.model_dump(),
+            **medication_data.model_dump(exclude={'problem_ids'}),
+            indications=select_indications(session, patient_id, medication_data.problem_ids or [], MedicationIndication),
         )
 
         session.add(medication)
         session.commit()
         session.refresh(medication)
-        return medication
+        return MedicationRead.model_validate(medication)
 
 
 @app.put(
@@ -942,12 +952,14 @@ def update_medication(
 
         lock_active_patient(session, medication.patient_id)
 
-        for field, value in medication_data.model_dump().items():
+        if medication_data.problem_ids is not None:
+            replace_indications(session, medication, medication.patient_id, medication_data.problem_ids, MedicationIndication)
+        for field, value in medication_data.model_dump(exclude={'problem_ids'}).items():
             setattr(medication, field, value)
 
         session.commit()
         session.refresh(medication)
-        return medication
+        return MedicationRead.model_validate(medication)
 
 
 @app.get(
@@ -1368,6 +1380,7 @@ def read_unreleased_lab_results():
         return [
             UnreleasedLabResultRead(
                 order_id=order.id,
+                indications=order.indications,
                 patient_id=patient.id,
                 patient_name=f"{patient.preferred_name or patient.first_name} {patient.last_name}",
                 test_name=order.test_name,
@@ -1417,7 +1430,7 @@ def read_patient_lab_orders(patient_id: int):
 )
 def read_encounter_lab_orders(encounter_id: int):
     with Session(engine) as session:
-        return list_lab_orders(session, encounter_id)
+        return [LabOrderRead.model_validate(order) for order in list_lab_orders(session, encounter_id)]
 
 
 @app.post(
@@ -1430,7 +1443,16 @@ def add_encounter_lab_order(encounter_id: int, order_data: LabOrderCreate):
         order = create_lab_order(session, encounter_id, order_data)
         session.commit()
         session.refresh(order)
-        return order
+        return LabOrderRead.model_validate(order)
+
+
+@app.put("/lab-orders/{order_id}/indications", response_model=LabOrderRead)
+def replace_order_indications(order_id: int, selection: IndicationSelection):
+    with Session(engine) as session:
+        order = update_lab_order_indications(session, order_id, selection.problem_ids)
+        session.commit()
+        session.refresh(order)
+        return LabOrderRead.model_validate(order)
 
 
 @app.post(
@@ -1442,7 +1464,7 @@ def cancel_order_request(order_id: int, cancellation: LabOrderCancel):
         order = cancel_lab_order(session, order_id, cancellation)
         session.commit()
         session.refresh(order)
-        return order
+        return LabOrderRead.model_validate(order)
 
 
 @app.get(

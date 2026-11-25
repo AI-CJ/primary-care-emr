@@ -1,3 +1,4 @@
+import DiagnosisIndications from './DiagnosisIndications'
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter, EncounterMedication, Medication, MedicationStatus } from '../types'
@@ -149,6 +150,7 @@ function EncounterMedications({ encounter }: EncounterMedicationsProps) {
                       {link.route_at_link && ' · ' + link.route_at_link}
                       {link.frequency_at_link && ' · ' + link.frequency_at_link}
                     </p>
+                    <DiagnosisIndications records={link.indications_at_link} />
                     {(link.start_date_at_link || link.end_date_at_link) && (
                       <p className="encounter-meta">
                         {link.start_date_at_link && 'Started ' + link.start_date_at_link}

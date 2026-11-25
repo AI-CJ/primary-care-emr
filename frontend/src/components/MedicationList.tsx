@@ -1,3 +1,4 @@
+import DiagnosisIndications from './DiagnosisIndications'
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Medication } from '../types'
@@ -134,6 +135,8 @@ function MedicationList({ patientId }: MedicationListProps) {
                     {medication.route && ' · ' + medication.route}
                     {medication.frequency && ' · ' + medication.frequency}
                   </p>
+
+                  <DiagnosisIndications records={medication.indications} />
 
                   {(medication.start_date || medication.end_date) && (
                     <p className="medication-meta">

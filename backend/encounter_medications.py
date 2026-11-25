@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.encounters import lock_active_encounter
 from backend.models import Encounter, EncounterMedication, Medication
-from backend.schemas import EncounterMedicationLinkCreate
+from backend.schemas import EncounterMedicationLinkCreate, DiagnosisIndicationRead
 
 
 SNAPSHOT_FIELDS = (
@@ -55,7 +55,8 @@ def link_encounter_medication(
         f"{field}_at_link": getattr(medication, field) for field in SNAPSHOT_FIELDS
     }
     link = EncounterMedication(
-        encounter_id=encounter_id, medication_id=medication.id, **snapshot
+        encounter_id=encounter_id, medication_id=medication.id, **snapshot,
+        indications_at_link=[DiagnosisIndicationRead.model_validate(link).model_dump() for link in medication.indications],
     )
     session.add(link)
     session.flush()

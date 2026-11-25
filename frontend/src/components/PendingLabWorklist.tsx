@@ -1,3 +1,4 @@
+import DiagnosisIndications from './DiagnosisIndications'
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { LabOrder } from '../types'
@@ -129,6 +130,7 @@ function PendingLabWorklist({
                         {' · '}
                         Request #{order.id}
                       </p>
+                      <DiagnosisIndications records={order.indications} compact />
                       {order.clinical_reason && (
                         <p className="pending-lab-reason">
                           Reason: {order.clinical_reason}

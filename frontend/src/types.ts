@@ -33,7 +33,19 @@ export type ProblemStatus =
   | 'active'
   | 'resolved'
 
+export type DiagnosisCode = { code: string; title: string }
+
+export type DiagnosisIndication = {
+  problem_id: number
+  problem_name: string
+  icd10_code: string | null
+  icd10_release: string | null
+}
+
 export type Problem = {
+  icd10_code?: string | null
+  icd10_title?: string | null
+  icd10_release?: string | null
   id: number
   patient_id: number
   name: string
@@ -43,7 +55,7 @@ export type Problem = {
   notes: string | null
 }
 
-export type ProblemInput = Omit<Problem, 'id' | 'patient_id'>
+export type ProblemInput = Omit<Problem, 'id' | 'patient_id' | 'icd10_title' | 'icd10_release'>
 
 export type PortalProblemSummary = Pick<
   Problem,
@@ -56,6 +68,7 @@ export type MedicationStatus =
   | 'discontinued'
 
 export type Medication = {
+  indications?: DiagnosisIndication[]
   id: number
   patient_id: number
   name: string
@@ -69,7 +82,7 @@ export type Medication = {
   instructions: string | null
 }
 
-export type MedicationInput = Omit<Medication, 'id' | 'patient_id'>
+export type MedicationInput = Omit<Medication, 'id' | 'patient_id' | 'indications'> & { problem_ids?: number[] }
 
 export type PortalMedicationSummary = Pick<
   Medication,
@@ -151,6 +164,8 @@ export type PortalVisitSummary = Pick<
 >
 
 export type EncounterProblem = {
+  icd10_code_at_link?: string | null
+  icd10_release_at_link?: string | null
   id: number
   encounter_id: number
   problem_id: number
@@ -160,6 +175,7 @@ export type EncounterProblem = {
 }
 
 export type EncounterMedication = {
+  indications_at_link?: DiagnosisIndication[]
   id: number
   encounter_id: number
   medication_id: number
@@ -236,6 +252,7 @@ export type PortalReferralSummary = Pick<
 export type LabOrderPriority = 'routine' | 'urgent'
 
 export type LabOrder = {
+  indications?: DiagnosisIndication[]
   id: number
   encounter_id: number
   test_name: string
@@ -247,7 +264,7 @@ export type LabOrder = {
   cancellation_reason: string | null
 }
 
-export type LabOrderInput = Pick<LabOrder, 'test_name' | 'priority' | 'clinical_reason'>
+export type LabOrderInput = Pick<LabOrder, 'test_name' | 'priority' | 'clinical_reason'> & { problem_ids?: number[] }
 
 export type LabResult = {
   id: number

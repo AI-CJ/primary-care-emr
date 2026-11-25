@@ -1,3 +1,4 @@
+import { DiagnosisLabel } from './DiagnosisIndications'
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Problem } from '../types'
@@ -98,6 +99,8 @@ function ProblemList({ patientId }: ProblemListProps) {
             <div className="problem-row" key={problem.id}>
               <div>
                 <strong>{problem.name}</strong>
+                <p className="problem-code-line"><DiagnosisLabel code={problem.icd10_code} /> {problem.icd10_release && <small>{problem.icd10_release}</small>}</p>
+                {problem.icd10_title && problem.icd10_title !== problem.name && <p className="diagnosis-help">{problem.icd10_title}</p>}
                 <p className="problem-meta">
                   {problem.status === 'active' ? 'Active' : 'Resolved'}
                   {problem.onset_date && ' · Onset ' + problem.onset_date}

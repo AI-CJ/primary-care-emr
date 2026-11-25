@@ -6,7 +6,8 @@ from fastapi import HTTPException
 from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
-from backend.models import Encounter, LabOrder, LabResult, Patient
+from backend.models import Encounter, LabOrder, LabOrderIndication, LabResult, Patient
+from backend.diagnosis_indications import select_indications, replace_indications
 from backend.patient_lifecycle import lock_active_patient
 from backend.schemas import (
     LabOrderCancel, LabOrderCreate, LabResultCreate,
@@ -165,9 +166,27 @@ def create_lab_order(
     order = LabOrder(
         encounter_id=encounter.id,
         status="ordered",
-        **order_data.model_dump(),
+        **order_data.model_dump(exclude={'problem_ids'}),
+        indications=select_indications(session, patient_id, order_data.problem_ids, LabOrderIndication),
     )
     session.add(order)
+    session.flush()
+    return order
+
+
+def update_lab_order_indications(session: Session, order_id: int, ids: list[int]) -> LabOrder:
+    patient_id = session.scalar(select(Encounter.patient_id).join(LabOrder, LabOrder.encounter_id == Encounter.id).where(LabOrder.id == order_id))
+    if patient_id is None:
+        raise HTTPException(status_code=404, detail='Lab request not found')
+    lock_active_patient(session, patient_id)
+    # Lock patient, encounter, and order in the same order as clinical writes.
+    encounter = session.scalar(select(Encounter).join(LabOrder, LabOrder.encounter_id == Encounter.id).where(LabOrder.id == order_id).with_for_update(of=Encounter))
+    if encounter is None or encounter.finalized_at is not None:
+        raise HTTPException(status_code=409, detail='Finalized visit notes cannot change their lab indications.')
+    order = session.scalar(select(LabOrder).where(LabOrder.id == order_id).with_for_update())
+    if order is None or order.status != 'ordered':
+        raise HTTPException(status_code=409, detail='Only pending lab requests can change their indications.')
+    replace_indications(session, order, patient_id, ids, LabOrderIndication)
     session.flush()
     return order
 
