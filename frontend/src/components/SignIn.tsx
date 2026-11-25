@@ -94,7 +94,7 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
       <div className="sign-in-intro">
         <div className="sign-in-brand"><BrandMark /> Primary Care EMR</div>
         <p className="sign-in-kicker">{mode === 'staff' ? 'Clinical workspace' : 'Your patient portal'}</p>
-        <h2>{mode === 'staff' ? <>Connected care.<br />Clearer workflows.</> : <>Your health.<br />All in one place.</>}</h2>
+        <p className="sign-in-headline">{mode === 'staff' ? <>Connected care.<br />Clearer workflows.</> : <>Your health.<br />All in one place.</>}</p>
         <p>{mode === 'staff' ? 'Patient records, clinical documentation, and care coordination in one workspace.' : 'Find your appointments, health records and care instructions whenever you need them.'}</p>
         <CareIllustration patient={mode === 'patient'} />
         <div className="sign-in-intro-rule" />
@@ -105,26 +105,27 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
         <h1 id="sign-in-title">{mode === 'patient' ? 'Patient sign in' : 'Staff sign in'}</h1>
         <p className="sign-in-description">{BROWSER_MODE ? 'Choose an account to open your workspace.' : 'Enter your account credentials to continue.'}</p>
         {BROWSER_MODE && (
-          <div className="account-choices" aria-label="Available accounts">
+          <div className="account-choices" role="group" aria-label="Available accounts">
             {(mode === 'staff'
               ? [{ username: 'admin', name: 'Administrator', description: 'Clinical work and chart administration' }, { username: 'clinician', name: 'Clinician', description: 'Patient care and clinic work queues' }]
               : [{ username: 'jordan.lee', name: 'Jordan Lee', description: 'Health record and appointments' }, { username: 'maria.thompson', name: 'Maria Thompson', description: 'Health record and appointments' }]
             ).map((choice) => (
-              <button key={choice.username} type="button" disabled={busy} aria-label={'Sign in as ' + choice.name}
+              <button key={choice.username} type="button" disabled={busy} aria-label={'Sign in as ' + choice.name} aria-describedby={'account-description-' + choice.username}
                 onClick={() => void signIn(choice.username, 'Welcome-EMR-2026')}>
                 <span className="account-choice-icon"><WorkspaceIcon name={mode === 'patient' ? 'person' : choice.username === 'admin' ? 'audit' : 'clinician'} size={24} /></span>
-                <span className="account-choice-copy"><strong>{choice.name}</strong><small>{choice.description}</small></span>
+                <span className="account-choice-copy"><strong>{choice.name}</strong><small id={'account-description-' + choice.username}>{choice.description}</small></span>
                 <WorkspaceIcon name="arrow" size={18} />
               </button>
             ))}
           </div>
         )}
         {BROWSER_MODE && <p className="sign-in-divider">Or sign in with account credentials</p>}
-        <form onSubmit={(event) => void handleSubmit(event)}>
+        <form aria-label="Account credentials" onSubmit={(event) => void handleSubmit(event)}>
           <label htmlFor="account-username">Username</label>
           <input
             id="account-username"
             autoComplete="username"
+            disabled={busy}
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             required
@@ -134,6 +135,7 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
             id="account-password"
             type="password"
             autoComplete="current-password"
+            disabled={busy}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
@@ -143,13 +145,14 @@ export default function SignIn({ mode, onModeChange, onSignedIn }: SignInProps) 
             {busy ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
-        {BROWSER_MODE && !busy && <p className={`sign-in-status sign-in-status-${preparation}`} role="status">
-          {preparation === 'preparing' ? 'Preparing the workspace. You can sign in while it loads.'
-            : preparation === 'ready' ? 'Workspace ready.'
-              : 'Workspace preparation did not complete. If sign-in fails, use Demo reset.'}
-        </p>}
-        {busy && <p className="sign-in-status sign-in-status-preparing" role="status">{BROWSER_MODE && preparation === 'preparing'
-          ? 'Preparing the workspace and checking your account…' : 'Checking your account…'}</p>}
+        <p className={'sign-in-status sign-in-status-' + (busy ? 'preparing' : preparation)}
+          role="status" aria-atomic="true" hidden={!BROWSER_MODE && !busy}>
+          {busy ? (BROWSER_MODE && preparation === 'preparing'
+            ? 'Preparing the workspace and checking your account…' : 'Checking your account…')
+            : BROWSER_MODE ? preparation === 'preparing' ? 'Preparing the workspace. You can sign in while it loads.'
+              : preparation === 'ready' ? 'Workspace ready.'
+                : 'Workspace preparation did not complete. If sign-in fails, use Demo reset.' : ''}
+        </p>
         <button
           type="button"
           className="sign-in-switch"
