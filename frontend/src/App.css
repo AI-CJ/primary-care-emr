@@ -1754,3 +1754,38 @@
 .lab-resolution-review input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 2px; }
 .lab-resolution-notice { margin: 12px 0; padding: 12px 14px; color: var(--deep-sea); background: var(--pale-aqua); border: 1px solid var(--border); border-radius: 8px; }
 @media (max-width: 600px) { .lab-resolution-form { padding: 12px; } .lab-resolution-actions button { flex: 1 1 auto; } }
+
+/* Keep each pending order, patient and action together without a second
+   full-width button row. Editing expands in place for readable form fields. */
+.lab-worklist-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+  grid-template-areas: "details patient" "details actions";
+  grid-template-rows: auto 1fr;
+  gap: 6px 20px;
+  padding-block: 14px;
+  align-items: start;
+}
+.lab-worklist-details { grid-area: details; min-width: 0; }
+.lab-worklist-row .pending-lab-patient { grid-area: patient; min-width: 0; gap: 0; }
+.lab-worklist-row .schedule-patient-link {
+  min-height: 44px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.lab-worklist-row .pending-lab-resolution { grid-area: actions; min-width: 0; }
+.lab-worklist-row .lab-resolution-actions { margin-top: 0; }
+.lab-worklist-row .lab-resolution-form { margin-top: 4px; }
+.lab-worklist-row-editing {
+  grid-template-areas: "details patient" "actions actions";
+  grid-template-rows: auto auto;
+}
+@media (max-width: 700px) {
+  .lab-worklist-row, .lab-worklist-row-editing {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "details" "patient" "actions";
+    grid-template-rows: auto auto auto;
+    gap: 8px;
+  }
+  .lab-worklist-row .pending-lab-patient { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0 8px; }
+}

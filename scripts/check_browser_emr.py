@@ -120,6 +120,29 @@ def run():
                 row = pending.filter(has_text="Basic metabolic panel").filter(has_text="Jordan Lee")
                 expect(row).to_be_visible(timeout=TIMEOUT)
                 count = pending.count()
+                # Compact desktop actions share the patient column, rather than
+                # occupying a separate full-width row for every pending order.
+                details = row.locator(".lab-worklist-details").bounding_box()
+                actions = row.locator(".pending-lab-resolution").bounding_box()
+                assert details and actions and actions["x"] >= details["x"] + details["width"]
+                original_viewport = page.viewport_size
+                for width in (360, 320):
+                    page.set_viewport_size({"width": width, "height": 800})
+                    for label in ("Cancel request", "Record result", "Jordan Lee"):
+                        target = row.get_by_role("button", name=label, exact=True)
+                        expect(target).to_be_visible()
+                        assert target.bounding_box()["height"] >= 44
+                    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+                row.get_by_role("button", name="Cancel request", exact=True).click()
+                expect(row.get_by_label("Cancellation reason *")).to_be_focused()
+                assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+                expect(row.get_by_role("button", name="Confirm cancellation", exact=True)).to_be_disabled()
+                capture_reference(page, "12-pending-lab-cancel-mobile")
+                row.get_by_role("button", name="Keep request pending", exact=True).click()
+                expect(row.get_by_role("button", name="Cancel request", exact=True)).to_be_focused()
+                expect(pending).to_have_count(count)
+                assert original_viewport is not None
+                page.set_viewport_size(original_viewport)
                 row.get_by_role("button", name="Cancel request", exact=True).click()
                 expect(row.get_by_label("Cancellation reason *")).to_be_focused()
                 expect(row.get_by_role("button", name="Confirm cancellation", exact=True)).to_be_disabled()
