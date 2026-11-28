@@ -10,12 +10,11 @@ def exercise_screen_loading(browser, url):
         page.on("request", lambda request: requested.append(request.url))
         page.goto(url)
         expect(page.get_by_text("Workspace ready.", exact=True)).to_be_visible(timeout=120_000)
-        for deferred in ("StaffDashboard-", "EncounterList-", "PatientPortal-"):
+        for deferred in ("EncounterList-", "PatientPortal-"):
             assert not any(deferred in request for request in requested), deferred
 
         page.get_by_role("button", name="Sign in as Clinician", exact=True).click()
         expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_focused()
-        assert any("StaffDashboard-" in request for request in requested)
         assert not any("EncounterList-" in request for request in requested)
         assert not any("PatientPortal-" in request for request in requested)
 

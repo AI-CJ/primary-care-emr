@@ -19,6 +19,7 @@ import SectionNavigation, { type SectionOption } from './components/SectionNavig
 import './ClinicalWorkspace.css'
 import { BrandMark } from './components/BrandArtwork'
 import ScreenBoundary from './components/ScreenBoundary'
+import StaffDashboard from './components/StaffDashboard'
 
 const AppointmentChangeRequestsWorklist = lazy(() => import('./components/AppointmentChangeRequestsWorklist'))
 const ActiveCareGoalsWorklist = lazy(() => import('./components/ActiveCareGoalsWorklist'))
@@ -45,9 +46,9 @@ const PatientReferralHistory = lazy(() => import('./components/PatientReferralHi
 const PatientForm = lazy(() => import('./components/PatientForm'))
 const ProblemList = lazy(() => import('./components/ProblemList'))
 const VitalList = lazy(() => import('./components/VitalList'))
-const PatientPortal = lazy(() => import('./components/PatientPortal'))
+const loadPatientPortal = () => import('./components/PatientPortal')
+const PatientPortal = lazy(loadPatientPortal)
 const AuditReview = lazy(() => import('./components/AuditReview'))
-const StaffDashboard = lazy(() => import('./components/StaffDashboard'))
 const PatientBackground = lazy(() => import('./components/ChartHistory').then(module => ({ default: module.PatientBackground })))
 const ImagingHistory = lazy(() => import('./components/ChartHistory').then(module => ({ default: module.ImagingHistory })))
 
@@ -865,7 +866,12 @@ function App() {
       <SignIn
         key={signInMode}
         mode={signInMode}
-        onModeChange={(mode) => { focusAfterTransition.current = true; setSignInMode(mode) }}
+        onModeChange={(mode) => {
+          // Prepare the next role's screen while credentials are being entered.
+          if (mode === 'patient') void loadPatientPortal().catch(() => undefined)
+          focusAfterTransition.current = true
+          setSignInMode(mode)
+        }}
         onSignedIn={(signedIn) => { focusAfterTransition.current = true; setAccount(signedIn) }}
       />
     )
