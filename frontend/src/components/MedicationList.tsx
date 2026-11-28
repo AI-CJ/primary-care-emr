@@ -1,8 +1,9 @@
 import DiagnosisIndications from './DiagnosisIndications'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Medication } from '../types'
 import MedicationForm from './MedicationForm'
+import { useInlineEditorFocus } from '../useInlineEditorFocus'
 
 type MedicationListProps = {
   patientId: number
@@ -27,6 +28,9 @@ function MedicationList({ patientId }: MedicationListProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editingMedication, setEditingMedication] =
     useState<Medication | null>(null)
+  const [message, setMessage] = useState('')
+  const headingId = useId()
+  const { containerRef, rememberTrigger, returnToHeading } = useInlineEditorFocus(isAdding || editingMedication !== null)
 
   const loadMedications = useCallback(async () => {
     setIsLoading(true)
@@ -61,26 +65,31 @@ function MedicationList({ patientId }: MedicationListProps) {
   }, [loadMedications])
 
   function finishEditing() {
+    returnToHeading()
     setIsAdding(false)
     setEditingMedication(null)
+    setMessage('Medication saved.')
     void loadMedications()
   }
 
   return (
-    <section className="overview-card medication-card">
+    <section className="overview-card medication-card" ref={containerRef} aria-labelledby={headingId}>
       <div className="overview-card-header">
-        <h2>Medications</h2>
+        <h2 id={headingId}>Medications</h2>
 
         {!isAdding && !editingMedication && (
           <button
             className="secondary-action-button"
             type="button"
-            onClick={() => setIsAdding(true)}
+            data-editor-trigger="add"
+            onClick={() => { rememberTrigger('add'); setMessage(''); setIsAdding(true) }}
           >
             + Add Medication
           </button>
         )}
       </div>
+
+      <p role="status" aria-atomic="true" className="form-success editor-status">{message}</p>
 
       {isAdding && (
         <MedicationForm
@@ -100,7 +109,7 @@ function MedicationList({ patientId }: MedicationListProps) {
       )}
 
       {!isAdding && !editingMedication && isLoading && (
-        <p>Loading medications...</p>
+        <p role="status">Loading medications...</p>
       )}
 
       {!isAdding && !editingMedication && error && (
@@ -163,7 +172,9 @@ function MedicationList({ patientId }: MedicationListProps) {
                 <button
                   className="secondary-action-button"
                   type="button"
-                  onClick={() => setEditingMedication(medication)}
+                  aria-label={'Edit medication: ' + medication.name + (medication.strength ? ' ' + medication.strength : '')}
+                  data-editor-trigger={'medication-' + medication.id}
+                  onClick={() => { rememberTrigger('medication-' + medication.id); setMessage(''); setEditingMedication(medication) }}
                 >
                   Edit
                 </button>

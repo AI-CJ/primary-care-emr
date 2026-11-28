@@ -10,6 +10,7 @@ import {
 } from '../patientLifecycle'
 import './PatientLifecycleControls.css'
 import type { Patient } from '../types'
+import { useInlineEditorFocus } from '../useInlineEditorFocus'
 
 type PatientLifecycleControlsProps = {
   patientId: number
@@ -29,6 +30,7 @@ export default function PatientLifecycleControls({ patientId, onChanged }: Patie
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const { containerRef, rememberTrigger } = useInlineEditorFocus(confirming !== null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -104,7 +106,7 @@ export default function PatientLifecycleControls({ patientId, onChanged }: Patie
   const canManage = canManagePatientLifecycle(account)
 
   return (
-    <section className={`overview-card lifecycle-card lifecycle-card-${status}`} aria-labelledby="patient-lifecycle-heading">
+    <section className={`overview-card lifecycle-card lifecycle-card-${status}`} ref={containerRef} aria-labelledby="patient-lifecycle-heading">
       <div className="overview-card-header lifecycle-card-header">
         <div>
           <p className="eyebrow">Patient lifecycle</p>
@@ -131,7 +133,8 @@ export default function PatientLifecycleControls({ patientId, onChanged }: Patie
         <button
           className={nextAction === 'archive' ? 'danger-button' : 'secondary-action-button'}
           type="button"
-          onClick={() => setConfirming(nextAction)}
+          data-editor-trigger="lifecycle"
+          onClick={() => { rememberTrigger('lifecycle'); setConfirming(nextAction) }}
         >
           {nextAction === 'archive' ? 'Archive chart' : 'Reactivate chart'}
         </button>
@@ -157,6 +160,7 @@ export default function PatientLifecycleControls({ patientId, onChanged }: Patie
               className="secondary-action-button"
               type="button"
               disabled={isSaving}
+              data-editor-initial-focus
               onClick={() => setConfirming(null)}
             >
               Cancel

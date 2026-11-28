@@ -1,8 +1,9 @@
 import { DiagnosisLabel } from './DiagnosisIndications'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Problem } from '../types'
 import ProblemForm from './ProblemForm'
+import { useInlineEditorFocus } from '../useInlineEditorFocus'
 
 type ProblemListProps = {
   patientId: number
@@ -14,6 +15,9 @@ function ProblemList({ patientId }: ProblemListProps) {
   const [error, setError] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null)
+  const [message, setMessage] = useState('')
+  const headingId = useId()
+  const { containerRef, rememberTrigger, returnToHeading } = useInlineEditorFocus(isAdding || editingProblem !== null)
 
   const loadProblems = useCallback(async () => {
     setIsLoading(true)
@@ -48,25 +52,30 @@ function ProblemList({ patientId }: ProblemListProps) {
   }, [loadProblems])
 
   function finishEditing() {
+    returnToHeading()
     setIsAdding(false)
     setEditingProblem(null)
+    setMessage('Problem saved.')
     void loadProblems()
   }
 
   return (
-    <section className="overview-card problem-card">
+    <section className="overview-card problem-card" ref={containerRef} aria-labelledby={headingId}>
       <div className="overview-card-header">
-        <h2>Problems</h2>
+        <h2 id={headingId}>Problems</h2>
         {!isAdding && !editingProblem && (
           <button
             className="secondary-action-button"
             type="button"
-            onClick={() => setIsAdding(true)}
+            data-editor-trigger="add"
+            onClick={() => { rememberTrigger('add'); setMessage(''); setIsAdding(true) }}
           >
             + Add Problem
           </button>
         )}
       </div>
+
+      <p role="status" aria-atomic="true" className="form-success editor-status">{message}</p>
 
       {isAdding && (
         <ProblemForm
@@ -85,7 +94,7 @@ function ProblemList({ patientId }: ProblemListProps) {
         />
       )}
 
-      {!isAdding && !editingProblem && isLoading && <p>Loading problems...</p>}
+      {!isAdding && !editingProblem && isLoading && <p role="status">Loading problems...</p>}
       {!isAdding && !editingProblem && error && (
         <p className="form-error" role="alert">{error}</p>
       )}
@@ -111,7 +120,9 @@ function ProblemList({ patientId }: ProblemListProps) {
               <button
                 className="secondary-action-button"
                 type="button"
-                onClick={() => setEditingProblem(problem)}
+                aria-label={'Edit problem: ' + problem.name}
+                data-editor-trigger={'problem-' + problem.id}
+                onClick={() => { rememberTrigger('problem-' + problem.id); setMessage(''); setEditingProblem(problem) }}
               >
                 Edit
               </button>

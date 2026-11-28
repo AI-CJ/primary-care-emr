@@ -86,9 +86,9 @@ export default function ReferencePicker({ kind, label, value, selected, onChange
       if (options.length) setActive(index => event.key === 'ArrowDown'
         ? Math.min(index + 1, options.length - 1)
         : index < 0 ? options.length - 1 : Math.max(0, index - 1))
-    } else if (event.key === 'Enter' && expanded && active >= 0) {
+    } else if (event.key === 'Enter' && expanded) {
       event.preventDefault()
-      if (options[active]) choose(options[active])
+      if (active >= 0 && options[active]) choose(options[active])
     }
   }
 

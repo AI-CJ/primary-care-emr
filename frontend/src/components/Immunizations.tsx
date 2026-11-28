@@ -3,6 +3,7 @@ import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import { localDate } from '../date'
 import { formatPortalDate } from '../portalAppointments'
 import ReferencePicker, { type ReferenceChoice } from './ReferencePicker'
+import { useInlineEditorFocus } from '../useInlineEditorFocus'
 
 type Source = 'clinic' | 'historical_record' | 'patient_reported'
 type RecordItem = {
@@ -120,6 +121,7 @@ export default function Immunizations({ patientId, staff = false, archived = fal
   const [adding, setAdding] = useState(false)
   const [correcting, setCorrecting] = useState<number | null>(null)
   const [message, setMessage] = useState('')
+  const { containerRef, rememberTrigger, returnToHeading } = useInlineEditorFocus(adding || correcting !== null)
   useEffect(() => {
     const controller = new AbortController()
     async function load() {
@@ -141,19 +143,20 @@ export default function Immunizations({ patientId, staff = false, archived = fal
   const current = state.path === path ? state : { path, status: 'loading' as const }
   const rows = current.status === 'ready' ? current.rows : []
   function finish(text: string) {
+    returnToHeading()
     setAdding(false)
     setCorrecting(null)
     setMessage(text)
     setRevision(n => n + 1)
   }
-  return <section className={staff ? 'overview-card immunization-card' : 'portal-card immunization-card'} aria-labelledby={heading}>
+  return <section className={staff ? 'overview-card immunization-card' : 'portal-card immunization-card'} ref={containerRef} aria-labelledby={heading}>
     <div className={staff ? 'overview-card-header' : 'immunization-heading'}>
       <h2 id={heading}>{staff ? 'Vaccination history' : 'My vaccination history'}</h2>
       {staff && !archived && !adding && correcting === null && <button className="secondary-action-button" type="button"
-        onClick={() => { setAdding(true); setMessage('') }}>+ Record vaccination</button>}
+        data-editor-trigger="add" onClick={() => { rememberTrigger('add'); setAdding(true); setMessage('') }}>+ Record vaccination</button>}
     </div>
     <p className={staff ? 'encounter-meta' : 'portal-help'}>This is a record of documented vaccinations, not a determination of which vaccines are due. Missing records do not establish that a vaccine was never received.</p>
-    {message && <p role="status" className="portal-confirmation">{message}</p>}
+    <p role="status" aria-atomic="true" className={message ? 'portal-confirmation' : 'editor-status'}>{message}</p>
     {adding && patientId !== undefined && <ImmunizationForm patientId={patientId}
       onSaved={() => finish('Vaccination recorded.')} onCancel={() => setAdding(false)} />}
     {current.status === 'loading' && <p role="status">Loading vaccination history…</p>}
@@ -174,7 +177,10 @@ export default function Immunizations({ patientId, staff = false, archived = fal
         {staff && row.voided_at && <p>Correction: {row.void_reason}</p>}
         {staff && !archived && !row.voided_at && !adding && (correcting === row.id
           ? <Correction row={row} onDone={() => finish('Correction recorded.')} onCancel={() => setCorrecting(null)} />
-          : correcting === null && <button className="secondary-action-button" type="button" onClick={() => { setCorrecting(row.id); setMessage('') }}>Mark entered in error</button>)}
+          : correcting === null && <button className="secondary-action-button" type="button"
+            aria-label={'Mark entered in error: ' + row.vaccine_name + ' on ' + row.administered_on}
+            data-editor-trigger={'immunization-' + row.id}
+            onClick={() => { rememberTrigger('immunization-' + row.id); setCorrecting(row.id); setMessage('') }}>Mark entered in error</button>)}
       </li>)}
     </ul>}
   </section>

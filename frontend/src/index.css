@@ -118,3 +118,13 @@ input {
   outline: 3px solid #20584f;
   outline-offset: 2px;
 }
+
+/* Keep save announcements mounted without reserving an empty paragraph gap. */
+.editor-status:empty { margin: 0; }
+
+@media (forced-colors: active) {
+  /* Background fills and shadows disappear in system high-contrast themes. */
+  .workspace-nav button[aria-current="page"] {
+    border-inline-start: 3px solid Highlight;
+  }
+}
