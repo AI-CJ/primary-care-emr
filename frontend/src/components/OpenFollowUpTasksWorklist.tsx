@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { FollowUpTask } from '../types'
+import { useWorklistView } from '../useWorklistView'
+import WorklistControls from './WorklistControls'
 
 type OpenFollowUpTask = FollowUpTask & {
   patient_name: string
@@ -21,6 +23,8 @@ function OpenFollowUpTasksWorklist({
   const [tasks, setTasks] = useState<OpenFollowUpTask[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
+  const worklist = useWorklistView(tasks, task =>
+    `${task.patient_name} ${task.title} ${task.details ?? ''} ${task.id}`)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -107,15 +111,15 @@ function OpenFollowUpTasksWorklist({
         )}
         {tasks && (
           <>
-            <p className="schedule-count" role="status">
-              {tasks.length} open task{tasks.length === 1 ? '' : 's'}
-              {overdueCount > 0 && <> {' · '}{overdueCount} overdue</>}
-            </p>
-            {tasks.length === 0 ? (
-              <p className="empty-message">No open follow-up tasks.</p>
+            <WorklistControls {...worklist.controls} label="Open follow-ups"
+              searchLabel="Find a follow-up" placeholder="Patient, task or task number"
+              summary={<>{tasks.length} open task{tasks.length === 1 ? '' : 's'}
+                {overdueCount > 0 && <> · {overdueCount} overdue</>}</>} />
+            {worklist.rows.length === 0 ? (
+              <p className="empty-message">{tasks.length ? 'No follow-up tasks match your search.' : 'No open follow-up tasks.'}</p>
             ) : (
-              <ol className="pending-lab-list">
-                {tasks.map((task) => (
+              <ol className="pending-lab-list" start={worklist.controls.start + 1} aria-label="Open follow-up tasks">
+                {worklist.rows.map((task) => (
                   <li className="pending-lab-row" key={task.id}>
                     <div>
                       <div className="pending-lab-title">

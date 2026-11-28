@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Allergy } from '../types'
 import AllergyForm from './AllergyForm'
+import { useInlineEditorFocus } from '../useInlineEditorFocus'
 
 type AllergyListProps = {
   patientId: number
@@ -30,6 +31,9 @@ function AllergyList({ patientId, onChanged }: AllergyListProps) {
   const [error, setError] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const [editingAllergy, setEditingAllergy] = useState<Allergy | null>(null)
+  const [message, setMessage] = useState('')
+  const headingId = useId()
+  const { containerRef, rememberTrigger, returnToHeading } = useInlineEditorFocus(isAdding || editingAllergy !== null)
 
   const loadAllergies = useCallback(async () => {
     setIsLoading(true)
@@ -64,27 +68,32 @@ function AllergyList({ patientId, onChanged }: AllergyListProps) {
   }, [loadAllergies])
 
   function finishEditing() {
+    returnToHeading()
     setIsAdding(false)
     setEditingAllergy(null)
+    setMessage('Allergy saved.')
     onChanged?.()
     void loadAllergies()
   }
 
   return (
-    <section className="overview-card allergy-card">
+    <section className="overview-card allergy-card" ref={containerRef} aria-labelledby={headingId}>
       <div className="overview-card-header">
-        <h2>Allergies</h2>
+        <h2 id={headingId}>Allergies</h2>
 
         {!isAdding && !editingAllergy && (
           <button
             className="secondary-action-button"
             type="button"
-            onClick={() => setIsAdding(true)}
+            data-editor-trigger="add"
+            onClick={() => { rememberTrigger('add'); setMessage(''); setIsAdding(true) }}
           >
             + Add Allergy
           </button>
         )}
       </div>
+
+      <p role="status" aria-atomic="true" className="form-success editor-status">{message}</p>
 
       {isAdding && (
         <AllergyForm
@@ -104,7 +113,7 @@ function AllergyList({ patientId, onChanged }: AllergyListProps) {
       )}
 
       {!isAdding && !editingAllergy && isLoading && (
-        <p>Loading allergies...</p>
+        <p role="status">Loading allergies...</p>
       )}
 
       {!isAdding && !editingAllergy && error && (
@@ -151,7 +160,9 @@ function AllergyList({ patientId, onChanged }: AllergyListProps) {
                 <button
                   className="secondary-action-button"
                   type="button"
-                  onClick={() => setEditingAllergy(allergy)}
+                  aria-label={'Edit allergy: ' + allergy.allergen}
+                  data-editor-trigger={'allergy-' + allergy.id}
+                  onClick={() => { rememberTrigger('allergy-' + allergy.id); setMessage(''); setEditingAllergy(allergy) }}
                 >
                   Edit
                 </button>

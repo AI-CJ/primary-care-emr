@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Vital } from '../types'
 import VitalForm from './VitalForm'
+import { useInlineEditorFocus } from '../useInlineEditorFocus'
 
 type VitalListProps = {
   patientId: number
@@ -39,6 +40,9 @@ function VitalList({ patientId }: VitalListProps) {
   const [error, setError] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const [editingVital, setEditingVital] = useState<Vital | null>(null)
+  const [message, setMessage] = useState('')
+  const headingId = useId()
+  const { containerRef, rememberTrigger, returnToHeading } = useInlineEditorFocus(isAdding || editingVital !== null)
 
   const loadVitals = useCallback(async () => {
     setIsLoading(true)
@@ -71,25 +75,29 @@ function VitalList({ patientId }: VitalListProps) {
   }, [loadVitals])
 
   function finishEditing() {
+    returnToHeading()
     setIsAdding(false)
     setEditingVital(null)
+    setMessage('Vitals saved.')
     void loadVitals()
   }
 
   return (
-    <section className="overview-card vital-card">
+    <section className="overview-card vital-card" ref={containerRef} aria-labelledby={headingId}>
       <div className="overview-card-header">
-        <h2>Vitals</h2>
+        <h2 id={headingId}>Vitals</h2>
         {!isAdding && !editingVital && (
           <button
             className="secondary-action-button"
             type="button"
-            onClick={() => setIsAdding(true)}
+            data-editor-trigger="add"
+            onClick={() => { rememberTrigger('add'); setMessage(''); setIsAdding(true) }}
           >
             + Record Vitals
           </button>
         )}
       </div>
+      <p role="status" aria-atomic="true" className="form-success editor-status">{message}</p>
       {isAdding && (
         <VitalForm
           patientId={patientId}
@@ -105,7 +113,7 @@ function VitalList({ patientId }: VitalListProps) {
           onCancel={() => setEditingVital(null)}
         />
       )}
-      {!isAdding && !editingVital && isLoading && <p>Loading vitals...</p>}
+      {!isAdding && !editingVital && isLoading && <p role="status">Loading vitals...</p>}
       {!isAdding && !editingVital && error && (
         <p className="form-error" role="alert">{error}</p>
       )}
@@ -128,7 +136,9 @@ function VitalList({ patientId }: VitalListProps) {
                 <button
                   className="secondary-action-button"
                   type="button"
-                  onClick={() => setEditingVital(vital)}
+                  aria-label={'Edit vitals from ' + vital.recorded_on}
+                  data-editor-trigger={'vital-' + vital.id}
+                  onClick={() => { rememberTrigger('vital-' + vital.id); setMessage(''); setEditingVital(vital) }}
                 >
                   Edit
                 </button>

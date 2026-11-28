@@ -31,6 +31,7 @@ Changes persist in the current tab when switching accounts. **Demo reset**, refr
 - Appointment scheduling, conflict checks, rescheduling, check-in, completion, cancellation and no-show tracking.
 - Structured visit notes, draft review, finalization, linked clinical snapshots, append-only addenda and patient instructions.
 - Pending laboratory worklist and chart-level result recording or cancellation with a reason; completed results enter a separate release workflow.
+- Searchable, six-row follow-up, care-goal and referral queues, preserving clinical order and announcing page changes.
 - Prior imaging report history with indication, findings, impression and report dates; referrals, care goals and follow-up tasks.
 - Administrator-only archive/reactivation and audit review, retaining clinical history.
 
@@ -155,6 +156,12 @@ The build script prepares the official references, pinned browser runtime and lo
 
 ## Verification and release
 
+The November 28 optimization pass reduces initial JavaScript from 501,446 to 261,679 bytes and dashboard queue data from six responses totaling 73,417 bytes to one 78-byte response in the measured fixture. Larger clinical screens and diagnosis terminology load on demand. The first dashboard stays ready before sign-in, and inline chart editors now preserve keyboard focus. Local validation passed **405 backend tests, 48 frontend tests**, full packaged browser/clinical workflows, and expanded keyboard, narrow-screen, reduced-motion and forced-colors checks.
+
+See the [optimization review and comparable measurements](docs/OPTIMIZATION_2026-11-28.md) and [PR 93](https://github.com/AI-CJ/primary-care-emr/pull/93) for scope and evidence. The existing seven CI jobs and published-workspace verification remain release gates. Full Python startup is still the main delay; the controlled profile did not show a material reduction in complete cold workspace readiness.
+
+### Historical November 25 application release
+
 The audited application revision [`1b68e37`](https://github.com/AI-CJ/primary-care-emr/commit/1b68e37f8ed2adf144f4f7d67b10683656730688) passed all seven main-branch CI jobs and was deployed and verified on November 25, 2026, at 7:59 AM Eastern. The evidence below refers to that application revision, not to a subsequent documentation-only commit.
 
 | Check | Verified result |
@@ -194,7 +201,11 @@ python -m scripts.check_published_workspace --revision <full-commit-sha>
 
 ### Loading performance
 
-Startup preparation starts before the user signs in. The runtime downloads its independent backend archive concurrently, derives the fixed demo account hashes without weakening the existing PBKDF2 parameters, and defers full medication and vaccine lookup assets until requested. The verified build contains 18.2 MiB of on-disk runtime assets, including approximately 461 KiB of deferred terminology archives.
+The [November 28 comparison](docs/OPTIMIZATION_2026-11-28.md#measurements) uses the same controlled profiler for both builds. It measured a 0.314 s sign-in shell, 15.219 s cold workspace readiness and 0.158 s prepared sign-in under a shared 20 Mbit/s local payload budget with 40 ms per-request delay. These individual observations are not public-network guarantees. The five-second readiness stretch target remains unmet.
+
+The following table retains the earlier November 25 measurements for provenance; it is not the latest optimization comparison.
+
+Startup preparation starts before the user signs in. The runtime downloads its independent backend archive concurrently, derives the fixed demo account hashes without weakening the existing PBKDF2 parameters, and defers full medication and vaccine lookup assets until requested. The current build contains about 18.2 MiB of on-disk runtime assets, including 1,038,479 bytes of deferred diagnosis, medication and vaccine archives.
 
 | Measured procedure | Sign-in shell visible | Workspace ready | Prepared sign-in |
 | --- | ---: | ---: | ---: |
@@ -218,6 +229,7 @@ The [verified application screenshot archive](https://github.com/AI-CJ/primary-c
 | `scripts/` | Reference imports, runtime packaging, security review and browser verification |
 | [docs/UX_DESIGN.md](docs/UX_DESIGN.md) | Design rationale and references |
 | [docs/UX_AUDIT.md](docs/UX_AUDIT.md) | Incremental and final release evidence |
+| [docs/OPTIMIZATION_2026-11-28.md](docs/OPTIMIZATION_2026-11-28.md) | Speed, worklist and accessibility changes with before/after measurements |
 | [docs/SYNTHETIC_POPULATION.md](docs/SYNTHETIC_POPULATION.md) | Fictional patient generation and history |
 | [docs/ICD10_REFERENCE.md](docs/ICD10_REFERENCE.md) | Diagnosis terminology |
 | [docs/MEDICATION_VACCINE_REFERENCE.md](docs/MEDICATION_VACCINE_REFERENCE.md) | Medication and immunization terminology |
@@ -232,7 +244,7 @@ The [verified application screenshot archive](https://github.com/AI-CJ/primary-c
 - Only fictional records belong in the application, repository, screenshots and logs.
 - The public workspace is disposable and has no durable shared storage. Its browser-side checks are not production security controls.
 - The local API has authorization, session revocation, chart lifecycle safeguards and privacy-minimal audit events. Neither mode has received an independent penetration test or HIPAA compliance assessment. Passing advisory scans do not rule out unknown vulnerabilities.
-- Manual screen-reader speech testing and representative clinician/patient usability evaluation remain outstanding. Mobile worklists and charts still require substantial vertical scrolling. Automated checks do not establish full WCAG conformance.
+- Manual screen-reader speech testing and representative clinician/patient usability evaluation remain outstanding. Some chart and interactive worklist screens still require substantial vertical scrolling; follow-up, care-goal and referral queues now use bounded pages. Automated checks do not establish full WCAG conformance.
 - Patient histories and imaging findings are fictional and not independently physician-validated. Imaging records contain report text, not diagnostic images or PACS/DICOM integration. Historical background and imaging records are read-only in this release.
 - Terminology lookup is not electronic prescribing, dosing or interaction checking, clinical decision support, vaccine eligibility forecasting or registry reporting. Real billing, insurance claims, secure messaging and external clinical integrations are outside scope.
 

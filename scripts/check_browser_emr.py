@@ -5,6 +5,13 @@ from pathlib import Path
 from time import monotonic
 from playwright.sync_api import expect, sync_playwright
 
+if __package__:
+    from .check_worklist_usability import exercise_worklist_usability
+    from .check_screen_loading import exercise_screen_loading
+else:
+    from check_worklist_usability import exercise_worklist_usability
+    from check_screen_loading import exercise_screen_loading
+
 URL = "http://127.0.0.1:4174/primary-care-emr/"
 TIMEOUT = 120_000
 
@@ -103,6 +110,7 @@ def run():
             expect(page.locator(".dashboard-queue strong")).to_have_text(
                 [re.compile(r"^[0-9]+$")] * 6, timeout=TIMEOUT)
         capture_reference(page, "02-staff-dashboard")
+        exercise_worklist_usability(page)
         # Each dashboard tile opens its real worklist.
         destinations = (
             ("Appointment requests", "Appointment change requests"),
@@ -338,7 +346,7 @@ def run():
         chart_section(page, "Visit notes")
         expect(allergy_status).to_contain_text("Latex")
         chart_section(page, "Health record")
-        page.locator(".allergy-card").get_by_role("button", name="Edit", exact=True).click()
+        page.locator(".allergy-card").get_by_role("button", name="Edit allergy: Latex", exact=True).click()
         page.locator(".allergy-card").get_by_label("Status *").select_option("inactive")
         page.locator(".allergy-card").get_by_role("button", name="Save Changes", exact=True).click()
         expect(allergy_status).to_contain_text("No active allergies recorded; historical records exist.")
@@ -527,6 +535,7 @@ def run():
         portal_section(page, "Appointments & visits")
         expect(page.get_by_text("No requests submitted yet.")).to_be_visible()
         assert not errors, errors
+        exercise_screen_loading(browser, URL)
         browser.close()
     print("Interactive browser EMR smoke passed: edits, account roles, requests, tab isolation and reset.")
 

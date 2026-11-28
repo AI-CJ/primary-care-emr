@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Encounter } from '../types'
 import EncounterForm from './EncounterForm'
@@ -9,6 +9,7 @@ import EncounterMedications from './EncounterMedications'
 import EncounterAllergies from './EncounterAllergies'
 import EncounterLabOrders from './EncounterLabOrders'
 import EncounterReferrals from './EncounterReferrals'
+import { useInlineEditorFocus } from '../useInlineEditorFocus'
 
 type EncounterListProps = {
   patientId: number
@@ -49,7 +50,7 @@ function EncounterDetails({
 
     details.open = true
     summary.focus({ preventScroll: true })
-    details.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    details.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
   }, [focusRequest])
 
   return (
@@ -103,6 +104,9 @@ function EncounterList({
     encounterId: number
     message: string
   } | null>(null)
+  const [message, setMessage] = useState('')
+  const headingId = useId()
+  const { containerRef, rememberTrigger, returnToHeading } = useInlineEditorFocus(isAdding || editing !== null)
 
   const loadEncounters = useCallback(async () => {
     setIsLoading(true)
@@ -163,7 +167,7 @@ function EncounterList({
   useEffect(() => {
     if (!isAdding || startingAppointmentId === null) return
     startHeadingRef.current?.focus({ preventScroll: true })
-    startHeadingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    startHeadingRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
   }, [isAdding, startingAppointmentId])
 
   function closeAddForm() {
@@ -173,8 +177,10 @@ function EncounterList({
   }
 
   function finishEditing() {
+    returnToHeading()
     closeAddForm()
     setEditing(null)
+    setMessage('Visit note saved.')
     onNoteSaved?.()
     void loadEncounters()
   }
@@ -205,14 +211,17 @@ function EncounterList({
   )
 
   return (
-    <section className="overview-card encounter-card">
+    <section className="overview-card encounter-card" ref={containerRef} aria-labelledby={headingId}>
       <div className="overview-card-header">
-        <h2>Visit Notes</h2>
+        <h2 id={headingId}>Visit Notes</h2>
         {!isAdding && !editing && (
           <button
             className="secondary-action-button"
             type="button"
+            data-editor-trigger="add"
             onClick={() => {
+              rememberTrigger('add')
+              setMessage('')
               setStartingAppointmentId(null)
               setStartNoteMessage(null)
               setIsAdding(true)
@@ -222,6 +231,7 @@ function EncounterList({
           </button>
         )}
       </div>
+      <p role="status" aria-atomic="true" className="form-success editor-status">{message}</p>
 
       {startNoteMessage && (
         <p className="form-error" role="status">{startNoteMessage}</p>
@@ -260,7 +270,7 @@ function EncounterList({
         </p>
       )}
 
-      {!isAdding && !editing && isLoading && <p>Loading visit notes...</p>}
+      {!isAdding && !editing && isLoading && <p role="status">Loading visit notes...</p>}
 
       {!isAdding && !editing && error && (
         <p className="form-error" role="alert">{error}</p>
@@ -310,7 +320,8 @@ function EncounterList({
                         ': ' + encounter.reason_for_visit
                       }
                       disabled={finalizingId !== null}
-                      onClick={() => setEditing(encounter)}
+                      data-editor-trigger={'encounter-' + encounter.id}
+                      onClick={() => { rememberTrigger('encounter-' + encounter.id); setMessage(''); setEditing(encounter) }}
                     >
                       Edit
                     </button>

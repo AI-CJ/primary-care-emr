@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Appointment, AppointmentStatus, PatientAppointment } from '../types'
 import AppointmentForm from './AppointmentForm'
 import AppointmentStatusHistory from './AppointmentStatusHistory'
 import { localDate } from '../date'
+import { useInlineEditorFocus } from '../useInlineEditorFocus'
 
 type AppointmentListProps = {
   patientId: number
@@ -41,6 +42,9 @@ function AppointmentList({
   const [actionError, setActionError] = useState<string | null>(null)
   const reviewAppointmentRef = useRef<HTMLElement | null>(null)
   const focusedReviewId = useRef<number | null>(null)
+  const [message, setMessage] = useState('')
+  const headingId = useId()
+  const { containerRef, rememberTrigger, returnToHeading } = useInlineEditorFocus(isAdding || editing !== null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -87,13 +91,15 @@ function AppointmentList({
     const row = reviewAppointmentRef.current
     if (!row) return
     row.focus({ preventScroll: true })
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    row.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
     focusedReviewId.current = highlightAppointmentId
   }, [appointments, error, highlightAppointmentId, isLoading])
 
   function finishEditing() {
+    returnToHeading()
     setIsAdding(false)
     setEditing(null)
+    setMessage('Appointment saved.')
     setRefreshCount((count) => count + 1)
   }
 
@@ -157,19 +163,21 @@ function AppointmentList({
   }
 
   return (
-    <section className="overview-card appointment-card">
+    <section className="overview-card appointment-card" ref={containerRef} aria-labelledby={headingId}>
       <div className="overview-card-header">
-        <h2>Appointments</h2>
+        <h2 id={headingId}>Appointments</h2>
         {!isAdding && !editing && (
           <button
             className="secondary-action-button"
             type="button"
-            onClick={() => setIsAdding(true)}
+            data-editor-trigger="add"
+            onClick={() => { rememberTrigger('add'); setMessage(''); setIsAdding(true) }}
           >
             + Schedule Appointment
           </button>
         )}
       </div>
+      <p role="status" aria-atomic="true" className="form-success editor-status">{message}</p>
 
       {actionError && (
         <p className="form-error" role="alert">{actionError}</p>
@@ -414,7 +422,8 @@ function AppointmentList({
                         'Edit appointment on ' + appointment.scheduled_date +
                         ' for ' + appointment.reason_for_visit
                       }
-                      onClick={() => setEditing(appointment)}
+                      data-editor-trigger={'appointment-' + appointment.id}
+                      onClick={() => { rememberTrigger('appointment-' + appointment.id); setMessage(''); setEditing(appointment) }}
                     >
                       Edit
                     </button>

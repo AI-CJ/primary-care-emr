@@ -3,9 +3,11 @@
 No synthetic timing estimates: run the real built app and count HTTP body bytes
 at the origin, including worker assets. This is not a GitHub Pages benchmark.
 """
+import argparse
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import re
 from tempfile import TemporaryDirectory
 from threading import Lock, Thread
 from time import monotonic, sleep
@@ -15,6 +17,32 @@ from playwright.sync_api import expect, sync_playwright
 RATE_BYTES = 2_500_000  # shared 20 Mbit/s payload budget
 DELAY_SECONDS = 0.04  # per request, not an RTT model
 TIMEOUT = 120_000
+
+# Observe message counts and UTF-8 response sizes, never credentials, search
+# text, patient names, or clinical response contents. A worker is still used
+# normally; the wrapper only measures the messages already sent by the app.
+WORK_QUEUE_PROFILE = """() => {
+  const original = Worker.prototype.postMessage;
+  const workers = new WeakMap();
+  window.__emrWorkQueueProfile = { requests: 0, responseBytes: 0 };
+  Worker.prototype.postMessage = function(message, ...options) {
+    if (!workers.has(this)) {
+      const pending = new Set();
+      workers.set(this, pending);
+      this.addEventListener('message', ({ data }) => {
+        if (!pending.delete(data.id)) return;
+        if (data.reply) window.__emrWorkQueueProfile.responseBytes +=
+          new TextEncoder().encode(data.reply.body).byteLength;
+      });
+    }
+    if (message?.request?.url &&
+        new URL(message.request.url).pathname.startsWith('/worklists/')) {
+      workers.get(this).add(message.id);
+      window.__emrWorkQueueProfile.requests += 1;
+    }
+    return original.call(this, message, ...options);
+  };
+}"""
 
 
 class ProfileOrigin(ThreadingHTTPServer):
@@ -64,11 +92,16 @@ def sign_in(page):
     start = monotonic()
     page.get_by_role("button", name="Sign in as Clinician", exact=True).click()
     expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_visible(timeout=TIMEOUT)
-    return monotonic() - start
+    login = monotonic() - start
+    expect(page.locator(".dashboard-queue strong")).to_have_text(
+        [re.compile(r"^[0-9]+\+?$")] * 6, timeout=TIMEOUT)
+    dashboard = monotonic() - start
+    queues = page.evaluate("window.__emrWorkQueueProfile")
+    return login, dashboard, queues
 
 
-def run():
-    dist = Path("frontend/dist").resolve()
+def run(dist: Path):
+    dist = dist.resolve()
     assert (dist / "runtime/backend.zip").is_file(), "Build the browser application first"
     with TemporaryDirectory() as directory:
         (Path(directory) / "primary-care-emr").symlink_to(dist, target_is_directory=True)
@@ -80,6 +113,7 @@ def run():
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch()
                 context = browser.new_context()
+                context.add_init_script("(" + WORK_QUEUE_PROFILE + ")()")
                 external = []
                 context.on("request", lambda request: external.append(request.url)
                            if not request.url.startswith(url) else None)
@@ -95,12 +129,15 @@ def run():
                     shell = monotonic() - start
                     expect(page.get_by_text("Workspace ready.", exact=True)).to_be_visible(timeout=TIMEOUT)
                     ready = monotonic() - start
-                    login = sign_in(page)
+                    login, dashboard, queues = sign_in(page)
                     page.close()
                     payload = origin.body_bytes - before
                     samples.append(payload)
                     print(f"Startup profile {name}: shell={shell:.3f}s ready={ready:.3f}s "
-                          f"prepared_login={login:.3f}s origin_body_bytes={payload}")
+                          f"prepared_login={login:.3f}s dashboard_ready={dashboard:.3f}s "
+                          f"work_queue_requests={queues['requests']} "
+                          f"work_queue_response_bytes={queues['responseBytes']} "
+                          f"origin_body_bytes={payload}")
                 assert samples[0] > 0 and samples[1] < samples[0], samples
                 assert not external, "Unexpected external request during startup"
                 context.close()
@@ -109,6 +146,7 @@ def run():
                 # failure, not create a partial workspace. Restore and reset.
                 origin.fail_archive = True
                 page = browser.new_page()
+                page.add_init_script("(" + WORK_QUEUE_PROFILE + ")()")
                 page.goto(url, wait_until="domcontentloaded")
                 expect(page.get_by_text("Workspace preparation did not complete.", exact=False)).to_be_visible(timeout=TIMEOUT)
                 expect(page.get_by_role("button", name="Sign out", exact=True)).to_have_count(0)
@@ -131,4 +169,7 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dist", type=Path, default=Path("frontend/dist"),
+                        help="Built application to measure (use one script for baseline and candidate).")
+    run(parser.parse_args().dist)

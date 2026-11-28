@@ -149,6 +149,205 @@ def assert_solid_contrast(locator, minimum=4.5):
     print(f"Computed solid contrast: {ratio:.2f}:1")
 
 
+def check_inline_editors(page):
+    """Use real chart controls without losing the keyboard's place on replacement."""
+    lifecycle = page.get_by_role("region", name="Active chart", exact=True)
+    archive = lifecycle.get_by_role("button", name="Archive chart", exact=True)
+    keyboard_click(page, archive)
+    cancel = lifecycle.get_by_role("button", name="Cancel", exact=True)
+    # Initial confirmation focus is the action that leaves the chart unchanged.
+    expect(cancel).to_be_focused()
+    assert_exposed(page, "group", "Confirm archive")
+    page.keyboard.press("Enter")
+    expect(archive).to_be_focused()
+
+    nav = page.get_by_role("navigation", name="Patient chart sections")
+    keyboard_click(page, nav.get_by_role("button", name="Health record", exact=True))
+    expect(page.locator(".chart-section-heading h2")).to_be_focused()
+    cases = (
+        ("Problems", "+ Add Problem", "combobox", "Problem *", "Edit problem: "),
+        ("Medications", "+ Add Medication", "combobox", "Medication *", "Edit medication: "),
+        ("Allergies", "+ Add Allergy", "textbox", "Allergen *", "Edit allergy: "),
+    )
+    for region, add_name, field_role, field_name, edit_prefix in cases:
+        card = page.get_by_role("region", name=region, exact=True)
+        add = card.get_by_role("button", name=add_name, exact=True)
+        keyboard_click(page, add)
+        expect(card.get_by_role(field_role, name=field_name, exact=True)).to_be_focused()
+        keyboard_click(page, card.get_by_role("button", name="Cancel", exact=True))
+        expect(add).to_be_focused()
+        # These records already exist in the fictional seed population.
+        if region != "Allergies":
+            edit = card.get_by_role("button", name=re.compile("^" + edit_prefix)).first
+            expect(edit).to_be_visible()
+            label = edit.get_attribute("aria-label")
+            assert_exposed(page, "button", label)
+            keyboard_click(page, edit)
+            expect(card.get_by_role(field_role, name=field_name, exact=True)).to_be_focused()
+            keyboard_click(page, card.get_by_role("button", name="Cancel", exact=True))
+            expect(card.get_by_role("button", name=label, exact=True)).to_be_focused()
+
+    allergy = page.get_by_role("region", name="Allergies", exact=True)
+    keyboard_click(page, allergy.get_by_role("button", name="+ Add Allergy", exact=True))
+    page.keyboard.type("Keyboard verification allergen")
+    keyboard_click(page, allergy.get_by_role("button", name="Add Allergy", exact=True))
+    expect(allergy.get_by_role("heading", name="Allergies", exact=True)).to_be_focused()
+    saved = allergy.get_by_text("Allergy saved.", exact=True)
+    expect(saved).to_be_visible()
+    expect(saved).to_have_attribute("role", "status")
+    edit = allergy.get_by_role("button", name="Edit allergy: Keyboard verification allergen", exact=True)
+    expect(edit).to_be_visible()
+    keyboard_click(page, edit)
+    expect(allergy.get_by_role("textbox", name="Allergen *", exact=True)).to_be_focused()
+    keyboard_click(page, allergy.get_by_role("button", name="Cancel", exact=True))
+    expect(edit).to_be_focused()
+    keyboard_click(page, edit)
+    reaction = allergy.get_by_role("textbox", name="Reaction", exact=True)
+    reaction.focus()
+    page.keyboard.type("Fictional keyboard workflow check")
+    keyboard_click(page, allergy.get_by_role("button", name="Save Changes", exact=True))
+    expect(allergy.get_by_role("heading", name="Allergies", exact=True)).to_be_focused()
+    expect(allergy.get_by_text("Reaction: Fictional keyboard workflow check", exact=True)).to_be_visible()
+    # Once saved, focus stays put rather than jumping after the list reloads.
+    page.keyboard.press("Tab")
+    expect(allergy.get_by_role("button", name="+ Add Allergy", exact=True)).to_be_focused()
+    inspect_screen(page, "Chart inline editors")
+    print("Chart editor entry, cancellation, contextual labels, save and confirmation focus passed.")
+
+
+def check_forced_colors_navigation(page):
+    page.emulate_media(forced_colors="active")
+    current = page.get_by_role("navigation", name="Staff workspace").get_by_role(
+        "button", name="Dashboard", exact=True)
+    expect(current).to_have_attribute("aria-current", "page")
+    boundary = current.evaluate("""el => {
+      const style = getComputedStyle(el);
+      return [style.borderInlineStartStyle, parseFloat(style.borderInlineStartWidth)];
+    }""")
+    assert boundary[0] == "solid" and boundary[1] >= 2, (
+        f"Current workspace needs a visible boundary in forced colors: {boundary}"
+    )
+    assert_visible_keyboard_focus(current)
+    inspect_screen(page, "Staff dashboard in forced colors")
+    page.emulate_media(forced_colors="none")
+
+
+def check_reference_enter(page):
+    """An unselected autocomplete suggestion must not submit a clinical form."""
+    card = page.get_by_role("region", name="Medications", exact=True)
+    keyboard_click(page, card.get_by_role("button", name="+ Add Medication", exact=True))
+    picker = card.get_by_role("combobox", name="Medication *", exact=True)
+    expect(picker).to_be_focused()
+    page.keyboard.type("lisinopril")
+    options = card.get_by_role("listbox", name="Medication matches", exact=True)
+    expect(options.get_by_role("option").first).to_be_visible(timeout=TIMEOUT)
+    assert picker.get_attribute("aria-activedescendant") is None
+    page.keyboard.press("Enter")
+    expect(picker).to_be_enabled()
+    expect(picker).to_be_focused()
+    expect(options).to_be_visible()
+    expect(card.locator(".diagnosis-selected")).to_have_count(0)
+    # Dismissing suggestions still permits an intentional uncoded text entry.
+    page.keyboard.press("Escape")
+    expect(options).to_be_hidden()
+    page.keyboard.press("Enter")
+    expect(card.get_by_text("Medication saved.", exact=True)).to_be_visible()
+    record = card.locator(".medication-row").filter(
+        has=page.get_by_role("button", name="Edit medication: lisinopril", exact=True))
+    expect(record).to_contain_text("No RxNorm code recorded")
+    print("Unselected reference Enter and explicit free-text submission checks passed.")
+
+
+def check_additional_chart_editors(page):
+    nav = page.get_by_role("navigation", name="Patient chart sections")
+    vitals = page.get_by_role("region", name="Vitals", exact=True)
+    add = vitals.get_by_role("button", name="+ Record Vitals", exact=True)
+    keyboard_click(page, add)
+    expect(vitals.get_by_label("Recorded on *", exact=True)).to_be_focused()
+    keyboard_click(page, vitals.get_by_role("button", name="Cancel", exact=True))
+    expect(add).to_be_focused()
+    edit = vitals.get_by_role("button", name=re.compile("^Edit vitals from ")).first
+    label = edit.get_attribute("aria-label")
+    keyboard_click(page, edit)
+    expect(vitals.get_by_label("Recorded on *", exact=True)).to_be_focused()
+    keyboard_click(page, vitals.get_by_role("button", name="Cancel", exact=True))
+    expect(vitals.get_by_role("button", name=label, exact=True).first).to_be_focused()
+
+    keyboard_click(page, nav.get_by_role("button", name="Immunizations", exact=True))
+    vaccines = page.get_by_role("region", name="Vaccination history", exact=True)
+    add = vaccines.get_by_role("button", name="+ Record vaccination", exact=True)
+    keyboard_click(page, add)
+    expect(vaccines.get_by_role("combobox", name="Vaccine *", exact=True)).to_be_focused()
+    keyboard_click(page, vaccines.get_by_role("button", name="Cancel", exact=True))
+    expect(add).to_be_focused()
+    correct = vaccines.get_by_role("button", name=re.compile("^Mark entered in error: ")).first
+    expect(correct).to_be_visible()
+    label = correct.get_attribute("aria-label")
+    keyboard_click(page, correct)
+    expect(vaccines.get_by_role("textbox", name="Correction reason *", exact=True)).to_be_focused()
+    keyboard_click(page, vaccines.get_by_role("button", name="Cancel", exact=True))
+    expect(vaccines.get_by_role("button", name=label, exact=True)).to_be_focused()
+
+    keyboard_click(page, nav.get_by_role("button", name="Appointments", exact=True))
+    appointments = page.get_by_role("region", name="Appointments", exact=True)
+    add = appointments.get_by_role("button", name="+ Schedule Appointment", exact=True)
+    keyboard_click(page, add)
+    expect(appointments.get_by_label("Appointment date *", exact=True)).to_be_focused()
+    keyboard_click(page, appointments.get_by_role("button", name="Cancel", exact=True))
+    expect(add).to_be_focused()
+    edit = appointments.get_by_role("button", name=re.compile("^Edit appointment on ")).first
+    expect(edit).to_be_visible()
+    label = edit.get_attribute("aria-label")
+    keyboard_click(page, edit)
+    expect(appointments.get_by_label("Appointment date *", exact=True)).to_be_focused()
+    keyboard_click(page, appointments.get_by_role("button", name="Cancel", exact=True))
+    expect(appointments.get_by_role("button", name=label, exact=True)).to_be_focused()
+
+    keyboard_click(page, nav.get_by_role("button", name="Visit notes", exact=True))
+    notes = page.get_by_role("region", name="Visit Notes", exact=True)
+    add = notes.get_by_role("button", name="+ Add Visit Note", exact=True)
+    keyboard_click(page, add)
+    expect(notes.locator("form :focus")).to_have_count(1)
+    keyboard_click(page, notes.get_by_role("button", name="Cancel", exact=True))
+    expect(add).to_be_focused()
+    keyboard_click(page, add)
+    notes.get_by_label("Visit date *", exact=True).fill("2026-01-15")
+    notes.get_by_role("textbox", name="Reason for visit *", exact=True).fill("Keyboard draft check")
+    notes.get_by_role("textbox", name="Subjective", exact=True).fill("Fictional keyboard workflow check")
+    keyboard_click(page, notes.get_by_role("button", name="Save Visit Note", exact=True))
+    expect(notes.get_by_role("heading", name="Visit Notes", exact=True)).to_be_focused()
+    edit = notes.get_by_role("button", name="Edit visit note from 2026-01-15: Keyboard draft check", exact=True)
+    expect(edit).to_be_visible()
+    keyboard_click(page, edit)
+    expect(notes.get_by_label("Visit date *", exact=True)).to_be_focused()
+    keyboard_click(page, notes.get_by_role("button", name="Cancel", exact=True))
+    expect(edit).to_be_focused()
+    print("Vitals, vaccination, appointment and visit-note keyboard editor checks passed.")
+
+
+def check_reduced_motion_navigation(page):
+    page.evaluate("""() => {
+      window.__emrScrollCalls = [];
+      window.__emrOriginalScroll = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function(options) {
+        window.__emrScrollCalls.push(options?.behavior ?? 'auto');
+        return window.__emrOriginalScroll.call(this, options);
+      };
+    }""")
+    staff = page.get_by_role("navigation", name="Staff workspace")
+    keyboard_click(page, staff.get_by_role("button", name="Clinic Schedule", exact=True))
+    keyboard_click(page, page.get_by_role("button", name="Jordan Lee", exact=True))
+    expect(page.locator(".appointment-row-review")).to_be_focused()
+    keyboard_click(page, page.get_by_role("button", name=re.compile("^Open visit note #")).first)
+    expect(page.locator(".encounter-row-review .encounter-details > summary")).to_be_focused()
+    calls = page.evaluate("window.__emrScrollCalls")
+    assert len(calls) >= 2 and "smooth" not in calls, (
+        f"Reduced-motion navigation requested animated scrolling: {calls}"
+    )
+    page.evaluate("() => { Element.prototype.scrollIntoView = window.__emrOriginalScroll; }")
+    print("Routed appointment and visit-note scrolling respects reduced motion.")
+
+
 def run():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
@@ -187,6 +386,7 @@ def run():
         expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_focused(timeout=TIMEOUT)
         inspect_screen(page, "Staff dashboard")
         assert_exposed(page, "navigation", "Staff workspace")
+        check_forced_colors_navigation(page)
         assert_solid_contrast(page.get_by_role("navigation", name="Staff workspace")
                               .get_by_role("button", name="Dashboard", exact=True))
         keyboard_click(page, page.get_by_role("button", name=re.compile("Find a patient")))
@@ -201,6 +401,10 @@ def run():
         inspect_screen(page, "Staff chart")
         assert_exposed(page, "region", "Chart allergy status")
         assert_exposed(page, "navigation", "Patient chart sections")
+        check_inline_editors(page)
+        check_reference_enter(page)
+        check_additional_chart_editors(page)
+        check_reduced_motion_navigation(page)
         keyboard_click(page, page.get_by_role("button", name="Sign out", exact=True))
         expect(page.get_by_role("heading", name="Staff sign in", exact=True)).to_be_focused()
         keyboard_click(page, page.get_by_role("button", name="Switch to patient sign-in"))

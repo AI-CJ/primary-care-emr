@@ -126,15 +126,18 @@ def main() -> None:
         list(pool.map(download_package, resolved.items()))
     with ZipFile(OUTPUT / "backend.zip", "w", ZIP_DEFLATED) as archive:
         archive.writestr("backend/__init__.py", "")
-        archive.write(ROOT / "backend/data/icd10cm-fy2027.tsv", "backend/data/icd10cm-fy2027.tsv")
         archive.write(ROOT / "backend/data/seed-reference.json", "backend/data/seed-reference.json")
         for source in sorted((ROOT / "backend").glob("*.py")):
             if source.name not in {"__init__.py", "seed.py", "bootstrap_staff.py", "bootstrap_patient.py"}:
                 archive.write(source, f"backend/{source.name}")
     # Do not put the larger clinical vocabulary on the login critical path.
-    for name in ("rxnorm", "cvx", "mvx"):
+    reference_assets = {
+        "icd10": "icd10cm-fy2027.tsv", "rxnorm": "rxnorm.json",
+        "cvx": "cvx.json", "mvx": "mvx.json",
+    }
+    for name, filename in reference_assets.items():
         with ZipFile(OUTPUT / (name + ".zip"), "w", ZIP_DEFLATED) as archive:
-            archive.write(ROOT / "backend/data" / (name + ".json"), "backend/data/" + name + ".json")
+            archive.write(ROOT / "backend/data" / filename, "backend/data/" + filename)
     core_size = sum((OUTPUT / name).stat().st_size for name in CORE)
     package_size = sum((OUTPUT / package["file_name"]).stat().st_size
                        for package in resolved.values())
@@ -142,7 +145,7 @@ def main() -> None:
     catalog_size = (ROOT / "backend/data/icd10cm-fy2027.tsv").stat().st_size
     print(f"Runtime breakdown: core {core_size} bytes; wheels {package_size} bytes; "
           f"backend archive {archive_size} bytes; unpacked catalog {catalog_size} bytes.")
-    deferred = sum((OUTPUT / (name + ".zip")).stat().st_size for name in ("rxnorm", "cvx", "mvx"))
+    deferred = sum((OUTPUT / (name + ".zip")).stat().st_size for name in reference_assets)
     print(f"Deferred terminology assets: {deferred} bytes; excluded from initial workspace load.")
     size = sum(path.stat().st_size for path in OUTPUT.iterdir())
     print(f"Prepared {len(resolved)} pinned packages; runtime size {size / 1024 / 1024:.1f} MiB.")

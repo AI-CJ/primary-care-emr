@@ -9,12 +9,12 @@ import { formatPortalDate } from '../portalAppointments'
 import { formatWorkQueueCount } from '../workQueueCount'
 
 const queues = [
-  { id: 'requests', path: 'appointment-change-requests', title: 'Appointment requests', description: 'Review requested changes' },
-  { id: 'results', path: 'unreleased-lab-results', title: 'Results to release', description: 'Review results before release' },
-  { id: 'followups', path: 'open-follow-up-tasks', title: 'Open follow-ups', description: 'Review outstanding care tasks' },
-  { id: 'labs', path: 'pending-lab-orders', title: 'Pending labs', description: 'Track outstanding laboratory orders' },
-  { id: 'referrals', path: 'pending-referrals', title: 'Pending referrals', description: 'Review specialist referrals' },
-  { id: 'goals', path: 'active-care-goals', title: 'Active care goals', description: 'Review ongoing care plans' },
+  { id: 'requests', title: 'Appointment requests', description: 'Review requested changes' },
+  { id: 'results', title: 'Results to release', description: 'Review results before release' },
+  { id: 'followups', title: 'Open follow-ups', description: 'Review outstanding care tasks' },
+  { id: 'labs', title: 'Pending labs', description: 'Track outstanding laboratory orders' },
+  { id: 'referrals', title: 'Pending referrals', description: 'Review specialist referrals' },
+  { id: 'goals', title: 'Active care goals', description: 'Review ongoing care plans' },
 ] as const
 type QueueId = typeof queues[number]['id']
 type LoadState<T> = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: T }
@@ -31,7 +31,7 @@ export default function StaffDashboard({ onNavigate }: { onNavigate: (destinatio
   const [day, setDay] = useState(localDate)
   const [revision, setRevision] = useState(0)
   const [schedule, setSchedule] = useState<LoadState<DailyScheduleEntry[]>>({ status: 'loading' })
-  const [counts, setCounts] = useState<Partial<Record<QueueId, LoadState<number>>>>({})
+  const [counts, setCounts] = useState<LoadState<Record<QueueId, number>>>({ status: 'loading' })
   useEffect(() => {
     const controller = new AbortController()
     const signal = controller.signal
@@ -43,22 +43,28 @@ export default function StaffDashboard({ onNavigate }: { onNavigate: (destinatio
         if (!signal.aborted) setSchedule({ status: 'error', message: reason instanceof Error ? reason.message : 'Could not load schedule.' })
       }
     }
-    async function refreshQueue(queue: typeof queues[number]) {
+    async function refreshCounts() {
       try {
-        const data = await loadRows<unknown>('/worklists/' + queue.path, signal)
-        if (!signal.aborted) setCounts(current => ({ ...current, [queue.id]: { status: 'ready', data: data.length } }))
+        const response = await apiFetch(API_BASE_URL + '/worklists/counts', { signal })
+        if (!response.ok) throw new Error(await getApiErrorMessage(response))
+        const data: unknown = await response.json()
+        if (data === null || typeof data !== 'object' || !queues.every(queue => {
+          const count = (data as Record<string, unknown>)[queue.id]
+          return typeof count === 'number' && Number.isSafeInteger(count) && count >= 0
+        })) throw new Error('Unexpected work-queue summary.')
+        if (!signal.aborted) setCounts({ status: 'ready', data: data as Record<QueueId, number> })
       } catch (reason) {
-        if (!signal.aborted) setCounts(current => ({ ...current, [queue.id]: { status: 'error', message: reason instanceof Error ? reason.message : 'Could not load queue.' } }))
+        if (!signal.aborted) setCounts({ status: 'error', message: reason instanceof Error ? reason.message : 'Could not load work queues.' })
       }
     }
     void refreshSchedule()
-    queues.forEach(queue => { void refreshQueue(queue) })
+    void refreshCounts()
     return () => controller.abort()
   }, [day, revision])
 
   function refresh() {
     setSchedule({ status: 'loading' })
-    setCounts({})
+    setCounts({ status: 'loading' })
     setDay(localDate())
     setRevision(current => current + 1)
   }
@@ -85,13 +91,13 @@ export default function StaffDashboard({ onNavigate }: { onNavigate: (destinatio
     </section>
     <h2 className="dashboard-section-title">Work queues</h2>
     <p className="workspace-description">Select a queue to review its records and take action.</p>
+    {counts.status === 'error' && <p role="alert">Work-queue counts unavailable. {counts.message} Refresh the dashboard to retry.</p>}
     <div className="dashboard-queue-grid">
       {queues.map(queue => {
-        const count = counts[queue.id]
         return <button className="dashboard-queue" key={queue.id} type="button" onClick={() => onNavigate(queue.id)}>
           <span className="queue-heading"><span className="queue-icon"><WorkspaceIcon name={destinationIcon(queue.id)} size={22} /></span><span>{queue.title}</span><WorkspaceIcon name="arrow" size={15} /></span>
-          <strong className={count?.status === 'ready' ? 'queue-count' : 'queue-count queue-count-unavailable'}>{count?.status === 'ready' ? formatWorkQueueCount(count.data, queue.id === 'requests' ? 100 : undefined) : count?.status === 'error' ? 'Unavailable' : 'Loading…'}</strong>
-          <span>{count?.status === 'error' ? 'Open queue to retry' : queue.id === 'requests' && count?.status === 'ready' && count.data >= 100 ? 'At least 100 pending; review queue' : queue.description}</span>
+          <strong className={counts.status === 'ready' ? 'queue-count' : 'queue-count queue-count-unavailable'}>{counts.status === 'ready' ? formatWorkQueueCount(counts.data[queue.id]) : counts.status === 'error' ? 'Unavailable' : 'Loading…'}</strong>
+          <span>{counts.status === 'error' ? 'Open queue to review its records' : queue.description}</span>
         </button>
       })}
     </div>
