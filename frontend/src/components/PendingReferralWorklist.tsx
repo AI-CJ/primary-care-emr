@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { Referral } from '../types'
+import { useWorklistView } from '../useWorklistView'
+import WorklistControls from './WorklistControls'
 
 type PendingReferral = Referral & {
   patient_id: number
@@ -22,6 +24,8 @@ function PendingReferralWorklist({
   const [referrals, setReferrals] = useState<PendingReferral[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
+  const worklist = useWorklistView(referrals, referral =>
+    `${referral.patient_name} ${referral.specialty} ${referral.reason} ${referral.id}`)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -109,14 +113,14 @@ function PendingReferralWorklist({
         )}
         {referrals && (
           <>
-            <p className="schedule-count" role="status">
-              {referrals.length} pending referral{referrals.length === 1 ? '' : 's'}
-            </p>
-            {referrals.length === 0 ? (
-              <p className="empty-message">No pending referrals.</p>
+            <WorklistControls {...worklist.controls} label="Pending referrals"
+              searchLabel="Find a referral" placeholder="Patient, specialty or referral number"
+              summary={<>{referrals.length} pending referral{referrals.length === 1 ? '' : 's'}</>} />
+            {worklist.rows.length === 0 ? (
+              <p className="empty-message">{referrals.length ? 'No referrals match your search.' : 'No pending referrals.'}</p>
             ) : (
-              <ol className="pending-lab-list">
-                {referrals.map((referral) => (
+              <ol className="pending-lab-list" start={worklist.controls.start + 1} aria-label="Pending referrals">
+                {worklist.rows.map((referral) => (
                   <li className="pending-lab-row" key={referral.id}>
                     <div>
                       <div className="pending-lab-title">
@@ -149,6 +153,7 @@ function PendingReferralWorklist({
                         className="schedule-patient-link"
                         type="button"
                         onClick={() => onOpenPatient(referral.patient_id)}
+                        aria-label={'Open chart for ' + referral.patient_name}
                       >
                         {referral.patient_name}
                       </button>

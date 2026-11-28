@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, API_BASE_URL, getApiErrorMessage } from '../api'
 import type { CareGoal } from '../types'
+import { useWorklistView } from '../useWorklistView'
+import WorklistControls from './WorklistControls'
 
 type ActiveCareGoal = CareGoal & {
   patient_name: string
@@ -21,6 +23,8 @@ function ActiveCareGoalsWorklist({
   const [goals, setGoals] = useState<ActiveCareGoal[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
+  const worklist = useWorklistView(goals, goal =>
+    `${goal.patient_name} ${goal.title} ${goal.id}`)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -105,17 +109,15 @@ function ActiveCareGoalsWorklist({
         )}
         {goals && (
           <>
-            <p className="schedule-count" role="status">
-              {goals.length} active goal{goals.length === 1 ? '' : 's'}
-              {goals.some((goal) => goal.is_overdue) && (
-                <> {' · '}{goals.filter((goal) => goal.is_overdue).length} overdue</>
-              )}
-            </p>
-            {goals.length === 0 ? (
-              <p className="empty-message">No active care goals.</p>
+            <WorklistControls {...worklist.controls} label="Active care goals"
+              searchLabel="Find a care goal" placeholder="Patient, goal or goal number"
+              summary={<>{goals.length} active goal{goals.length === 1 ? '' : 's'}
+                {goals.some(goal => goal.is_overdue) && <> · {goals.filter(goal => goal.is_overdue).length} overdue</>}</>} />
+            {worklist.rows.length === 0 ? (
+              <p className="empty-message">{goals.length ? 'No care goals match your search.' : 'No active care goals.'}</p>
             ) : (
-              <ol className="pending-lab-list">
-                {goals.map((goal) => (
+              <ol className="pending-lab-list" start={worklist.controls.start + 1} aria-label="Active care goals">
+                {worklist.rows.map((goal) => (
                   <li className="pending-lab-row" key={goal.id}>
                     <div>
                       <div className="pending-lab-title">
