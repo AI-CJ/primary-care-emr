@@ -1,0 +1,11 @@
+.screen-loading {
+  width: 100%;
+  min-height: 12rem;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  color: var(--text);
+}
+
+.screen-loading p {
+  max-width: 65ch;
+  line-height: 1.6;
+}

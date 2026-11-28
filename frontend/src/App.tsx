@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { lazy, useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
 import './App.css'
 
@@ -9,44 +9,47 @@ import {
   getApiErrorMessage,
 } from './api'
 
-import AppointmentChangeRequestsWorklist from './components/AppointmentChangeRequestsWorklist'
-import ActiveCareGoalsWorklist from './components/ActiveCareGoalsWorklist'
-import AllergyList from './components/AllergyList'
-import ChartAllergyContext from './components/ChartAllergyContext'
-import AppointmentList from './components/AppointmentList'
-import CareGoals from './components/CareGoals'
-import ClinicSchedule from './components/ClinicSchedule'
 import { localDate } from './date'
-import PastAppointmentsWorklist from './components/PastAppointmentsWorklist'
-import EncounterList from './components/EncounterList'
-import FollowUpTasks from './components/FollowUpTasks'
-import OpenFollowUpTasksWorklist from './components/OpenFollowUpTasksWorklist'
-import MedicationList from './components/MedicationList'
-import Immunizations from './components/Immunizations'
-import PatientTimeline from './components/PatientTimeline'
-import ClinicalSnapshot from './components/ClinicalSnapshot'
-import PatientLifecycleControls from './components/PatientLifecycleControls'
-import PatientPortalPreview from './components/PatientPortalPreview'
-import PatientLabHistory from './components/PatientLabHistory'
-import { PatientBackground, ImagingHistory } from './components/ChartHistory'
-import PendingLabWorklist from './components/PendingLabWorklist'
-import UnreleasedLabResultsWorklist from './components/UnreleasedLabResultsWorklist'
-import PendingReferralWorklist from './components/PendingReferralWorklist'
-import PatientReferralHistory from './components/PatientReferralHistory'
-import PatientForm from './components/PatientForm'
-import ProblemList from './components/ProblemList'
-import VitalList from './components/VitalList'
 
 import type { Patient } from './types'
 import SignIn, { type SignedInAccount } from './components/SignIn'
-import PatientPortal from './components/PatientPortal'
-import AuditReview from './components/AuditReview'
 import WorkspaceNavigation from './components/WorkspaceNavigation'
-import StaffDashboard from './components/StaffDashboard'
 import { type StaffDestination, staffDestinationLabels } from './workspaceNavigation'
 import SectionNavigation, { type SectionOption } from './components/SectionNavigation'
 import './ClinicalWorkspace.css'
 import { BrandMark } from './components/BrandArtwork'
+import ScreenBoundary from './components/ScreenBoundary'
+
+const AppointmentChangeRequestsWorklist = lazy(() => import('./components/AppointmentChangeRequestsWorklist'))
+const ActiveCareGoalsWorklist = lazy(() => import('./components/ActiveCareGoalsWorklist'))
+const AllergyList = lazy(() => import('./components/AllergyList'))
+const ChartAllergyContext = lazy(() => import('./components/ChartAllergyContext'))
+const AppointmentList = lazy(() => import('./components/AppointmentList'))
+const CareGoals = lazy(() => import('./components/CareGoals'))
+const ClinicSchedule = lazy(() => import('./components/ClinicSchedule'))
+const PastAppointmentsWorklist = lazy(() => import('./components/PastAppointmentsWorklist'))
+const EncounterList = lazy(() => import('./components/EncounterList'))
+const FollowUpTasks = lazy(() => import('./components/FollowUpTasks'))
+const OpenFollowUpTasksWorklist = lazy(() => import('./components/OpenFollowUpTasksWorklist'))
+const MedicationList = lazy(() => import('./components/MedicationList'))
+const Immunizations = lazy(() => import('./components/Immunizations'))
+const PatientTimeline = lazy(() => import('./components/PatientTimeline'))
+const ClinicalSnapshot = lazy(() => import('./components/ClinicalSnapshot'))
+const PatientLifecycleControls = lazy(() => import('./components/PatientLifecycleControls'))
+const PatientPortalPreview = lazy(() => import('./components/PatientPortalPreview'))
+const PatientLabHistory = lazy(() => import('./components/PatientLabHistory'))
+const PendingLabWorklist = lazy(() => import('./components/PendingLabWorklist'))
+const UnreleasedLabResultsWorklist = lazy(() => import('./components/UnreleasedLabResultsWorklist'))
+const PendingReferralWorklist = lazy(() => import('./components/PendingReferralWorklist'))
+const PatientReferralHistory = lazy(() => import('./components/PatientReferralHistory'))
+const PatientForm = lazy(() => import('./components/PatientForm'))
+const ProblemList = lazy(() => import('./components/ProblemList'))
+const VitalList = lazy(() => import('./components/VitalList'))
+const PatientPortal = lazy(() => import('./components/PatientPortal'))
+const AuditReview = lazy(() => import('./components/AuditReview'))
+const StaffDashboard = lazy(() => import('./components/StaffDashboard'))
+const PatientBackground = lazy(() => import('./components/ChartHistory').then(module => ({ default: module.PatientBackground })))
+const ImagingHistory = lazy(() => import('./components/ChartHistory').then(module => ({ default: module.ImagingHistory })))
 
 
 const sexAtBirthLabels: Record<
@@ -99,7 +102,7 @@ const chartSections: SectionOption<ChartSection>[] = [
   { id: 'care', label: 'Care plan' },
 ]
 
-function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: RefObject<(() => boolean) | null> }) {
+function StaffApp({ isAdmin, signOutGuard, onReady }: { isAdmin: boolean; signOutGuard: RefObject<(() => boolean) | null>; onReady: () => void }) {
   const [search, setSearch] =
     useState('')
 
@@ -158,7 +161,8 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
   const [isSearching, setIsSearching] =
     useState(true)
 
-  useEffect(() => {
+  const focusRevealedWorkspace = useCallback(() => {
+    onReady()
     if (focusRequest.revision === 0) return
     const selector = focusRequest.target === 'section' ? '.chart-section-heading h2' : 'main h1'
     const heading = workspaceRef.current?.querySelector<HTMLElement>(selector)
@@ -166,7 +170,7 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
       heading.tabIndex = -1
       heading.focus()
     }
-  }, [focusRequest])
+  }, [focusRequest, onReady])
 
   function requestFocus(target: 'page' | 'section' = 'page') {
     setFocusRequest(current => ({ target, revision: current.revision + 1 }))
@@ -802,7 +806,11 @@ function StaffApp({ isAdmin, signOutGuard }: { isAdmin: boolean; signOutGuard: R
             if (form && !form.classList.contains('search-form')) dirtyForms.current.add(form)
           }
         }}>
-        {renderWorkspace()}
+        <ScreenBoundary
+          resetKey={`${destination}:${selectedPatient?.id ?? ''}:${chartSection}:${isAddingPatient}:${isEditingPatient}:${showPortalPreview}`}
+          onReady={focusRevealedWorkspace}>
+          {renderWorkspace()}
+        </ScreenBoundary>
       </div>
     </div>
   )
@@ -824,15 +832,17 @@ function App() {
     return () => window.removeEventListener('emr:session-ended', sessionEnded)
   }, [])
 
-  useEffect(() => {
+  const focusRevealedPage = useCallback(() => {
     if (!focusAfterTransition.current) return
-    focusAfterTransition.current = false
     const heading = document.querySelector<HTMLElement>('main h1')
     if (heading) {
+      focusAfterTransition.current = false
       heading.tabIndex = -1
       heading.focus()
     }
-  }, [account, signInMode])
+  }, [])
+
+  useEffect(() => { focusRevealedPage() }, [account, signInMode, focusRevealedPage])
 
   async function signOut() {
     if (signingOut) return
@@ -870,7 +880,9 @@ function App() {
           {signingOut ? 'Signing out…' : 'Sign out'}
         </button>
       </header>
-      {account.account_type === 'patient' ? <PatientPortal /> : <StaffApp isAdmin={account.staff_role === 'admin'} signOutGuard={signOutGuard} />}
+      {account.account_type === 'patient'
+        ? <ScreenBoundary resetKey="patient" onReady={focusRevealedPage}><PatientPortal /></ScreenBoundary>
+        : <StaffApp isAdmin={account.staff_role === 'admin'} signOutGuard={signOutGuard} onReady={focusRevealedPage} />}
     </>
   )
 }
