@@ -13,6 +13,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.database import engine
+from backend.dashboard import WorkQueueCounts, read_work_queue_counts
 from backend.icd10_catalog import RELEASE, search_codes
 from backend.clinical_reference import medication_values, reference_search
 from backend.immunizations import (ImmunizationCreate, ImmunizationRead, ImmunizationVoid,
@@ -610,6 +611,12 @@ def read_patient_lifecycle(
 def read_patient_timeline(patient_id: int, limit: int = Query(default=50, ge=1, le=200)):
     with Session(engine) as session:
         return list_patient_timeline(session, patient_id, limit=limit)
+
+
+@app.get("/worklists/counts", response_model=WorkQueueCounts)
+def read_dashboard_work_queue_counts():
+    with Session(engine) as session:
+        return read_work_queue_counts(session)
 
 
 @app.get(
