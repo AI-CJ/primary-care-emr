@@ -2,7 +2,7 @@
 
 Date: November 28, 2026
 
-Baseline: [`ef2a0a1`](https://github.com/AI-CJ/primary-care-emr/commit/ef2a0a149e4bd1890efe4cb4452e94ec1e138385). Reviewed application: [`c318f93`](https://github.com/AI-CJ/primary-care-emr/commit/c318f934b459862b4639769d72376634738733c6). Integration: [PR 93](https://github.com/AI-CJ/primary-care-emr/pull/93).
+Baseline: [`ef2a0a1`](https://github.com/AI-CJ/primary-care-emr/commit/ef2a0a149e4bd1890efe4cb4452e94ec1e138385). Measured optimization revision: [`c318f93`](https://github.com/AI-CJ/primary-care-emr/commit/c318f934b459862b4639769d72376634738733c6). Final integration, including the subsequent page-state correction: [PR 93](https://github.com/AI-CJ/primary-care-emr/pull/93).
 
 ## Scope and decisions
 
@@ -22,6 +22,8 @@ The first candidate also deferred the dashboard. In the controlled test that inc
 Open Follow-ups, Active Care Goals and Pending Referrals now search the entire returned queue before displaying six records per page. The server's priority/date ordering is retained. Search and page choice survive refresh; shortened queues clamp to a valid page. Clearing search returns focus to its input, and paging focuses the updated result summary during the React commit. This avoids a delayed animation-frame callback stealing focus from subsequent typing.
 
 The browser fixture contained 44 open follow-ups, 77 active goals and 40 pending referrals. Each showed six records initially; every record remained reachable. Tests searched for a record on the second page, refreshed while filtered, cleared empty results, opened the filtered chart and checked 320px layout and 44px controls. Search, result counts and pagination have explicit accessible names. Existing pending-lab filtering/pagination remains in place.
+
+Final review also corrected stored page state after a shorter refresh. A queue that shrinks from thirteen pages to two now stays on page two if later data grows again, instead of restoring an old out-of-range page request. Temporary loading preserves the position. This follow-up does not change the reported performance measurements, which identify their exact measured revision.
 
 ### Keyboard, motion and contrast
 

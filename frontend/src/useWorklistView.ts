@@ -4,11 +4,19 @@ import { filterWorklist, worklistPage } from './worklistView'
 export function useWorklistView<T>(records: readonly T[] | null, searchText: (row: T) => string) {
   const [query, setQuery] = useState('')
   const [requestedPage, setRequestedPage] = useState(0)
+  const [previousRecords, setPreviousRecords] = useState(records)
   const summaryRef = useRef<HTMLParagraphElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const focusPage = useRef(false)
   const matches = filterWorklist(records ?? [], query, searchText)
   const page = worklistPage(matches, requestedPage)
+
+  // Keep the stored position at the displayed page after a shorter refresh.
+  // Loading temporarily supplies null; it must not reset the user's position.
+  if (records !== previousRecords) {
+    setPreviousRecords(records)
+    if (records !== null && requestedPage !== page.page) setRequestedPage(page.page)
+  }
 
   useLayoutEffect(() => {
     if (!focusPage.current) return
